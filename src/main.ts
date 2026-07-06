@@ -1,114 +1,55 @@
-import {
-	Editor,
-	MarkdownView,
-	MarkdownFileInfo,
-	Modal,
-	Notice,
-	Plugin,
-} from 'obsidian';
-import {
-	DEFAULT_SETTINGS,
-	MyPluginSettings,
-	SampleSettingTab,
-} from './settings';
+import { Plugin, WorkspaceLeaf, Menu } from 'obsidian';
 
-// Remember to rename these classes and interfaces!
-
-export default class MyPlugin extends Plugin {
-	settings!: MyPluginSettings;
-
-	async onload() {
-		await this.loadSettings();
-
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (_evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			},
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (
-				editor: Editor,
-				_ctx: MarkdownView | MarkdownFileInfo,
-			) => {
-				editor.replaceSelection('Sample editor command');
-			},
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView =
-					this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-				return false;
-			},
-		});
-
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(activeDocument, 'click', (_evt: MouseEvent) => {
-			new Notice('Click');
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(
-			window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000),
-		);
-	}
-
-	onunload() {}
-
-	async loadSettings() {
-		this.settings = Object.assign(
-			{},
-			DEFAULT_SETTINGS,
-			(await this.loadData()) as Partial<MyPluginSettings>,
-		);
-	}
-
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
+// 1. 데이터 구조 정의: 그룹 정보와 탭 매핑을 기억할 공간
+interface TabGroupData {
+    name: string;
+    color: string;
+    leafIds: Set<string>; // 이 그룹에 속한 탭(Leaf)들의 고유 ID 모음
 }
 
-class SampleModal extends Modal {
-	onOpen() {
-		const { contentEl } = this;
-		contentEl.setText('Woah!');
-	}
+export default class ChromeTabGroupsPlugin extends Plugin {
+    // 메모리에 그룹 데이터를 임시 저장할 맵(Map)
+    groups: Map<string, TabGroupData> = new Map();
+    
+    async onload() {
+        console.log('🚀 Tab Groups 플러그인 로드됨 (수동 제어 모드)');
 
-	onClose() {
-		const { contentEl } = this;
-		contentEl.empty();
-	}
+        // 테스트용: 옵시디언이 켜질 때 가상의 '프로젝트' 그룹 하나를 메모리에 만들어 둡니다.
+        this.groups.set('group-1', {
+            name: '프로젝트',
+            color: '#ff5c5c', // 빨간색
+            leafIds: new Set()
+        });
+
+        // 2. 우클릭 메뉴(Context Menu) 이벤트 가로채기
+        // 사용자가 탭이나 화면 최상단을 우클릭할 때 발동합니다.
+        this.registerEvent(
+            this.app.workspace.on('layout-change', () => {
+                this.attachContextMenuToTabs();
+            })
+        );
+    }
+
+    attachContextMenuToTabs() {
+        const tabHeaders = document.querySelectorAll('.workspace-tab-header');
+        
+        tabHeaders.forEach((header) => {
+            const headerEl = header as HTMLElement;
+            
+            // 이미 우클릭 이벤트를 달아둔 탭은 건너뜁니다.
+            if (headerEl.dataset.hasGroupMenu === 'true') return;
+
+            // 탭에 마우스 우클릭(contextmenu) 이벤트 리스너 추가
+            headerEl.addEventListener('contextmenu', (e: MouseEvent) => {
+                // 기본 우클릭 메뉴에 우리가 만든 커스텀 메뉴를 추가로 띄우는 로직이 들어갈 곳
+                console.log('🖱️ 탭 우클릭 감지됨! 메뉴를 띄울 준비를 합니다.');
+            });
+
+            headerEl.dataset.hasGroupMenu = 'true';
+        });
+    }
+
+    onunload() {
+        console.log('🛑 Tab Groups 플러그인 종료됨');
+    }
 }
