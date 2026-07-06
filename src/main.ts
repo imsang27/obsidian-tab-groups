@@ -1,55 +1,106 @@
-import { Plugin, WorkspaceLeaf, Menu } from 'obsidian';
+import { Plugin, Modal, App, Setting, Menu, TAbstractFile, WorkspaceLeaf } from 'obsidian';
 
-// 1. 데이터 구조 정의: 그룹 정보와 탭 매핑을 기억할 공간
+// 메모리에 저장할 그룹 데이터 구조
 interface TabGroupData {
     name: string;
     color: string;
-    leafIds: Set<string>; // 이 그룹에 속한 탭(Leaf)들의 고유 ID 모음
+    leafIds: Set<string>;
 }
 
 export default class ChromeTabGroupsPlugin extends Plugin {
-    // 메모리에 그룹 데이터를 임시 저장할 맵(Map)
     groups: Map<string, TabGroupData> = new Map();
     
     async onload() {
-        console.log('🚀 Tab Groups 플러그인 로드됨 (수동 제어 모드)');
+        console.log('🚀 Tab Groups 플러그인 로드됨 (네이티브 우클릭 메뉴 연동)');
 
-        // 테스트용: 옵시디언이 켜질 때 가상의 '프로젝트' 그룹 하나를 메모리에 만들어 둡니다.
-        this.groups.set('group-1', {
-            name: '프로젝트',
-            color: '#ff5c5c', // 빨간색
-            leafIds: new Set()
-        });
-
-        // 2. 우클릭 메뉴(Context Menu) 이벤트 가로채기
-        // 사용자가 탭이나 화면 최상단을 우클릭할 때 발동합니다.
+        // 옵시디언의 기본 우클릭 메뉴(file-menu)가 열릴 때 발생하는 이벤트를 가로챕니다.
         this.registerEvent(
-            this.app.workspace.on('layout-change', () => {
-                this.attachContextMenuToTabs();
+            this.app.workspace.on('file-menu', (menu: Menu, file: TAbstractFile, source: string, leaf?: WorkspaceLeaf) => {
+                
+                // 메뉴가 열린 곳이 '탭 헤더(tab-header)'일 때만 우리 메뉴를 추가합니다.
+                if (source === 'tab-header' && leaf) {
+                    
+                    // 1. 기존 옵시디언 메뉴들과 섞이지 않게 구분선(Separator)을 하나 그어줍니다.
+                    menu.addSeparator();
+
+                    // 2. 맨 밑에 '새 그룹에 추가' 메뉴를 쏙 끼워 넣습니다.
+                    menu.addItem((item) => {
+                        item
+                            .setTitle('✨ 새 탭 그룹 만들기')
+                            .setIcon('folder-plus') // 예쁜 폴더 아이콘
+                            .onClick(() => {
+                                // 사용자가 클릭하면 팝업창을 띄웁니다.
+                                new CreateGroupModal(this.app, (groupName, color) => {
+                                    const groupId = 'group-' + Date.now();
+                                    this.groups.set(groupId, { name: groupName, color: color, leafIds: new Set() });
+                                    
+                                    // leaf 객체에 숨겨진 tabHeaderEl(탭 UI 요소)를 가져와서 색상을 칠합니다.
+                                    const headerEl = (leaf as any).tabHeaderEl as HTMLElement;
+                                    if (headerEl) {
+                                        headerEl.setAttribute('data-tab-group-id', groupId);
+                                        headerEl.style.borderTop = `3px solid ${color}`;
+                                        headerEl.style.backgroundColor = `${color}1A`;
+                                    }
+                                    
+                                    console.log(`✅ 그룹 생성 완료: [${groupName}] 색상: ${color}`);
+                                }).open();
+                            });
+                    });
+                }
             })
         );
     }
 
-    attachContextMenuToTabs() {
-        const tabHeaders = document.querySelectorAll('.workspace-tab-header');
-        
-        tabHeaders.forEach((header) => {
-            const headerEl = header as HTMLElement;
-            
-            // 이미 우클릭 이벤트를 달아둔 탭은 건너뜁니다.
-            if (headerEl.dataset.hasGroupMenu === 'true') return;
-
-            // 탭에 마우스 우클릭(contextmenu) 이벤트 리스너 추가
-            headerEl.addEventListener('contextmenu', (e: MouseEvent) => {
-                // 기본 우클릭 메뉴에 우리가 만든 커스텀 메뉴를 추가로 띄우는 로직이 들어갈 곳
-                console.log('🖱️ 탭 우클릭 감지됨! 메뉴를 띄울 준비를 합니다.');
-            });
-
-            headerEl.dataset.hasGroupMenu = 'true';
-        });
-    }
-
     onunload() {
         console.log('🛑 Tab Groups 플러그인 종료됨');
+    }
+}
+
+class CreateGroupModal extends Modal {
+    groupName: string = '';
+    groupColor: string = '#ff5c5c'; 
+    onSubmit: (groupName: string, color: string) => void;
+
+    constructor(app: App, onSubmit: (groupName: string, color: string) => void) {
+        super(app);
+        this.onSubmit = onSubmit;
+    }
+
+    onOpen() {
+        const { contentEl } = this;
+        contentEl.createEl('h2', { text: '새 탭 그룹 만들기' });
+
+        new Setting(contentEl)
+            .setName('그룹 이름 (Label)')
+            .setDesc('크롬 탭처럼 맨 앞에 표시될 이름을 적어주세요.')
+            .addText((text) =>
+                text.onChange((value) => {
+                    this.groupName = value;
+                })
+            );
+
+        new Setting(contentEl)
+            .setName('상징 색상 (Color)')
+            .addColorPicker((color) => 
+                color.setValue(this.groupColor).onChange((value) => {
+                    this.groupColor = value;
+                })
+            );
+
+        new Setting(contentEl)
+            .addButton((btn) =>
+                btn
+                    .setButtonText('그룹 생성')
+                    .setCta()
+                    .onClick(() => {
+                        this.close();
+                        this.onSubmit(this.groupName, this.groupColor);
+                    })
+            );
+    }
+
+    onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
     }
 }
