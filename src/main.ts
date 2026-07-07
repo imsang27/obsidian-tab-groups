@@ -1,18 +1,20 @@
 import { Plugin, Modal, App, Setting, Menu, TAbstractFile } from 'obsidian';
 
-// 1. 메모리에 저장할 그룹 데이터 구조
+// 1. 메모리에 저장할 그룹 데이터 구조 (orderIndex 추가 ✨)
 interface TabGroupData {
     name: string;
     color: string;
     leafIds: Set<string>;
+    orderIndex: number; // 그룹별 자동 정렬을 위한 순서 번호
 }
 
 export default class ChromeTabGroupsPlugin extends Plugin {
     groups: Map<string, TabGroupData> = new Map();
     lastClickedTabHeader: HTMLElement | null = null;
+    groupCounter: number = 1; // ✨ 그룹이 생성될 때마다 1씩 증가하여 고유 순서 부여
     
     async onload() {
-        console.log('🚀 Tab Groups 플러그인 로드됨 (기존 그룹 할당 기능 추가)');
+        console.log('🚀 Tab Groups 플러그인 로드됨 (자동 밀착 정렬 기능 추가)');
 
         this.registerDomEvent(window, 'contextmenu', (e: MouseEvent) => {
             const target = e.target as HTMLElement;
@@ -28,7 +30,7 @@ export default class ChromeTabGroupsPlugin extends Plugin {
 
                     menu.addSeparator();
 
-                    // 기능 1: 현재 탭이 이미 어떤 그룹에 속해 있다면 '그룹에서 제외' 버튼 띄우기
+                    // 기능 1: 그룹에서 제외
                     if (currentGroupId) {
                         menu.addItem((item) => {
                             item.setTitle('❌ 그룹에서 제외')
@@ -36,24 +38,27 @@ export default class ChromeTabGroupsPlugin extends Plugin {
                                     headerEl.removeAttribute('data-tab-group-id');
                                     headerEl.style.borderTop = '';
                                     headerEl.style.backgroundColor = '';
+                                    headerEl.style.order = ''; // ✨ 정렬 순서 초기화 (일반 탭 위치로 복귀)
                                     console.log('✅ 탭이 그룹에서 제외되었습니다.');
                                 });
                         });
                         menu.addSeparator();
                     }
 
-                    // 기능 2: 이미 만들어진 그룹들이 있다면, 하나씩 클릭할 수 있게 메뉴에 나열하기
+                    // 기능 2: 기존 그룹에 탭 추가
                     if (this.groups.size > 0) {
                         this.groups.forEach((groupData, groupId) => {
-                            // 이미 현재 탭이 속해있는 그룹은 메뉴에서 안 보이게 숨김 (깔끔한 UX)
                             if (groupId !== currentGroupId) {
                                 menu.addItem((item) => {
                                     item.setTitle(`🎨 [${groupData.name}] 그룹에 넣기`)
                                         .onClick(() => {
-                                            // 기존 그룹의 색상을 탭에 입혀줍니다
                                             headerEl.setAttribute('data-tab-group-id', groupId);
                                             headerEl.style.borderTop = `3px solid ${groupData.color}`;
                                             headerEl.style.backgroundColor = `${groupData.color}1A`;
+                                            
+                                            // ✨ 핵심: 해당 그룹의 고유 번호를 order 속성에 부여하여 탭들을 한곳으로 모음
+                                            headerEl.style.order = groupData.orderIndex.toString();
+                                            
                                             console.log(`✅ [${groupData.name}] 그룹에 탭 추가 완료!`);
                                         });
                                 });
@@ -62,20 +67,25 @@ export default class ChromeTabGroupsPlugin extends Plugin {
                         menu.addSeparator();
                     }
 
-                    // 기능 3: 완전히 새로운 그룹 만들기 (기존과 동일)
+                    // 기능 3: 완전히 새로운 그룹 만들기
                     menu.addItem((item) => {
                         item.setTitle('✨ 새 탭 그룹 만들기')
                             .setIcon('folder-plus')
                             .onClick(() => {
                                 new CreateGroupModal(this.app, (groupName, color) => {
                                     const groupId = 'group-' + Date.now();
-                                    this.groups.set(groupId, { name: groupName, color: color, leafIds: new Set() });
+                                    const orderIndex = this.groupCounter++; // ✨ 새 그룹에 고유 순서 번호 발급
+                                    
+                                    this.groups.set(groupId, { name: groupName, color: color, leafIds: new Set(), orderIndex: orderIndex });
                                     
                                     headerEl.setAttribute('data-tab-group-id', groupId);
                                     headerEl.style.borderTop = `3px solid ${color}`;
                                     headerEl.style.backgroundColor = `${color}1A`;
                                     
-                                    console.log(`✅ 새 그룹 생성 완료: [${groupName}]`);
+                                    // ✨ 핵심: 첫 번째 탭도 해당 그룹의 순서 구역으로 이동
+                                    headerEl.style.order = orderIndex.toString();
+                                    
+                                    console.log(`✅ 새 그룹 생성 완료: [${groupName}] (순서: ${orderIndex})`);
                                 }).open();
                             });
                     });
