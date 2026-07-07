@@ -1,6 +1,6 @@
-import { Plugin, Modal, App, Setting, Menu, TAbstractFile, WorkspaceLeaf } from 'obsidian';
+import { Plugin, Modal, App, Setting, Menu, TAbstractFile } from 'obsidian';
 
-// 메모리에 저장할 그룹 데이터 구조
+// 1. 메모리에 저장할 그룹 데이터 구조
 interface TabGroupData {
     name: string;
     color: string;
@@ -9,40 +9,73 @@ interface TabGroupData {
 
 export default class ChromeTabGroupsPlugin extends Plugin {
     groups: Map<string, TabGroupData> = new Map();
+    lastClickedTabHeader: HTMLElement | null = null;
     
     async onload() {
-        console.log('🚀 Tab Groups 플러그인 로드됨 (네이티브 우클릭 메뉴 연동)');
+        console.log('🚀 Tab Groups 플러그인 로드됨 (기존 그룹 할당 기능 추가)');
 
-        // 옵시디언의 기본 우클릭 메뉴(file-menu)가 열릴 때 발생하는 이벤트를 가로챕니다.
+        this.registerDomEvent(window, 'contextmenu', (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            this.lastClickedTabHeader = target.closest('.workspace-tab-header') as HTMLElement | null;
+        }, { capture: true });
+
         this.registerEvent(
-            this.app.workspace.on('file-menu', (menu: Menu, file: TAbstractFile, source: string, leaf?: WorkspaceLeaf) => {
+            this.app.workspace.on('file-menu', (menu: Menu, file: TAbstractFile, source: string) => {
                 
-                // 메뉴가 열린 곳이 '탭 헤더(tab-header)'일 때만 우리 메뉴를 추가합니다.
-                if (source === 'tab-header' && leaf) {
-                    
-                    // 1. 기존 옵시디언 메뉴들과 섞이지 않게 구분선(Separator)을 하나 그어줍니다.
+                if (source === 'tab-header' && this.lastClickedTabHeader) {
+                    const headerEl = this.lastClickedTabHeader; 
+                    const currentGroupId = headerEl.getAttribute('data-tab-group-id');
+
                     menu.addSeparator();
 
-                    // 2. 맨 밑에 '새 그룹에 추가' 메뉴를 쏙 끼워 넣습니다.
+                    // 기능 1: 현재 탭이 이미 어떤 그룹에 속해 있다면 '그룹에서 제외' 버튼 띄우기
+                    if (currentGroupId) {
+                        menu.addItem((item) => {
+                            item.setTitle('❌ 그룹에서 제외')
+                                .onClick(() => {
+                                    headerEl.removeAttribute('data-tab-group-id');
+                                    headerEl.style.borderTop = '';
+                                    headerEl.style.backgroundColor = '';
+                                    console.log('✅ 탭이 그룹에서 제외되었습니다.');
+                                });
+                        });
+                        menu.addSeparator();
+                    }
+
+                    // 기능 2: 이미 만들어진 그룹들이 있다면, 하나씩 클릭할 수 있게 메뉴에 나열하기
+                    if (this.groups.size > 0) {
+                        this.groups.forEach((groupData, groupId) => {
+                            // 이미 현재 탭이 속해있는 그룹은 메뉴에서 안 보이게 숨김 (깔끔한 UX)
+                            if (groupId !== currentGroupId) {
+                                menu.addItem((item) => {
+                                    item.setTitle(`🎨 [${groupData.name}] 그룹에 넣기`)
+                                        .onClick(() => {
+                                            // 기존 그룹의 색상을 탭에 입혀줍니다
+                                            headerEl.setAttribute('data-tab-group-id', groupId);
+                                            headerEl.style.borderTop = `3px solid ${groupData.color}`;
+                                            headerEl.style.backgroundColor = `${groupData.color}1A`;
+                                            console.log(`✅ [${groupData.name}] 그룹에 탭 추가 완료!`);
+                                        });
+                                });
+                            }
+                        });
+                        menu.addSeparator();
+                    }
+
+                    // 기능 3: 완전히 새로운 그룹 만들기 (기존과 동일)
                     menu.addItem((item) => {
-                        item
-                            .setTitle('✨ 새 탭 그룹 만들기')
-                            .setIcon('folder-plus') // 예쁜 폴더 아이콘
+                        item.setTitle('✨ 새 탭 그룹 만들기')
+                            .setIcon('folder-plus')
                             .onClick(() => {
-                                // 사용자가 클릭하면 팝업창을 띄웁니다.
                                 new CreateGroupModal(this.app, (groupName, color) => {
                                     const groupId = 'group-' + Date.now();
                                     this.groups.set(groupId, { name: groupName, color: color, leafIds: new Set() });
                                     
-                                    // leaf 객체에 숨겨진 tabHeaderEl(탭 UI 요소)를 가져와서 색상을 칠합니다.
-                                    const headerEl = (leaf as any).tabHeaderEl as HTMLElement;
-                                    if (headerEl) {
-                                        headerEl.setAttribute('data-tab-group-id', groupId);
-                                        headerEl.style.borderTop = `3px solid ${color}`;
-                                        headerEl.style.backgroundColor = `${color}1A`;
-                                    }
+                                    headerEl.setAttribute('data-tab-group-id', groupId);
+                                    headerEl.style.borderTop = `3px solid ${color}`;
+                                    headerEl.style.backgroundColor = `${color}1A`;
                                     
-                                    console.log(`✅ 그룹 생성 완료: [${groupName}] 색상: ${color}`);
+                                    console.log(`✅ 새 그룹 생성 완료: [${groupName}]`);
                                 }).open();
                             });
                     });
@@ -56,6 +89,9 @@ export default class ChromeTabGroupsPlugin extends Plugin {
     }
 }
 
+// ==========================================
+// 팝업창(Modal) UI 클래스
+// ==========================================
 class CreateGroupModal extends Modal {
     groupName: string = '';
     groupColor: string = '#ff5c5c'; 
@@ -71,36 +107,22 @@ class CreateGroupModal extends Modal {
         contentEl.createEl('h2', { text: '새 탭 그룹 만들기' });
 
         new Setting(contentEl)
-            .setName('그룹 이름 (Label)')
-            .setDesc('크롬 탭처럼 맨 앞에 표시될 이름을 적어주세요.')
-            .addText((text) =>
-                text.onChange((value) => {
-                    this.groupName = value;
-                })
-            );
+            .setName('그룹 이름')
+            .addText((text) => text.onChange((val) => this.groupName = val));
 
         new Setting(contentEl)
-            .setName('상징 색상 (Color)')
-            .addColorPicker((color) => 
-                color.setValue(this.groupColor).onChange((value) => {
-                    this.groupColor = value;
-                })
-            );
+            .setName('그룹 색상')
+            .addColorPicker((color) => color.setValue(this.groupColor).onChange((val) => this.groupColor = val));
 
         new Setting(contentEl)
-            .addButton((btn) =>
-                btn
-                    .setButtonText('그룹 생성')
-                    .setCta()
-                    .onClick(() => {
-                        this.close();
-                        this.onSubmit(this.groupName, this.groupColor);
-                    })
-            );
+            .addButton((btn) => btn.setButtonText('그룹 생성').setCta().onClick(() => {
+                this.close();
+                this.onSubmit(this.groupName, this.groupColor);
+            }));
     }
 
-    onClose() {
+    onClose() { 
         const { contentEl } = this;
-        contentEl.empty();
+        contentEl.empty(); 
     }
 }
