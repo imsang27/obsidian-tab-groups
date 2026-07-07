@@ -1,8 +1,71 @@
-/*
+/* ====================================================
+   Obsidian Tab Groups
+   ==================================================== */
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+body .tab-group-label {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-normal);
+    cursor: pointer;
+    transition: opacity 0.2s;
+    user-select: none;
+    
+    min-width: 24px;
+    min-height: 18px;
+    white-space: nowrap;
+    flex-shrink: 0 !important; 
+    
+    /* ✨ 라벨이 껍데기 밖으로 삐져나가지 못하게 단단히 묶어둠 */
+    max-width: 100%;
+    box-sizing: border-box;
+    z-index: 10;
+}
 
-If your plugin does not need CSS, delete this file.
+body .tab-group-label:hover {
+    opacity: 0.8;
+}
 
-*/
+body .tab-group-hidden {
+    display: none !important;
+    width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+}
+
+/* 제목, 아이콘, 닫기 버튼 증발 */
+body .workspace-tab-header.tab-group-collapsed-leader .workspace-tab-header-inner,
+body .workspace-tab-header.tab-group-collapsed-leader .workspace-tab-header-inner-close-button,
+body .workspace-tab-header.tab-group-collapsed-leader::before,
+body .workspace-tab-header.tab-group-collapsed-leader::after {
+    display: none !important;
+}
+
+/* ✨ 탭 껍데기가 라벨 크기를 완벽하게 포용하도록 동기화 */
+body .workspace-tab-header.tab-group-collapsed-leader {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 4px !important;
+    margin: 0 2px !important;
+    
+    /* 🚨 껍데기 크기를 알맹이(max-content)와 100% 동일하게 강제 고정 */
+    flex: 0 0 max-content !important;
+    width: max-content !important;
+    min-width: max-content !important;
+    max-width: none !important;
+    
+    /* 옵시디언 크기 격리 엔진 완전 해제 */
+    contain: none !important;
+    overflow: visible !important;
+    
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    z-index: 5 !important;
+}
