@@ -1,26 +1,37 @@
-import { Plugin, Modal, App, Setting, Menu, TAbstractFile } from 'obsidian';
+import { Plugin, Modal, App, Setting, Menu, TAbstractFile, WorkspaceLeaf } from 'obsidian';
 
-// 1. 메모리에 저장할 그룹 데이터 구조 (orderIndex 추가 ✨)
+// 메모리에 저장할 그룹 데이터 구조
 interface TabGroupData {
     name: string;
     color: string;
     leafIds: Set<string>;
-    orderIndex: number; // 그룹별 자동 정렬을 위한 순서 번호
 }
 
 export default class ChromeTabGroupsPlugin extends Plugin {
     groups: Map<string, TabGroupData> = new Map();
     lastClickedTabHeader: HTMLElement | null = null;
-    groupCounter: number = 1; // ✨ 그룹이 생성될 때마다 1씩 증가하여 고유 순서 부여
     
     async onload() {
-        console.log('🚀 Tab Groups 플러그인 로드됨 (자동 밀착 정렬 기능 추가)');
+        console.log('🚀 Tab Groups 로드됨 (단축키 이동 버그 완벽 수정본)');
 
         this.registerDomEvent(window, 'contextmenu', (e: MouseEvent) => {
             const target = e.target as HTMLElement;
             this.lastClickedTabHeader = target.closest('.workspace-tab-header') as HTMLElement | null;
         }, { capture: true });
 
+        // 탭 레이아웃 변경 시 정렬
+        this.registerEvent(
+            this.app.workspace.on('layout-change', () => {
+                this.enforcePhysicalSorting();
+            })
+        );
+        
+        // 드래그 종료 시 정렬
+        this.registerDomEvent(document, 'dragend', () => {
+            setTimeout(() => this.enforcePhysicalSorting(), 50);
+        });
+
+        // 우클릭 메뉴 등록
         this.registerEvent(
             this.app.workspace.on('file-menu', (menu: Menu, file: TAbstractFile, source: string) => {
                 
@@ -30,7 +41,6 @@ export default class ChromeTabGroupsPlugin extends Plugin {
 
                     menu.addSeparator();
 
-                    // 기능 1: 그룹에서 제외
                     if (currentGroupId) {
                         menu.addItem((item) => {
                             item.setTitle('❌ 그룹에서 제외')
@@ -38,14 +48,12 @@ export default class ChromeTabGroupsPlugin extends Plugin {
                                     headerEl.removeAttribute('data-tab-group-id');
                                     headerEl.style.borderTop = '';
                                     headerEl.style.backgroundColor = '';
-                                    headerEl.style.order = ''; // ✨ 정렬 순서 초기화 (일반 탭 위치로 복귀)
-                                    console.log('✅ 탭이 그룹에서 제외되었습니다.');
+                                    this.enforcePhysicalSorting(); 
                                 });
                         });
                         menu.addSeparator();
                     }
 
-                    // 기능 2: 기존 그룹에 탭 추가
                     if (this.groups.size > 0) {
                         this.groups.forEach((groupData, groupId) => {
                             if (groupId !== currentGroupId) {
@@ -55,11 +63,7 @@ export default class ChromeTabGroupsPlugin extends Plugin {
                                             headerEl.setAttribute('data-tab-group-id', groupId);
                                             headerEl.style.borderTop = `3px solid ${groupData.color}`;
                                             headerEl.style.backgroundColor = `${groupData.color}1A`;
-                                            
-                                            // ✨ 핵심: 해당 그룹의 고유 번호를 order 속성에 부여하여 탭들을 한곳으로 모음
-                                            headerEl.style.order = groupData.orderIndex.toString();
-                                            
-                                            console.log(`✅ [${groupData.name}] 그룹에 탭 추가 완료!`);
+                                            this.enforcePhysicalSorting(); 
                                         });
                                 });
                             }
@@ -67,31 +71,102 @@ export default class ChromeTabGroupsPlugin extends Plugin {
                         menu.addSeparator();
                     }
 
-                    // 기능 3: 완전히 새로운 그룹 만들기
                     menu.addItem((item) => {
                         item.setTitle('✨ 새 탭 그룹 만들기')
                             .setIcon('folder-plus')
                             .onClick(() => {
                                 new CreateGroupModal(this.app, (groupName, color) => {
                                     const groupId = 'group-' + Date.now();
-                                    const orderIndex = this.groupCounter++; // ✨ 새 그룹에 고유 순서 번호 발급
-                                    
-                                    this.groups.set(groupId, { name: groupName, color: color, leafIds: new Set(), orderIndex: orderIndex });
+                                    this.groups.set(groupId, { name: groupName, color: color, leafIds: new Set() });
                                     
                                     headerEl.setAttribute('data-tab-group-id', groupId);
                                     headerEl.style.borderTop = `3px solid ${color}`;
                                     headerEl.style.backgroundColor = `${color}1A`;
                                     
-                                    // ✨ 핵심: 첫 번째 탭도 해당 그룹의 순서 구역으로 이동
-                                    headerEl.style.order = orderIndex.toString();
-                                    
-                                    console.log(`✅ 새 그룹 생성 완료: [${groupName}] (순서: ${orderIndex})`);
+                                    this.enforcePhysicalSorting();
                                 }).open();
                             });
                     });
                 }
             })
         );
+    }
+
+    findLeafFromHeader(headerEl: Element): WorkspaceLeaf | null {
+        let targetLeaf: WorkspaceLeaf | null = null;
+        this.app.workspace.iterateAllLeaves((leaf) => {
+            if ((leaf as any).tabHeaderEl === headerEl) {
+                targetLeaf = leaf;
+            }
+        });
+        return targetLeaf;
+    }
+
+    enforcePhysicalSorting() {
+        const tabContainers = document.querySelectorAll('.workspace-tab-header-container-inner');
+
+        tabContainers.forEach(container => {
+            const headers = Array.from(container.children) as HTMLElement[];
+            
+            const newOrder: { type: string, id?: string, el?: HTMLElement }[] = [];
+            const groupBlocks = new Map<string, HTMLElement[]>();
+
+            headers.forEach(header => {
+                header.style.order = ''; 
+                const groupId = header.getAttribute('data-tab-group-id');
+                
+                if (groupId) {
+                    if (!groupBlocks.has(groupId)) {
+                        groupBlocks.set(groupId, []);
+                        newOrder.push({ type: 'group', id: groupId });
+                    }
+                    groupBlocks.get(groupId)!.push(header);
+                } else {
+                    newOrder.push({ type: 'single', el: header });
+                }
+            });
+
+            const sortedHeaders: HTMLElement[] = [];
+
+            // 1. 물리적 DOM 재조립
+            newOrder.forEach(item => {
+                if (item.type === 'single' && item.el) {
+                    container.appendChild(item.el);
+                    sortedHeaders.push(item.el); 
+                } else if (item.type === 'group' && item.id) {
+                    groupBlocks.get(item.id)!.forEach(el => {
+                        container.appendChild(el);
+                        sortedHeaders.push(el); 
+                    });
+                }
+            });
+
+            // 2. 내부 데이터 동기화
+            const sortedLeaves = sortedHeaders.map(h => this.findLeafFromHeader(h)).filter(l => l !== null);
+            if (sortedLeaves.length > 0) {
+                const parentGroup = (sortedLeaves[0] as any).parent;
+                
+                if (parentGroup && Array.isArray(parentGroup.children)) {
+                    if (parentGroup.children.length === sortedLeaves.length) {
+                        
+                        // ✨ [버그 수정] 현재 포커스된(활성화된) 탭을 찾습니다.
+                        const activeHeader = sortedHeaders.find(h => h.classList.contains('is-active'));
+                        const activeLeaf = activeHeader ? this.findLeafFromHeader(activeHeader) : null;
+
+                        // 배열 덮어쓰기
+                        parentGroup.children = sortedLeaves;
+
+                        // ✨ [버그 수정] 단축키 꼬임 방지: 활성화된 탭의 새 인덱스(번호표)를 시스템에 알려줍니다!
+                        if (activeLeaf && parentGroup.currentTab !== undefined) {
+                            const newActiveIndex = sortedLeaves.indexOf(activeLeaf);
+                            if (newActiveIndex !== -1) {
+                                parentGroup.currentTab = newActiveIndex;
+                            }
+                        }
+                    }
+                }
+            }
+        });
     }
 
     onunload() {
