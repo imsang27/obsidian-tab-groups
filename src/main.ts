@@ -445,6 +445,13 @@ export default class TabGroupsPlugin extends Plugin {
         labelEl.addEventListener('dragstart', (e) => {
             e.dataTransfer!.setData('application/x-tab-group-id', groupId);
             e.dataTransfer!.effectAllowed = 'move';
+            
+            // 반투명 잔상(Ghost)을 라벨이 아닌 '리더 탭' 모습으로 바꿔치기
+            const leaderTab = labelEl.nextElementSibling as HTMLElement;
+            if (leaderTab && leaderTab.classList.contains('workspace-tab-header')) {
+                e.dataTransfer!.setDragImage(leaderTab, 20, 15);
+            }
+
             setTimeout(() => labelEl.classList.add('is-dragging'), 0);
         });
         labelEl.addEventListener('dragend', () => {
