@@ -23,7 +23,8 @@ html body .tab-group-label {
     z-index: 10;
     
     /* 일렉트론 창 이동 영역에서 라벨 제외 */
-    -webkit-app-region: no-drag !important;
+    -webkit-app-region: no-drag !important; /* 창 이동은 막음 */
+    -webkit-user-drag: element !important;  /* 드래그는 가능 */
 }
 
 html body .tab-group-label:hover {
