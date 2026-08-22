@@ -1,8 +1,8 @@
 /* ====================================================
-   Obsidian Tab Groups (완전 독립 아키텍처 - 클릭 버그 수정)
+   Obsidian Tab Groups (완전 독립 아키텍처 v4)
    ==================================================== */
 
-body .tab-group-label {
+html body .tab-group-label {
     display: inline-flex !important;
     align-items: center;
     justify-content: center;
@@ -13,7 +13,7 @@ body .tab-group-label {
     font-weight: 600;
     color: var(--text-normal);
     cursor: pointer;
-    transition: opacity 0.2s;
+    transition: all 0.2s;
     user-select: none;
     
     min-width: 24px;
@@ -22,15 +22,32 @@ body .tab-group-label {
     flex-shrink: 0 !important; 
     z-index: 10;
     
-    /* ✨ 핵심: 일렉트론 창 이동 영역에서 라벨을 제외시켜 정상적인 버튼으로 작동하게 만듭니다. */
+    /* 일렉트론 창 이동 영역에서 라벨 제외 */
     -webkit-app-region: no-drag !important;
 }
 
-body .tab-group-label:hover {
+html body .tab-group-label:hover {
     opacity: 0.8;
 }
 
-/* 탭 숨김용 기본 클래스 (JS 인라인 스타일과 함께 작용) */
-body .tab-group-hidden {
+/* ✨ 라벨을 드래그 중일 때의 시각적 효과 */
+html body .tab-group-label.is-dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+}
+
+/* 최상위 강제 숨김 클래스 */
+html body div.app-container .workspace .workspace-tab-header.tab-group-hidden,
+html body div.app-container .workspace .workspace-tab-header.tab-group-hidden.is-active {
     display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    flex: 0 0 0 !important;
+    overflow: hidden !important;
 }
