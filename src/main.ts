@@ -42,7 +42,7 @@ export default class TabGroupsPlugin extends Plugin {
             })
         );
 
-        // 🎯 그룹 통째로 드래그 앤 드롭 이동 (DOM 물리적 이동 방식으로 수정)
+        // 🎯 그룹 통째로 드래그 앤 드롭 이동 (빈 공간 드롭 허용 및 안전성 강화)
         this.registerDomEvent(document, 'drop', (e: DragEvent) => {
             const draggedGroupId = e.dataTransfer?.getData('application/x-tab-group-id');
             if (!draggedGroupId) return;
@@ -51,13 +51,13 @@ export default class TabGroupsPlugin extends Plugin {
             e.stopPropagation();
 
             const target = e.target as HTMLElement;
+            const container = target.closest('.workspace-tab-header-container-inner');
             
-            // 1. 어디에 떨어졌는지 위치 파악
+            // 탭 바 밖으로 던지면 무시
+            if (!container) return;
+
             const dropHeader = target.closest('.workspace-tab-header') as HTMLElement;
             const dropLabel = target.closest('.tab-group-label') as HTMLElement;
-            const container = target.closest('.workspace-tab-header-container-inner');
-
-            if (!container) return;
 
             let insertBeforeNode: Node | null = null;
             if (dropHeader) {
@@ -66,23 +66,23 @@ export default class TabGroupsPlugin extends Plugin {
                 insertBeforeNode = dropLabel;
             }
 
-            if (!insertBeforeNode) return;
+            // 타겟이 자기 자신 그룹 내부면 무시
+            if (insertBeforeNode) {
+                const targetGroupId = (insertBeforeNode as HTMLElement).getAttribute('data-group-id') || (insertBeforeNode as HTMLElement).getAttribute('data-tab-group-id');
+                if (targetGroupId === draggedGroupId) return;
+            }
 
-            // 타겟이 드래그 중인 자기 자신 그룹 내부면 무시
-            const targetGroupId = (insertBeforeNode as HTMLElement).getAttribute('data-group-id') || (insertBeforeNode as HTMLElement).getAttribute('data-tab-group-id');
-            if (targetGroupId === draggedGroupId) return;
-
-            // 2. 화면(DOM)에서 드래그된 그룹의 모든 탭 요소를 찾음
             const allHeaders = Array.from(container.querySelectorAll('.workspace-tab-header')) as HTMLElement[];
             const draggedHeaders = allHeaders.filter(h => h.getAttribute('data-tab-group-id') === draggedGroupId);
 
-            // 3. 물리적 요소를 먼저 타겟 앞으로 통째로 옮겨버림
             if (draggedHeaders.length > 0) {
-                draggedHeaders.forEach(header => {
-                    container.insertBefore(header, insertBeforeNode);
-                });
+                // 💡 DocumentFragment를 사용해 탭들을 한 덩어리로 안전하게 포장해서 옮깁니다.
+                const fragment = document.createDocumentFragment();
+                draggedHeaders.forEach(header => fragment.appendChild(header));
                 
-                // 4. 위치가 바뀌었으니, 그에 맞춰 배열과 라벨을 다시 세팅
+                // insertBeforeNode가 null이면(빈 공간에 떨구면) 자동으로 맨 끝에 붙습니다!
+                container.insertBefore(fragment, insertBeforeNode);
+                
                 this.enforcePhysicalSorting();
             }
         });
