@@ -42,14 +42,7 @@ export default class TabGroupsPlugin extends Plugin {
             })
         );
 
-        // 드래그 앤 드롭 유지
-        this.registerDomEvent(document, 'dragover', (e: DragEvent) => {
-            if (e.dataTransfer?.types.includes('application/x-tab-group-id')) {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-            }
-        });
-
+        // 🎯 그룹 통째로 드래그 앤 드롭 이동 (DOM 물리적 이동 방식으로 수정)
         this.registerDomEvent(document, 'drop', (e: DragEvent) => {
             const draggedGroupId = e.dataTransfer?.getData('application/x-tab-group-id');
             if (!draggedGroupId) return;
@@ -58,43 +51,38 @@ export default class TabGroupsPlugin extends Plugin {
             e.stopPropagation();
 
             const target = e.target as HTMLElement;
+            
+            // 1. 어디에 떨어졌는지 위치 파악
             const dropHeader = target.closest('.workspace-tab-header') as HTMLElement;
             const dropLabel = target.closest('.tab-group-label') as HTMLElement;
+            const container = target.closest('.workspace-tab-header-container-inner');
 
-            let targetLeaf: WorkspaceLeaf | null = null;
+            if (!container) return;
+
+            let insertBeforeNode: Node | null = null;
             if (dropHeader) {
-                targetLeaf = this.findLeafFromHeader(dropHeader);
+                insertBeforeNode = dropHeader;
             } else if (dropLabel) {
-                const dropGroupId = dropLabel.getAttribute('data-group-id');
-                if (dropGroupId === draggedGroupId) return; 
-                this.app.workspace.iterateAllLeaves(leaf => {
-                    if (this.leafGroupMap.get(leaf) === dropGroupId && !targetLeaf) {
-                        targetLeaf = leaf;
-                    }
-                });
+                insertBeforeNode = dropLabel;
             }
 
-            if (!targetLeaf) return;
+            if (!insertBeforeNode) return;
 
-            const parentNode = (targetLeaf as any).parent;
-            if (!parentNode || !Array.isArray(parentNode.children)) return;
+            // 타겟이 드래그 중인 자기 자신 그룹 내부면 무시
+            const targetGroupId = (insertBeforeNode as HTMLElement).getAttribute('data-group-id') || (insertBeforeNode as HTMLElement).getAttribute('data-tab-group-id');
+            if (targetGroupId === draggedGroupId) return;
 
-            const currentChildren = parentNode.children as WorkspaceLeaf[];
-            const draggedLeaves = currentChildren.filter(l => this.leafGroupMap.get(l) === draggedGroupId);
-            if (draggedLeaves.length === 0) return;
+            // 2. 화면(DOM)에서 드래그된 그룹의 모든 탭 요소를 찾음
+            const allHeaders = Array.from(container.querySelectorAll('.workspace-tab-header')) as HTMLElement[];
+            const draggedHeaders = allHeaders.filter(h => h.getAttribute('data-tab-group-id') === draggedGroupId);
 
-            const newChildren = currentChildren.filter(l => this.leafGroupMap.get(l) !== draggedGroupId);
-            let insertIndex = newChildren.indexOf(targetLeaf);
-            
-            if (insertIndex !== -1) {
-                newChildren.splice(insertIndex, 0, ...draggedLeaves);
-                parentNode.children = newChildren;
+            // 3. 물리적 요소를 먼저 타겟 앞으로 통째로 옮겨버림
+            if (draggedHeaders.length > 0) {
+                draggedHeaders.forEach(header => {
+                    container.insertBefore(header, insertBeforeNode);
+                });
                 
-                const activeHeader = document.querySelector('.workspace-tab-header.is-active');
-                if (activeHeader) {
-                    const actLeaf = this.findLeafFromHeader(activeHeader);
-                    if (actLeaf) parentNode.currentTab = newChildren.indexOf(actLeaf);
-                }
+                // 4. 위치가 바뀌었으니, 그에 맞춰 배열과 라벨을 다시 세팅
                 this.enforcePhysicalSorting();
             }
         });
