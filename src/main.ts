@@ -18,7 +18,7 @@ export default class TabGroupsPlugin extends Plugin {
     globalObservers: Map<Element, MutationObserver> = new Map();
     
     async onload() {
-        console.log('🚀 Tab Groups 로드됨 (무조건 재생성 + 마이크로태스크 감시자 도입)');
+        console.log('🚀 Tab Groups 로드됨 (옵시디언 드래그 간섭 차단 캡처 이벤트 적용)');
 
         this.app.workspace.onLayoutReady(() => {
             this.setupObservers();
@@ -42,85 +42,11 @@ export default class TabGroupsPlugin extends Plugin {
             })
         );
 
-        // 🎯 그룹 통째로 드래그 앤 드롭 이동 (예전 방식 완벽 부활 + 빈 공간 인식)
-        this.registerDomEvent(document, 'drop', (e: DragEvent) => {
-            const draggedGroupId = e.dataTransfer?.getData('application/x-tab-group-id');
-            if (!draggedGroupId) return;
-
-            e.preventDefault();
-            e.stopPropagation();
-
-            const target = e.target as HTMLElement;
-            const dropHeader = target.closest('.workspace-tab-header') as HTMLElement;
-            const dropLabel = target.closest('.tab-group-label') as HTMLElement;
-            const container = target.closest('.workspace-tab-header-container-inner') as HTMLElement;
-
-            // 탭 바 밖으로 던지면 무시
-            if (!container) return; 
-
-            let targetLeaf: WorkspaceLeaf | null = null;
-            
-            // 1. 어디에 떨어졌는지 타겟 탭(Leaf) 찾기
-            if (dropHeader) {
-                targetLeaf = this.findLeafFromHeader(dropHeader);
-            } else if (dropLabel) {
-                const dropGroupId = dropLabel.getAttribute('data-group-id');
-                if (dropGroupId === draggedGroupId) return; 
-                this.app.workspace.iterateAllLeaves(leaf => {
-                    if (this.leafGroupMap.get(leaf) === dropGroupId && !targetLeaf) {
-                        targetLeaf = leaf; // 타겟 라벨 그룹의 첫 번째 탭
-                    }
-                });
-            } else {
-                // 💡 빈 공간에 떨구었을 때 (맨 마지막 탭을 타겟으로 지정)
-                const allHeaders = Array.from(container.querySelectorAll('.workspace-tab-header'));
-                if (allHeaders.length > 0) {
-                    targetLeaf = this.findLeafFromHeader(allHeaders[allHeaders.length - 1]);
-                }
-            }
-
-            if (!targetLeaf) return;
-
-            const parentNode = (targetLeaf as any).parent;
-            if (!parentNode || !Array.isArray(parentNode.children)) return;
-
-            const currentChildren = parentNode.children as WorkspaceLeaf[];
-            const draggedLeaves = currentChildren.filter(l => this.leafGroupMap.get(l) === draggedGroupId);
-            if (draggedLeaves.length === 0) return;
-
-            // 2. 예전의 안정적인 배열 조작 방식 적용!
-            const newChildren = currentChildren.filter(l => this.leafGroupMap.get(l) !== draggedGroupId);
-            let insertIndex = newChildren.indexOf(targetLeaf);
-            
-            // 타겟이 드래그 중인 자기 자신 그룹의 탭이라면 무시
-            if (insertIndex === -1 && dropHeader) return; 
-
-            // 빈 공간(마지막 탭 영역)에 떨군 거면 맨 끝 인덱스로 지정
-            if (!dropHeader && !dropLabel) {
-                insertIndex = newChildren.length;
-            }
-            
-            if (insertIndex !== -1) {
-                // 배열 사이에 드래그한 그룹 탭들 끼워넣기
-                newChildren.splice(insertIndex, 0, ...draggedLeaves);
-                parentNode.children = newChildren;
-                
-                // 💡 핵심: 꼬이지 않게 내부 배열 순서대로 화면(DOM) 탭을 물리적으로 싹 재배치
-                newChildren.forEach(leaf => {
-                    const header = (leaf as any).tabHeaderEl;
-                    if (header) container.appendChild(header); 
-                });
-                
-                const activeHeader = document.querySelector('.workspace-tab-header.is-active');
-                if (activeHeader) {
-                    const actLeaf = this.findLeafFromHeader(activeHeader);
-                    if (actLeaf) parentNode.currentTab = newChildren.indexOf(actLeaf);
-                }
-                
-                // 3. UI 강제 업데이트
-                this.enforcePhysicalSorting();
-            }
-        });
+        // ✨ 옵시디언이 이벤트를 씹어먹기 전에 우리가 먼저(capture: true) 낚아챕니다!
+        this.onDragOver = this.onDragOver.bind(this);
+        this.onDrop = this.onDrop.bind(this);
+        window.addEventListener('dragover', this.onDragOver, { capture: true });
+        window.addEventListener('drop', this.onDrop, { capture: true });
 
         // 스마트 펼침 유지
         this.registerEvent(
@@ -221,7 +147,87 @@ export default class TabGroupsPlugin extends Plugin {
         );
     }
 
-    // ✨ 화면을 모니터링하다가 훼손되면 즉각 0ms 만에 복구
+    // ✨ 옵시디언이 간섭하지 못하게 막는 강력한 드래그오버 핸들러
+    onDragOver(e: DragEvent) {
+        if (e.dataTransfer?.types.includes('application/x-tab-group-id')) {
+            e.preventDefault();
+            e.stopPropagation(); // 간섭 차단
+            e.dataTransfer.dropEffect = 'move';
+        }
+    }
+
+    // ✨ 그룹 통째로 드래그 앤 드롭 이동 (빈 공간 인식 포함)
+    onDrop(e: DragEvent) {
+        const draggedGroupId = e.dataTransfer?.getData('application/x-tab-group-id');
+        if (!draggedGroupId) return;
+
+        e.preventDefault();
+        e.stopPropagation(); // 옵시디언 드롭 이벤트 차단
+
+        const target = e.target as HTMLElement;
+        const dropHeader = target.closest('.workspace-tab-header') as HTMLElement;
+        const dropLabel = target.closest('.tab-group-label') as HTMLElement;
+        const container = target.closest('.workspace-tab-header-container-inner') as HTMLElement;
+
+        if (!container) return; 
+
+        let targetLeaf: WorkspaceLeaf | null = null;
+        
+        if (dropHeader) {
+            targetLeaf = this.findLeafFromHeader(dropHeader);
+        } else if (dropLabel) {
+            const dropGroupId = dropLabel.getAttribute('data-group-id');
+            if (dropGroupId === draggedGroupId) return; 
+            this.app.workspace.iterateAllLeaves(leaf => {
+                if (this.leafGroupMap.get(leaf) === dropGroupId && !targetLeaf) {
+                    targetLeaf = leaf; 
+                }
+            });
+        } else {
+            // 빈 공간 드롭
+            const allHeaders = Array.from(container.querySelectorAll('.workspace-tab-header'));
+            if (allHeaders.length > 0) {
+                targetLeaf = this.findLeafFromHeader(allHeaders[allHeaders.length - 1]);
+            }
+        }
+
+        if (!targetLeaf) return;
+
+        const parentNode = (targetLeaf as any).parent;
+        if (!parentNode || !Array.isArray(parentNode.children)) return;
+
+        const currentChildren = parentNode.children as WorkspaceLeaf[];
+        const draggedLeaves = currentChildren.filter(l => this.leafGroupMap.get(l) === draggedGroupId);
+        if (draggedLeaves.length === 0) return;
+
+        const newChildren = currentChildren.filter(l => this.leafGroupMap.get(l) !== draggedGroupId);
+        let insertIndex = newChildren.indexOf(targetLeaf);
+        
+        if (insertIndex === -1 && dropHeader) return; 
+
+        if (!dropHeader && !dropLabel) {
+            insertIndex = newChildren.length;
+        }
+        
+        if (insertIndex !== -1) {
+            newChildren.splice(insertIndex, 0, ...draggedLeaves);
+            parentNode.children = newChildren;
+            
+            newChildren.forEach(leaf => {
+                const header = (leaf as any).tabHeaderEl;
+                if (header) container.appendChild(header); 
+            });
+            
+            const activeHeader = document.querySelector('.workspace-tab-header.is-active');
+            if (activeHeader) {
+                const actLeaf = this.findLeafFromHeader(activeHeader);
+                if (actLeaf) parentNode.currentTab = newChildren.indexOf(actLeaf);
+            }
+            
+            this.enforcePhysicalSorting();
+        }
+    }
+
     setupObservers() {
         const containers = document.querySelectorAll('.workspace-tab-header-container-inner');
         containers.forEach(container => {
@@ -472,7 +478,7 @@ export default class TabGroupsPlugin extends Plugin {
             // 반투명 잔상(Ghost)을 라벨이 아닌 '리더 탭' 모습으로 바꿔치기
             const leaderTab = labelEl.nextElementSibling as HTMLElement;
             if (leaderTab && leaderTab.classList.contains('workspace-tab-header')) {
-                e.dataTransfer!.setDragImage(leaderTab, 20, 15);
+                e.dataTransfer!.setDragImage(leaderTab, 20, 15); 
             }
 
             setTimeout(() => labelEl.classList.add('is-dragging'), 0);
@@ -490,6 +496,11 @@ export default class TabGroupsPlugin extends Plugin {
 
     onunload() {
         console.log('🛑 Tab Groups 플러그인 종료됨');
+        
+        // ✨ 플러그인 꺼질 때 가로채기 이벤트 확실하게 제거
+        window.removeEventListener('dragover', this.onDragOver, { capture: true });
+        window.removeEventListener('drop', this.onDrop, { capture: true });
+        
         this.globalObservers.forEach(obs => obs.disconnect());
         document.querySelectorAll('.tab-group-label').forEach(el => el.remove());
     }
