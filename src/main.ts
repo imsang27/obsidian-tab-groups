@@ -42,7 +42,7 @@ export default class TabGroupsPlugin extends Plugin {
             })
         );
 
-        // 🎯 그룹 통째로 드래그 앤 드롭 이동 (빈 공간 드롭 허용 및 안전성 강화)
+        // 🎯 그룹 통째로 드래그 앤 드롭 이동 (예전 방식 완벽 부활 + 빈 공간 인식)
         this.registerDomEvent(document, 'drop', (e: DragEvent) => {
             const draggedGroupId = e.dataTransfer?.getData('application/x-tab-group-id');
             if (!draggedGroupId) return;
@@ -51,38 +51,73 @@ export default class TabGroupsPlugin extends Plugin {
             e.stopPropagation();
 
             const target = e.target as HTMLElement;
-            const container = target.closest('.workspace-tab-header-container-inner');
-            
-            // 탭 바 밖으로 던지면 무시
-            if (!container) return;
-
             const dropHeader = target.closest('.workspace-tab-header') as HTMLElement;
             const dropLabel = target.closest('.tab-group-label') as HTMLElement;
+            const container = target.closest('.workspace-tab-header-container-inner') as HTMLElement;
 
-            let insertBeforeNode: Node | null = null;
+            // 탭 바 밖으로 던지면 무시
+            if (!container) return; 
+
+            let targetLeaf: WorkspaceLeaf | null = null;
+            
+            // 1. 어디에 떨어졌는지 타겟 탭(Leaf) 찾기
             if (dropHeader) {
-                insertBeforeNode = dropHeader;
+                targetLeaf = this.findLeafFromHeader(dropHeader);
             } else if (dropLabel) {
-                insertBeforeNode = dropLabel;
+                const dropGroupId = dropLabel.getAttribute('data-group-id');
+                if (dropGroupId === draggedGroupId) return; 
+                this.app.workspace.iterateAllLeaves(leaf => {
+                    if (this.leafGroupMap.get(leaf) === dropGroupId && !targetLeaf) {
+                        targetLeaf = leaf; // 타겟 라벨 그룹의 첫 번째 탭
+                    }
+                });
+            } else {
+                // 💡 빈 공간에 떨구었을 때 (맨 마지막 탭을 타겟으로 지정)
+                const allHeaders = Array.from(container.querySelectorAll('.workspace-tab-header'));
+                if (allHeaders.length > 0) {
+                    targetLeaf = this.findLeafFromHeader(allHeaders[allHeaders.length - 1]);
+                }
             }
 
-            // 타겟이 자기 자신 그룹 내부면 무시
-            if (insertBeforeNode) {
-                const targetGroupId = (insertBeforeNode as HTMLElement).getAttribute('data-group-id') || (insertBeforeNode as HTMLElement).getAttribute('data-tab-group-id');
-                if (targetGroupId === draggedGroupId) return;
+            if (!targetLeaf) return;
+
+            const parentNode = (targetLeaf as any).parent;
+            if (!parentNode || !Array.isArray(parentNode.children)) return;
+
+            const currentChildren = parentNode.children as WorkspaceLeaf[];
+            const draggedLeaves = currentChildren.filter(l => this.leafGroupMap.get(l) === draggedGroupId);
+            if (draggedLeaves.length === 0) return;
+
+            // 2. 예전의 안정적인 배열 조작 방식 적용!
+            const newChildren = currentChildren.filter(l => this.leafGroupMap.get(l) !== draggedGroupId);
+            let insertIndex = newChildren.indexOf(targetLeaf);
+            
+            // 타겟이 드래그 중인 자기 자신 그룹의 탭이라면 무시
+            if (insertIndex === -1 && dropHeader) return; 
+
+            // 빈 공간(마지막 탭 영역)에 떨군 거면 맨 끝 인덱스로 지정
+            if (!dropHeader && !dropLabel) {
+                insertIndex = newChildren.length;
             }
-
-            const allHeaders = Array.from(container.querySelectorAll('.workspace-tab-header')) as HTMLElement[];
-            const draggedHeaders = allHeaders.filter(h => h.getAttribute('data-tab-group-id') === draggedGroupId);
-
-            if (draggedHeaders.length > 0) {
-                // 💡 DocumentFragment를 사용해 탭들을 한 덩어리로 안전하게 포장해서 옮깁니다.
-                const fragment = document.createDocumentFragment();
-                draggedHeaders.forEach(header => fragment.appendChild(header));
+            
+            if (insertIndex !== -1) {
+                // 배열 사이에 드래그한 그룹 탭들 끼워넣기
+                newChildren.splice(insertIndex, 0, ...draggedLeaves);
+                parentNode.children = newChildren;
                 
-                // insertBeforeNode가 null이면(빈 공간에 떨구면) 자동으로 맨 끝에 붙습니다!
-                container.insertBefore(fragment, insertBeforeNode);
+                // 💡 핵심: 꼬이지 않게 내부 배열 순서대로 화면(DOM) 탭을 물리적으로 싹 재배치
+                newChildren.forEach(leaf => {
+                    const header = (leaf as any).tabHeaderEl;
+                    if (header) container.appendChild(header); 
+                });
                 
+                const activeHeader = document.querySelector('.workspace-tab-header.is-active');
+                if (activeHeader) {
+                    const actLeaf = this.findLeafFromHeader(activeHeader);
+                    if (actLeaf) parentNode.currentTab = newChildren.indexOf(actLeaf);
+                }
+                
+                // 3. UI 강제 업데이트
                 this.enforcePhysicalSorting();
             }
         });
