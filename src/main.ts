@@ -182,6 +182,13 @@ export default class TabGroupsPlugin extends Plugin {
             const dropLabel = target.closest('.tab-group-label') as HTMLElement;
             const hoverTarget = dropHeader || dropLabel;
             
+            // 💡 1. 자기 자신(자신의 탭이나 라벨) 위에 드롭하는 엣지 케이스 완벽 차단
+            if (hoverGroupId === draggedGroupId) {
+                this.dropIndicatorEl.style.display = 'none';
+                this.currentDropTarget.node = null;
+                return;
+            }
+            
             this.dropIndicatorEl.style.display = 'block';
             
             if (hoverTarget) {
