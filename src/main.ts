@@ -158,19 +158,17 @@ export default class TabGroupsPlugin extends Plugin {
         );
     }
 
-// ✨ 정확한 Hitbox 판정 및 빈 공간(Outer 래퍼) 인식 개선
+    // ✨ 우측 빈 공간(Spacer) 셀렉터 완벽 대응
     onDragOver(e: DragEvent) {
         // 💡 보안 정책에 막히는 getData 대신, 아까 저장해둔 내장 메모리 변수 사용!
         const draggedGroupId = this.draggingGroupId;
         if (!draggedGroupId) return;
 
-        e.preventDefault();
-        e.stopPropagation(); // 간섭 차단
-        e.dataTransfer.dropEffect = 'move';
-
         const target = e.target as HTMLElement;
         
-        // 💡 1. 안쪽 래퍼가 아니라, 탭 바 전체를 덮는 '바깥 래퍼(Outer)'를 먼저 찾습니다!
+        // 💡 상혁님이 찾으신 결정적 단서! 마우스가 스페이서 위에 있는지 확인합니다.
+        const isSpacer = target.classList.contains('workspace-tab-header-spacer') || target.closest('.workspace-tab-header-spacer');
+        
         const wrapper = target.closest('.workspace-tab-header-container');
         if (!wrapper) {
             this.dropIndicatorEl.style.display = 'none';
@@ -178,9 +176,12 @@ export default class TabGroupsPlugin extends Plugin {
             return;
         }
 
-        // 💡 2. 바깥 래퍼를 찾았으면 그 안에서 Inner 래퍼를 끄집어냅니다. (빈 공간 커버 완료!)
         const container = wrapper.querySelector('.workspace-tab-header-container-inner') as HTMLElement;
         if (!container) return;
+
+        e.preventDefault();
+        e.stopPropagation(); 
+        e.dataTransfer!.dropEffect = 'move';
 
         if (this.dropIndicatorEl.parentElement !== container) {
             container.appendChild(this.dropIndicatorEl);
@@ -189,7 +190,9 @@ export default class TabGroupsPlugin extends Plugin {
 
         const dropHeader = target.closest('.workspace-tab-header') as HTMLElement;
         const dropLabel = target.closest('.tab-group-label') as HTMLElement;
-        const hoverTarget = dropHeader || dropLabel;
+        
+        // 💡 핵심: 스페이서 위라면 hoverTarget을 강제로 null로 만들어서 '빈 공간' 로직을 타게 합니다.
+        const hoverTarget = isSpacer ? null : (dropHeader || dropLabel);
         const containerRect = container.getBoundingClientRect();
 
         if (hoverTarget) {
@@ -237,11 +240,11 @@ export default class TabGroupsPlugin extends Plugin {
                 this.currentDropTarget = { node: hoverTarget, insertAfter: isAfter };
             }
         } else {
-            // 💡 3. 빈 공간(Outer 여백) 판정: 스페이서(+) 버튼 등을 무시하고 '진짜 탭/라벨'만 찾기
+            // 💡 3. 스페이서(빈 공간) 판정 로직 실행
             const visibleChildren = Array.from(container.children).filter(el => {
                 if (el === this.dropIndicatorEl) return false;
                 
-                // ✨ 핵심: 옵시디언의 투명 스페이서나 버튼을 무시하고, 탭과 라벨만 추려냅니다!
+                // 실제 탭과 라벨만 추려내기
                 if (!el.classList.contains('workspace-tab-header') && !el.classList.contains('tab-group-label')) {
                     return false;
                 }
