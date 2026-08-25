@@ -189,10 +189,28 @@ export default class TabGroupsPlugin extends Plugin {
                 const rect = hoverTarget.getBoundingClientRect();
                 const isAfter = e.clientX > rect.left + rect.width / 2;
                 
-                const containerRect = container.getBoundingClientRect();
-                const indicatorLeft = isAfter ? (rect.right - containerRect.left) : (rect.left - containerRect.left);
+            if (hoverGroupId) {
+                // 💡 2. 다른 그룹 위에 올렸을 때 -> 그룹을 하나의 덩어리로 보고 맨 앞/맨 뒤로만 안내
+                const groupEls = Array.from(container.children).filter(el =>
+                    el.getAttribute('data-tab-group-id') === hoverGroupId ||
+                    el.getAttribute('data-group-id') === hoverGroupId
+                );
                 
-                this.dropIndicatorEl.style.left = `${indicatorLeft}px`;
+                const firstEl = groupEls[0] as HTMLElement;
+                const lastEl = groupEls[groupEls.length - 1] as HTMLElement;
+
+                if (isAfter) {
+                    // 해당 그룹 전체의 뒤쪽으로
+                    const lastRect = lastEl.getBoundingClientRect();
+                    this.dropIndicatorEl.style.left = `${lastRect.right - containerRect.left}px`;
+                    this.currentDropTarget = { node: lastEl, insertAfter: true };
+                } else {
+                    // 해당 그룹 전체의 앞쪽으로
+                    const firstRect = firstEl.getBoundingClientRect();
+                    this.dropIndicatorEl.style.left = `${firstRect.left - containerRect.left}px`;
+                    this.currentDropTarget = { node: firstEl, insertAfter: false };
+                }
+            } else {
                 this.currentDropTarget = { node: hoverTarget, insertAfter: isAfter };
             } else {
                 // 💡 빈 공간 판정: 탭 바 맨 우측 빈 곳에 마우스가 있을 때
