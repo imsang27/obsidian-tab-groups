@@ -237,9 +237,15 @@ export default class TabGroupsPlugin extends Plugin {
                 this.currentDropTarget = { node: hoverTarget, insertAfter: isAfter };
             }
         } else {
-            // 💡 3. 빈 공간(Outer 여백) 판정: 숨겨진 탭과 자기 자신을 제외하고 '진짜' 마지막 요소 찾기
+            // 💡 3. 빈 공간(Outer 여백) 판정: 스페이서(+) 버튼 등을 무시하고 '진짜 탭/라벨'만 찾기
             const visibleChildren = Array.from(container.children).filter(el => {
                 if (el === this.dropIndicatorEl) return false;
+                
+                // ✨ 핵심: 옵시디언의 투명 스페이서나 버튼을 무시하고, 탭과 라벨만 추려냅니다!
+                if (!el.classList.contains('workspace-tab-header') && !el.classList.contains('tab-group-label')) {
+                    return false;
+                }
+
                 const style = window.getComputedStyle(el);
                 if (style.display === 'none') return false; 
                 
