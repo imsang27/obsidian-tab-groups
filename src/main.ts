@@ -20,6 +20,7 @@ export default class TabGroupsPlugin extends Plugin {
     // ✨ 드래그 피드백용 변수
     dropIndicatorEl: HTMLElement = document.createElement('div');
     currentDropTarget: { node: Node | null, insertAfter: boolean } = { node: null, insertAfter: false };
+    draggingGroupId: string | null = null; // 💡 요것 추가! (현재 쥐고 있는 그룹 기억용)
 
     async onload() {
         console.log('🚀 Tab Groups 로드됨 (옵시디언 드래그 간섭 차단 캡처 이벤트 적용)');
@@ -159,7 +160,8 @@ export default class TabGroupsPlugin extends Plugin {
 
 // ✨ 정확한 Hitbox 판정 및 인디케이터 렌더링
     onDragOver(e: DragEvent) {
-        if (e.dataTransfer?.types.includes('application/x-tab-group-id')) {
+        // 💡 보안 정책에 막히는 getData 대신, 아까 저장해둔 내장 메모리 변수 사용!
+        const draggedGroupId = this.draggingGroupId;
             e.preventDefault();
             e.stopPropagation(); // 간섭 차단
             e.dataTransfer.dropEffect = 'move';
@@ -236,7 +238,8 @@ export default class TabGroupsPlugin extends Plugin {
     
     // ✨ 인디케이터가 가리키는 정확한 위치로 드롭!
     onDrop(e: DragEvent) {
-        const draggedGroupId = e.dataTransfer?.getData('application/x-tab-group-id');
+        // 💡 Drop에서도 getData 대신 확실한 내장 메모리를 사용합니다.
+        const draggedGroupId = this.draggingGroupId;
         this.dropIndicatorEl.style.display = 'none'; // 드롭 시 인디케이터 숨김
         
         if (!draggedGroupId) return;
@@ -517,6 +520,8 @@ export default class TabGroupsPlugin extends Plugin {
             e.dataTransfer!.setData('application/x-tab-group-id', groupId);
             e.dataTransfer!.effectAllowed = 'move';
             
+            this.draggingGroupId = groupId; // 💡 드래그 시작! 무슨 그룹인지 내장 메모리에 꽉 저장!
+            
             // 반투명 잔상(Ghost)을 라벨이 아닌 '리더 탭' 모습으로 바꿔치기
             const leaderTab = labelEl.nextElementSibling as HTMLElement;
             if (leaderTab && leaderTab.classList.contains('workspace-tab-header')) {
@@ -527,6 +532,8 @@ export default class TabGroupsPlugin extends Plugin {
         });
         labelEl.addEventListener('dragend', () => {
             labelEl.classList.remove('is-dragging');
+            this.draggingGroupId = null; // 💡 마우스 놓으면 까먹기 (초기화)
+            this.dropIndicatorEl.style.display = 'none'; // 혹시 남을 인디케이터 찌꺼기 제거
         });
 
         labelEl.innerText = groupData.name;
