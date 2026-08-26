@@ -159,28 +159,32 @@ export default class TabGroupsPlugin extends Plugin {
         );
     }
 
-    // ✨ 옵시디언의 기본 dragenter 방어 시스템 무력화
+    // ✨ 1. 진입 단계부터 옵시디언의 방어막 완전 박살내기 (무력 제압)
     onDragEnter(e: DragEvent) {
         if (this.draggingGroupId) {
             e.preventDefault();
             e.stopPropagation();
+            // 🔥 핵심: 다른 그 어떤 옵시디언 코어 이벤트도 실행되지 못하도록 즉각 차단!
+            e.stopImmediatePropagation(); 
             if (e.dataTransfer) {
                 e.dataTransfer.dropEffect = 'move';
             }
         }
     }
-    
-    // ✨ 우측 빈 공간(Spacer) 셀렉터 완벽 대응
+
+    // ✨ 2. 빈 공간 타겟 그물망 넓히기
     onDragOver(e: DragEvent) {
         // 💡 보안 정책에 막히는 getData 대신, 아까 저장해둔 내장 메모리 변수 사용!
         const draggedGroupId = this.draggingGroupId;
         if (!draggedGroupId) return;
-        
+
         // 💡 핵심: 그룹 ID가 확인되면, DOM을 탐색하기도 전에 무조건 닥치고 옵시디언부터 차단!
         e.preventDefault();
-        e.stopPropagation(); 
+        e.stopPropagation();
+        // 🔥 여기서도 무력 제압 유지
+        e.stopImmediatePropagation();
         if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-        
+
         const target = e.target as HTMLElement;
         const wrapper = target.closest('.workspace-tab-header-container');
         if (!wrapper) {
@@ -191,14 +195,15 @@ export default class TabGroupsPlugin extends Plugin {
 
         const container = wrapper.querySelector('.workspace-tab-header-container-inner') as HTMLElement;
         if (!container) return;
-        
+
         if (this.dropIndicatorEl.parentElement !== container) {
             container.appendChild(this.dropIndicatorEl);
             container.style.position = 'relative'; // 절대 좌표 기준점 설정
         }
 
-        // 💡 1. 마우스가 'inner' 바깥쪽 우측 요소들 위에 있는지 확인
+        // 💡 3. 핵심 방어선 추가: 스페이서뿐만 아니라 그 밑바닥인 래퍼(container) 자체를 짚어도 빈 공간으로 인정!
         const isRightSpace = target.classList.contains('workspace-tab-header-spacer') || 
+                             target.classList.contains('workspace-tab-header-container') || // ✨ 그물망 추가!
                              target.closest('.workspace-tab-header-new-tab') ||
                              target.closest('.workspace-tab-header-tab-list') ||
                              target.closest('.sidebar-toggle-button');
@@ -280,8 +285,8 @@ export default class TabGroupsPlugin extends Plugin {
             }
         } else {
             // hoverTarget이 없는 빈 영역 (inner 안의 여백 등) 방어 코드
-                this.dropIndicatorEl.style.display = 'none';
-                this.currentDropTarget.node = null;
+            this.dropIndicatorEl.style.display = 'none';
+            this.currentDropTarget.node = null;
         }
     }
 
