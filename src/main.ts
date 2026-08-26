@@ -182,10 +182,6 @@ export default class TabGroupsPlugin extends Plugin {
         if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
         
         const target = e.target as HTMLElement;
-        
-        // 💡 마우스가 스페이서 위에 있는지 확인합니다.
-        const isSpacer = target.classList.contains('workspace-tab-header-spacer') || target.closest('.workspace-tab-header-spacer');
-        
         const wrapper = target.closest('.workspace-tab-header-container');
         if (!wrapper) {
             this.dropIndicatorEl.style.display = 'none';
@@ -201,12 +197,42 @@ export default class TabGroupsPlugin extends Plugin {
             container.style.position = 'relative'; // 절대 좌표 기준점 설정
         }
 
+        // 💡 1. 마우스가 'inner' 바깥쪽 우측 요소들 위에 있는지 확인
+        const isRightSpace = target.classList.contains('workspace-tab-header-spacer') || 
+                             target.closest('.workspace-tab-header-new-tab') ||
+                             target.closest('.workspace-tab-header-tab-list') ||
+                             target.closest('.sidebar-toggle-button');
+
+        const containerRect = container.getBoundingClientRect();
+
+        // 💡 2. 마우스가 우측 빈 공간 영역에 있다면 무조건 맨 끝으로 판정!
+        if (isRightSpace) {
+            const visibleChildren = Array.from(container.children).filter(el => {
+                if (el === this.dropIndicatorEl) return false;
+                if (!el.classList.contains('workspace-tab-header') && !el.classList.contains('tab-group-label')) return false;
+                if (window.getComputedStyle(el).display === 'none') return false; 
+                
+                const elGroupId = el.getAttribute('data-tab-group-id') || el.getAttribute('data-group-id');
+                if (elGroupId === draggedGroupId) return false; 
+                return true;
+            }) as HTMLElement[];
+
+            if (visibleChildren.length > 0) {
+                this.dropIndicatorEl.style.display = 'block';
+                const lastEl = visibleChildren[visibleChildren.length - 1];
+                const rect = lastEl.getBoundingClientRect();
+                
+                this.dropIndicatorEl.style.left = `${rect.right - containerRect.left + 5}px`;
+                this.currentDropTarget = { node: lastEl, insertAfter: true };
+            }
+            return; // 💡 더 이상 아래 로직 볼 필요 없이 여기서 끝!
+        }
+
+        // 💡 3. 마우스가 정상적인 탭/라벨 영역(inner 내부)에 있을 때의 기존 로직
         const dropHeader = target.closest('.workspace-tab-header') as HTMLElement;
         const dropLabel = target.closest('.tab-group-label') as HTMLElement;
-        
-        // 💡 핵심: 스페이서 위라면 hoverTarget을 강제로 null로 만들어서 '빈 공간' 로직을 타게 합니다.
-        const hoverTarget = isSpacer ? null : (dropHeader || dropLabel);
-        const containerRect = container.getBoundingClientRect();
+        // 💡 핵심: 스페이서 위라면 hoverTarget를 '빈 공간' 로직을 타게 합니다.
+        const hoverTarget = dropHeader || dropLabel;
 
         if (hoverTarget) {
             const hoverGroupId = hoverTarget.getAttribute('data-tab-group-id') || hoverTarget.getAttribute('data-group-id');
@@ -253,35 +279,9 @@ export default class TabGroupsPlugin extends Plugin {
                 this.currentDropTarget = { node: hoverTarget, insertAfter: isAfter };
             }
         } else {
-            // 💡 3. 스페이서(빈 공간) 판정 로직 실행
-            const visibleChildren = Array.from(container.children).filter(el => {
-                if (el === this.dropIndicatorEl) return false;
-                
-                // 실제 탭과 라벨만 추려내기
-                if (!el.classList.contains('workspace-tab-header') && !el.classList.contains('tab-group-label')) {
-                    return false;
-                }
-
-                const style = window.getComputedStyle(el);
-                if (style.display === 'none') return false; 
-                
-                const elGroupId = el.getAttribute('data-tab-group-id') || el.getAttribute('data-group-id');
-                if (elGroupId === draggedGroupId) return false; 
-                
-                return true;
-            }) as HTMLElement[];
-
-            if (visibleChildren.length > 0) {
-                this.dropIndicatorEl.style.display = 'block';
-                const lastEl = visibleChildren[visibleChildren.length - 1];
-                const rect = lastEl.getBoundingClientRect();
-                
-                this.dropIndicatorEl.style.left = `${rect.right - containerRect.left + 5}px`;
-                this.currentDropTarget = { node: lastEl, insertAfter: true };
-            } else {
+            // hoverTarget이 없는 빈 영역 (inner 안의 여백 등) 방어 코드
                 this.dropIndicatorEl.style.display = 'none';
                 this.currentDropTarget.node = null;
-            }
         }
     }
 
