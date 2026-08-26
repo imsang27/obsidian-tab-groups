@@ -50,6 +50,7 @@ export default class TabGroupsPlugin extends Plugin {
         // ✨ 옵시디언이 이벤트를 씹어먹기 전에 우리가 먼저(capture: true) 낚아챕니다!
         this.onDragOver = this.onDragOver.bind(this);
         this.onDrop = this.onDrop.bind(this);
+        window.addEventListener('dragenter', this.onDragEnter, { capture: true });
         window.addEventListener('dragover', this.onDragOver, { capture: true });
         window.addEventListener('drop', this.onDrop, { capture: true });
 
@@ -158,15 +159,31 @@ export default class TabGroupsPlugin extends Plugin {
         );
     }
 
+    // ✨ 옵시디언의 기본 dragenter 방어 시스템 무력화
+    onDragEnter(e: DragEvent) {
+        if (this.draggingGroupId) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.dataTransfer) {
+                e.dataTransfer.dropEffect = 'move';
+            }
+        }
+    }
+    
     // ✨ 우측 빈 공간(Spacer) 셀렉터 완벽 대응
     onDragOver(e: DragEvent) {
         // 💡 보안 정책에 막히는 getData 대신, 아까 저장해둔 내장 메모리 변수 사용!
         const draggedGroupId = this.draggingGroupId;
         if (!draggedGroupId) return;
-
+        
+        // 💡 핵심: 그룹 ID가 확인되면, DOM을 탐색하기도 전에 무조건 닥치고 옵시디언부터 차단!
+        e.preventDefault();
+        e.stopPropagation(); 
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+        
         const target = e.target as HTMLElement;
         
-        // 💡 상혁님이 찾으신 결정적 단서! 마우스가 스페이서 위에 있는지 확인합니다.
+        // 💡 마우스가 스페이서 위에 있는지 확인합니다.
         const isSpacer = target.classList.contains('workspace-tab-header-spacer') || target.closest('.workspace-tab-header-spacer');
         
         const wrapper = target.closest('.workspace-tab-header-container');
@@ -178,11 +195,7 @@ export default class TabGroupsPlugin extends Plugin {
 
         const container = wrapper.querySelector('.workspace-tab-header-container-inner') as HTMLElement;
         if (!container) return;
-
-        e.preventDefault();
-        e.stopPropagation(); 
-        e.dataTransfer!.dropEffect = 'move';
-
+        
         if (this.dropIndicatorEl.parentElement !== container) {
             container.appendChild(this.dropIndicatorEl);
             container.style.position = 'relative'; // 절대 좌표 기준점 설정
@@ -589,6 +602,7 @@ export default class TabGroupsPlugin extends Plugin {
         console.log('🛑 Tab Groups 플러그인 종료됨');
         
         // ✨ 플러그인 꺼질 때 가로채기 이벤트 확실하게 제거
+        window.removeEventListener('dragenter', this.onDragEnter, { capture: true });
         window.removeEventListener('dragover', this.onDragOver, { capture: true });
         window.removeEventListener('drop', this.onDrop, { capture: true });
         
