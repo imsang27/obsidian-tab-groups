@@ -66,3 +66,8 @@ html body .tab-group-drop-indicator {
     display: none; /* 평소엔 숨김 */
     transition: left 0.05s ease-out; /* 부드럽게 따라다니는 효과 */
 }
+
+/* ✨ 라벨 드래그 중일 때 스페이서의 창 이동(OS 가로채기) 기능 무력화 */
+body.is-dragging-tab-group .workspace-tab-header-spacer {
+    -webkit-app-region: no-drag !important;
+}

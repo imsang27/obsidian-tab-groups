@@ -581,6 +581,7 @@ export default class TabGroupsPlugin extends Plugin {
             e.dataTransfer!.effectAllowed = 'move';
             
             this.draggingGroupId = groupId; // 💡 드래그 시작! 무슨 그룹인지 내장 메모리에 꽉 저장!
+            document.body.classList.add('is-dragging-tab-group'); // 드래그 시작 시 body에 신호 보내기
 
             // 반투명 잔상(Ghost)을 라벨이 아닌 '리더 탭' 모습으로 바꿔치기
             const leaderTab = labelEl.nextElementSibling as HTMLElement;
@@ -594,6 +595,7 @@ export default class TabGroupsPlugin extends Plugin {
             labelEl.classList.remove('is-dragging');
             this.draggingGroupId = null; // 💡 마우스 놓으면 까먹기 (초기화)
             this.dropIndicatorEl.style.display = 'none'; // 혹시 남을 인디케이터 찌꺼기 제거
+            document.body.classList.remove('is-dragging-tab-group'); // 드래그 종료 시 body 신호 제거
         });
 
         labelEl.innerText = groupData.name;
