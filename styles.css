@@ -52,3 +52,22 @@ html body div.app-container .workspace .workspace-tab-header.tab-group-hidden.is
     flex: 0 0 0 !important;
     overflow: hidden !important;
 }
+
+/* ✨ 드래그 위치 시각적 가이드라인 (Drop Indicator) */
+html body .tab-group-drop-indicator {
+    position: absolute;
+    width: 3px;
+    background-color: var(--interactive-accent);
+    border-radius: 2px;
+    z-index: 999;
+    pointer-events: none; /* 마우스 이벤트 방해 금지 */
+    top: 6px;
+    bottom: 6px;
+    display: none; /* 평소엔 숨김 */
+    transition: left 0.05s ease-out; /* 부드럽게 따라다니는 효과 */
+}
+
+/* ✨ 라벨 드래그 중일 때 스페이서의 창 이동(OS 가로채기) 기능 무력화 */
+body.is-dragging-tab-group .workspace-tab-header-spacer {
+    -webkit-app-region: no-drag !important;
+}
