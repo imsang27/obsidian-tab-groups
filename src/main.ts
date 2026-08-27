@@ -225,9 +225,9 @@ export default class TabGroupsPlugin extends Plugin {
             if (visibleChildren.length > 0) {
                 this.dropIndicatorEl.style.display = 'block';
                 const lastEl = visibleChildren[visibleChildren.length - 1];
-                const rect = lastEl.getBoundingClientRect();
                 
-                this.dropIndicatorEl.style.left = `${rect.right - containerRect.left + 5}px`;
+                // 마지막 요소 뒤에 가짜 탭 삽입
+                container.insertBefore(this.dropIndicatorEl, lastEl.nextSibling);
                 this.currentDropTarget = { node: lastEl, insertAfter: true };
             }
             return; // 💡 더 이상 아래 로직 볼 필요 없이 여기서 끝!
@@ -265,22 +265,22 @@ export default class TabGroupsPlugin extends Plugin {
                 const firstEl = groupEls[0] as HTMLElement;
                 const lastEl = groupEls[groupEls.length - 1] as HTMLElement;
 
+                // ✨ 위치 계산(style.left) 대신 진짜로 요소를 탭 사이에 삽입하여 공간을 밀어냄!
                 if (isAfter) {
-                    // 해당 그룹 전체의 뒤쪽으로
-                    const lastRect = lastEl.getBoundingClientRect();
-                    this.dropIndicatorEl.style.left = `${lastRect.right - containerRect.left}px`;
+                    container.insertBefore(this.dropIndicatorEl, lastEl.nextSibling);
                     this.currentDropTarget = { node: lastEl, insertAfter: true };
                 } else {
-                    // 해당 그룹 전체의 앞쪽으로
-                    const firstRect = firstEl.getBoundingClientRect();
-                    this.dropIndicatorEl.style.left = `${firstRect.left - containerRect.left}px`;
+                    container.insertBefore(this.dropIndicatorEl, firstEl);
                     this.currentDropTarget = { node: firstEl, insertAfter: false };
                 }
             } else {
                 this.dropIndicatorEl.style.display = 'block';
-                this.dropIndicatorEl.style.left = isAfter
-                    ? `${rect.right - containerRect.left}px`
-                    : `${rect.left - containerRect.left}px`;
+                // ✨ 단일 탭/라벨 판정 시에도 마찬가지로 물리적 삽입!
+                if (isAfter) {
+                    container.insertBefore(this.dropIndicatorEl, hoverTarget.nextSibling);
+                } else {
+                    container.insertBefore(this.dropIndicatorEl, hoverTarget);
+                }
                 this.currentDropTarget = { node: hoverTarget, insertAfter: isAfter };
             }
         } else {
