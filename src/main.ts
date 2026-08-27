@@ -270,9 +270,18 @@ export default class TabGroupsPlugin extends Plugin {
 
         const target = e.target as HTMLElement;
         const wrapper = target.closest('.workspace-tab-header-container');
+        
+        // 💡 수정된 부분: 탭 바가 아니더라도, 에디터 본문(.workspace-leaf) 위라면 허용!
         if (!wrapper) {
             this.dropIndicatorEl.style.display = 'none';
             this.currentDropTarget.node = null;
+            
+            // 에디터 본문 영역인지 확인
+            const isEditorBody = target.closest('.workspace-leaf-content') || target.closest('.view-header');
+            if (isEditorBody) {
+                // 드롭을 허용하기 위해 preventDefault 유지 (아무것도 안 하고 통과시킴)
+                return;
+            }
             return;
         }
 
@@ -379,7 +388,7 @@ export default class TabGroupsPlugin extends Plugin {
         const draggedGroupId = this.draggingGroupId;
         this.dropIndicatorEl.style.display = 'none'; // 드롭 시 인디케이터 숨김
         
-        if (!draggedGroupId || !this.currentDropTarget.node) return;
+        if (!draggedGroupId) return; // 💡 조건 완화: currentDropTarget.node가 없어도 통과시킴
         
         e.preventDefault();
         e.stopPropagation(); // 옵시디언 드롭 이벤트 차단
@@ -388,7 +397,16 @@ export default class TabGroupsPlugin extends Plugin {
         
         // 💡 Drop에서도 바깥 래퍼를 기준으로 먼저 찾도록 수정
         const wrapper = target.closest('.workspace-tab-header-container');
-        if (!wrapper) return;
+        if (!wrapper) {
+            const dropLeafEl = target.closest('.workspace-leaf') as HTMLElement;
+            if (dropLeafEl) {
+                console.log(`🔥 [${draggedGroupId}] 그룹 새 창 분할 신호 포착!`);
+                // TODO: 여기에 옵시디언 화면 분할 및 탭 이동 로직이 들어갈 예정입니다.
+            }
+            return;
+        }
+        
+        if (!this.currentDropTarget.node) return; // 탭 바 내부 드롭인데 타겟이 없으면 취소
         
         const container = wrapper.querySelector('.workspace-tab-header-container-inner') as HTMLElement;
         if (!container) return;
