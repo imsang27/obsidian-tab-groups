@@ -495,47 +495,49 @@ export default class TabGroupsPlugin extends Plugin {
             }
         });
         
-        // 🔥 3. 만약 다른 창의 탭 바에 던졌다면? -> 해당 창으로 통째로 병합 이사!
-        if (targetParent && sourceParent && targetParent !== sourceParent) {
-            console.log(`🔥 [${draggedGroupId}] 그룹 -> 다른 창의 탭 바로 병합 이사합니다!`);
-            
-            draggedLeaves.forEach(leaf => {
-                const oldParent = (leaf as any).parent;
-                if (oldParent) oldParent.removeChild(leaf);
-                
-                // 새 창의 맨 끝에 탭들을 추가
-                targetParent.insertChild(targetParent.children.length, leaf);
-            });
-            
-            this.app.workspace.setActiveLeaf(draggedLeaves[0], { focus: true });
-            return; // 이사 완료했으니, 아래쪽의 기존 '같은 창 내 순서 변경' 로직은 무시하고 종료!
-        }
-        
         if (!this.currentDropTarget.node) return; // 탭 바 내부 드롭인데 타겟이 없으면 취소
         
         const container = wrapper.querySelector('.workspace-tab-header-container-inner') as HTMLElement;
         if (!container) return;
 
+        // 🔥 3. 다른 창으로 넘어왔다면 내부 소속(parent)부터 바꿔줍니다.
+        let isCrossWindow = false;
+        if (targetParent && sourceParent && targetParent !== sourceParent) {
+            isCrossWindow = true;
+            draggedLeaves.forEach(leaf => {
+                const oldParent = (leaf as any).parent;
+                if (oldParent) oldParent.removeChild(leaf);
+                // 임시로 맨 뒤에 넣지만, 바로 아래 DOM 정렬 후 제자리를 찾아가니 걱정 마세요!
+                targetParent.insertChild(targetParent.children.length, leaf);
+            });
+        }
+        
+        // 💡 4. 마우스가 가리켰던 정확한 위치(Hitbox) 계산
         const targetNode = this.currentDropTarget.node as HTMLElement;
         const isAfter = this.currentDropTarget.insertAfter;
-
-        // 드래그된 탭들(HTML 요소) 찾기
-        const allHeaders = Array.from(container.querySelectorAll('.workspace-tab-header')) as HTMLElement[];
-        const draggedHeaders = allHeaders.filter(h => h.getAttribute('data-tab-group-id') === draggedGroupId);
+        
+        // ✨ 핵심 수정: 같은 창이든 다른 창이든 무조건 인디케이터가 가리키는 위치로 DOM 요소를 꽂아 넣습니다.
+        // 다른 창에서 왔을 수도 있으니 document 전체에서 드래그된 탭들(HTML 요소) 찾기
+        const draggedHeaders = Array.from(document.querySelectorAll(`.workspace-tab-header[data-tab-group-id="${draggedGroupId}"]`)) as HTMLElement[];
         if (draggedHeaders.length === 0) return;
-
+        
         // 💡 1. 꼬임 방지를 위해 드래그된 요소들을 화면에서 잠깐 뽑아냄
         const fragment = document.createDocumentFragment();
         draggedHeaders.forEach(h => fragment.appendChild(h));
-
+        
         // 💡 2. Hitbox 판정 결과(앞/뒤)에 따라 정확한 위치에 꽂아 넣음
         if (isAfter) {
             container.insertBefore(fragment, targetNode.nextSibling);
         } else {
             container.insertBefore(fragment, targetNode);
         }
-
-        // 💡 3. 화면 순서가 완벽히 배치되었으니, 내부 배열(Leaf)을 정렬시킴
+        
+        // 타 창 이동이었다면 렌더링 갱신을 위해 포커스 이동
+        if (isCrossWindow && draggedLeaves.length > 0) {
+            this.app.workspace.setActiveLeaf(draggedLeaves[0], { focus: true });
+        }
+        
+        // 💡 5. DOM 화면 순서를 바탕으로 내부 데이터(children 배열)를 완벽하게 일치시킴
         this.enforcePhysicalSorting();
     }
 
