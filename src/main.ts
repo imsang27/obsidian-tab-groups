@@ -46,9 +46,11 @@ export default class TabGroupsPlugin extends Plugin {
         // ✨ 1. 플러그인이 켜질 때 가장 먼저 데이터를 불러옵니다.
         await this.loadSettings();
         
+        // 👇 옵시디언 화면이 다 켜진 직후에 실행되는 곳
         this.app.workspace.onLayoutReady(() => {
-            this.setupObservers();
-            this.enforcePhysicalSorting();
+            this.restoreTabsFromSettings(); // ✨ 탭 매핑 먼저 완벽하게 복구하고!
+            this.setupObservers();          // 감시자 달고
+            this.enforcePhysicalSorting();  // 화면 정렬!
         });
 
         this.registerDomEvent(window, 'contextmenu', (e: MouseEvent) => {
@@ -198,6 +200,20 @@ export default class TabGroupsPlugin extends Plugin {
                 color: g.color,
                 isCollapsed: g.isCollapsed,
                 leafIds: new Set() // 💡 탭 매핑(복구)은 다음 단계에서 구현!
+            });
+        });
+    }
+    
+    // ✨ 4. 저장된 데이터와 현재 열려있는 탭을 대조해서 복구하는 함수
+    restoreTabsFromSettings() {
+        this.settings.savedGroups.forEach(savedGroup => {
+            const tabs = savedGroup.savedTabs || [];
+            
+            this.app.workspace.iterateAllLeaves(leaf => {
+                // 💡 켜진 탭의 ID가 저장소에 기록되어 있다면 그 그룹으로 쏙!
+                if (tabs.includes((leaf as any).id)) {
+                    this.leafGroupMap.set(leaf, savedGroup.id);
+                }
             });
         });
     }
