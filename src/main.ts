@@ -138,8 +138,9 @@ export default class TabGroupsPlugin extends Plugin {
                     if (currentGroupId) {
                         menu.addItem((item) => {
                             item.setTitle('❌ 그룹에서 제외')
-                                .onClick(() => {
+                                .onClick(async () => { // 💡 async 추가
                                     this.leafGroupMap.delete(targetLeaf);
+                                    await this.saveSettings(); // ✨ 상태 변경 즉시 저장!
                                     this.enforcePhysicalSorting(); 
                                 });
                         });
@@ -151,9 +152,10 @@ export default class TabGroupsPlugin extends Plugin {
                             if (groupId !== currentGroupId) {
                                 menu.addItem((item) => {
                                     item.setTitle(`🎨 [${groupData.name}] 그룹에 넣기`)
-                                        .onClick(() => {
+                                        .onClick(async () => { // 💡 async 추가
                                             this.leafGroupMap.set(targetLeaf, groupId);
                                             groupData.isCollapsed = false; 
+                                            await this.saveSettings(); // ✨ 상태 변경 즉시 저장!
                                             this.enforcePhysicalSorting(); 
                                         });
                                 });
@@ -200,16 +202,25 @@ export default class TabGroupsPlugin extends Plugin {
         });
     }
     
-    // ✨ 3. 데이터 저장하기 함수 
+    // ✨ 3. 데이터 저장하기 함수 (고도화됨)
     async saveSettings() {
         this.settings.savedGroups = [];
+        
         this.groups.forEach((groupData, groupId) => {
+            // 💡 현재 이 그룹에 속한 탭(Leaf)들의 고유 ID를 수집합니다.
+            const tabsInGroup: string[] = [];
+            this.app.workspace.iterateAllLeaves(leaf => {
+                if (this.leafGroupMap.get(leaf) === groupId) {
+                    tabsInGroup.push((leaf as any).id);
+                }
+            });
+
             this.settings.savedGroups.push({
                 id: groupId,
                 name: groupData.name,
                 color: groupData.color,
                 isCollapsed: groupData.isCollapsed,
-                savedTabs: [] // 💡 여기도 다음 단계에서 추가 예정!
+                savedTabs: tabsInGroup // ✨ 수집한 탭 ID들을 저장소에 배열로 기록!
             });
         });
         await this.saveData(this.settings);
