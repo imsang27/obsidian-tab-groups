@@ -476,6 +476,41 @@ export default class TabGroupsPlugin extends Plugin {
             return;
         }
         
+        // 💡 1. 현재 드롭된 탭 바(wrapper)가 속한 부모 창(targetParent) 찾기
+        let targetParent: any = null;
+        this.app.workspace.iterateAllLeaves(leaf => {
+            // 이 탭 바 안에 존재하는 탭을 찾으면, 그 탭의 부모가 곧 타겟 창!
+            if (wrapper.contains((leaf as any).tabHeaderEl)) {
+                targetParent = (leaf as any).parent;
+            }
+        });
+        
+        // 💡 2. 내가 드래그하고 있는 탭들의 원래 부모 창(sourceParent) 찾기
+        const draggedLeaves: WorkspaceLeaf[] = [];
+        let sourceParent: any = null;
+        this.app.workspace.iterateAllLeaves(leaf => {
+            if (this.leafGroupMap.get(leaf) === draggedGroupId) {
+                draggedLeaves.push(leaf);
+                if (!sourceParent) sourceParent = (leaf as any).parent;
+            }
+        });
+        
+        // 🔥 3. 만약 다른 창의 탭 바에 던졌다면? -> 해당 창으로 통째로 병합 이사!
+        if (targetParent && sourceParent && targetParent !== sourceParent) {
+            console.log(`🔥 [${draggedGroupId}] 그룹 -> 다른 창의 탭 바로 병합 이사합니다!`);
+            
+            draggedLeaves.forEach(leaf => {
+                const oldParent = (leaf as any).parent;
+                if (oldParent) oldParent.removeChild(leaf);
+                
+                // 새 창의 맨 끝에 탭들을 추가
+                targetParent.insertChild(targetParent.children.length, leaf);
+            });
+            
+            this.app.workspace.setActiveLeaf(draggedLeaves[0], { focus: true });
+            return; // 이사 완료했으니, 아래쪽의 기존 '같은 창 내 순서 변경' 로직은 무시하고 종료!
+        }
+        
         if (!this.currentDropTarget.node) return; // 탭 바 내부 드롭인데 타겟이 없으면 취소
         
         const container = wrapper.querySelector('.workspace-tab-header-container-inner') as HTMLElement;
