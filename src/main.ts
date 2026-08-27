@@ -444,14 +444,15 @@ export default class TabGroupsPlugin extends Plugin {
                             // 💡 마법의 트릭: 더미(가짜) 탭을 하나 만들어서 옵시디언이 화면을 쪼개게 만듭니다.
                             const dummyLeaf = this.app.workspace.createLeafBySplit(targetLeaf, direction, before);
                             const newParent = (dummyLeaf as any).parent; // 새로 쪼개진 공간(부모) 확보!
-                            
+
                             // 💡 우리가 묶어둔 탭들을 새로 쪼개진 방으로 전부 이사시킵니다.
                             draggedLeaves.forEach(leaf => {
                                 const oldParent = (leaf as any).parent;
                                 if (oldParent) oldParent.removeChild(leaf); // 원래 방에서 빼고
-                                newParent.addChild(leaf); // 새 방에 넣기!
+                                // ✨ 핵심 수정: 옵시디언 내부 API에 맞춰 맨 뒤(children.length)에 탭을 밀어 넣습니다.
+                                newParent.insertChild(newParent.children.length, leaf); 
                             });
-                            
+
                             // 💡 임무를 다한 더미 탭은 조용히 암살(?)합니다.
                             dummyLeaf.detach();
                         } else {
@@ -461,7 +462,8 @@ export default class TabGroupsPlugin extends Plugin {
                                 const oldParent = (leaf as any).parent;
                                 if (oldParent !== targetParent) {
                                     if (oldParent) oldParent.removeChild(leaf);
-                                    targetParent.addChild(leaf);
+                                    // ✨ 여기도 동일하게 insertChild 사용!
+                                    targetParent.insertChild(targetParent.children.length, leaf);
                                 }
                             });
                         }
