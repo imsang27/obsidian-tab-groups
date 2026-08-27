@@ -397,11 +397,29 @@ export default class TabGroupsPlugin extends Plugin {
         
         // 💡 Drop에서도 바깥 래퍼를 기준으로 먼저 찾도록 수정
         const wrapper = target.closest('.workspace-tab-header-container');
+        // 💡 핵심 추가: 탭 바 밖(에디터 영역)에 떨어뜨렸을 때 새 창 분할 발동!
         if (!wrapper) {
             const dropLeafEl = target.closest('.workspace-leaf') as HTMLElement;
             if (dropLeafEl) {
-                console.log(`🔥 [${draggedGroupId}] 그룹 새 창 분할 신호 포착!`);
-                // TODO: 여기에 옵시디언 화면 분할 및 탭 이동 로직이 들어갈 예정입니다.
+                // 1. 드롭된 에디터 화면의 크기와 현재 마우스 좌표 계산
+                const rect = dropLeafEl.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // 2. 옵시디언처럼 화면을 가장자리 25% 영역으로 나눔 (판정 박스)
+                const edgeX = rect.width * 0.25;
+                const edgeY = rect.height * 0.25;
+
+                let splitDirection = 'center';                               // 기본값: 현재 창에 합치기
+                
+                // 3. 마우스 위치에 따른 상하좌우 분할 판정
+                if (x < edgeX) splitDirection = 'left';                      // 수직 분할 (왼쪽)
+                else if (x > rect.width - edgeX) splitDirection = 'right';   // 수직 분할 (오른쪽)
+                else if (y < edgeY) splitDirection = 'top';                  // 수평 분할 (위)
+                else if (y > rect.height - edgeY) splitDirection = 'bottom'; // 수평 분할 (아래)
+
+                console.log(`🔥 [${draggedGroupId}] 그룹 -> [${splitDirection}] 방향으로 네이티브 분할 신호 포착!`);
+                // TODO: 2단계에서 실제 옵시디언 분할 API (createLeafBySplit) 연동 예정
             }
             return;
         }
