@@ -1,5 +1,22 @@
 import { Plugin, Modal, App, Setting, Menu, TAbstractFile, WorkspaceLeaf } from 'obsidian';
 
+// ✨ 플러그인이 data.json에 저장할 데이터의 형태를 정의
+interface SavedGroupData {
+    id: string;
+    name: string;
+    color: string;
+    isCollapsed: boolean;
+    // 💡 나중에 탭(Leaf) 매핑 데이터를 저장할 배열
+    savedTabs: string[]; 
+}
+interface TabGroupsSettings {
+    savedGroups: SavedGroupData[];
+}
+
+const DEFAULT_SETTINGS: TabGroupsSettings = {
+    savedGroups: []
+}
+
 interface TabGroupData {
     name: string;
     color: string;
@@ -8,6 +25,7 @@ interface TabGroupData {
 }
 
 export default class TabGroupsPlugin extends Plugin {
+    settings: TabGroupsSettings; // ✨ 셋팅 변수 추가
     groups: Map<string, TabGroupData> = new Map();
     leafGroupMap: WeakMap<WorkspaceLeaf, string> = new WeakMap(); 
 
@@ -25,6 +43,9 @@ export default class TabGroupsPlugin extends Plugin {
     async onload() {
         console.log('🚀 Tab Groups 로드됨 (옵시디언 드래그 간섭 차단 캡처 이벤트 적용)');
 
+        // ✨ 1. 플러그인이 켜질 때 가장 먼저 데이터를 불러옵니다.
+        await this.loadSettings();
+        
         this.app.workspace.onLayoutReady(() => {
             this.setupObservers();
             this.enforcePhysicalSorting();
@@ -144,12 +165,17 @@ export default class TabGroupsPlugin extends Plugin {
                     menu.addItem((item) => {
                         item.setTitle('✨ 새 탭 그룹 만들기')
                             .setIcon('folder-plus')
+                            // 💡 콜백 함수에 async 추가!
                             .onClick(() => {
-                                new CreateGroupModal(this.app, (groupName, color) => {
+                                new CreateGroupModal(this.app, async (groupName, color) => {
                                     const groupId = 'group-' + Date.now();
                                     this.groups.set(groupId, { name: groupName, color: color, leafIds: new Set(), isCollapsed: false });
                                     
                                     this.leafGroupMap.set(targetLeaf, groupId);
+                                    
+                                    // ✨ 그룹이 생성되었으니 data.json에 즉시 저장!
+                                    await this.saveSettings();
+                                    
                                     this.enforcePhysicalSorting();
                                 }).open();
                             });
@@ -157,6 +183,36 @@ export default class TabGroupsPlugin extends Plugin {
                 }
             })
         );
+    }
+    
+    // ✨ 2. 데이터 불러오기 함수
+    async loadSettings() {
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+        
+        // 불러온 데이터를 바탕으로 this.groups 메모리에 세팅
+        this.settings.savedGroups.forEach(g => {
+            this.groups.set(g.id, {
+                name: g.name,
+                color: g.color,
+                isCollapsed: g.isCollapsed,
+                leafIds: new Set() // 💡 탭 매핑(복구)은 다음 단계에서 구현!
+            });
+        });
+    }
+    
+    // ✨ 3. 데이터 저장하기 함수 
+    async saveSettings() {
+        this.settings.savedGroups = [];
+        this.groups.forEach((groupData, groupId) => {
+            this.settings.savedGroups.push({
+                id: groupId,
+                name: groupData.name,
+                color: groupData.color,
+                isCollapsed: groupData.isCollapsed,
+                savedTabs: [] // 💡 여기도 다음 단계에서 추가 예정!
+            });
+        });
+        await this.saveData(this.settings);
     }
 
     // ✨ 1. 진입 단계부터 옵시디언의 방어막 완전 박살내기 (무력 제압)
