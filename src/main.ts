@@ -392,7 +392,7 @@ export default class TabGroupsPlugin extends Plugin {
         
         e.preventDefault();
         e.stopPropagation(); // 옵시디언 드롭 이벤트 차단
-
+        
         const target = e.target as HTMLElement;
         
         // 💡 Drop에서도 바깥 래퍼를 기준으로 먼저 찾도록 수정
@@ -409,17 +409,67 @@ export default class TabGroupsPlugin extends Plugin {
                 // 2. 옵시디언처럼 화면을 가장자리 25% 영역으로 나눔 (판정 박스)
                 const edgeX = rect.width * 0.25;
                 const edgeY = rect.height * 0.25;
-
-                let splitDirection = 'center';                               // 기본값: 현재 창에 합치기
+                
+                let splitDirection = 'center';                               // 기본값: 현재 창에 합치기 
                 
                 // 3. 마우스 위치에 따른 상하좌우 분할 판정
                 if (x < edgeX) splitDirection = 'left';                      // 수직 분할 (왼쪽)
                 else if (x > rect.width - edgeX) splitDirection = 'right';   // 수직 분할 (오른쪽)
                 else if (y < edgeY) splitDirection = 'top';                  // 수평 분할 (위)
                 else if (y > rect.height - edgeY) splitDirection = 'bottom'; // 수평 분할 (아래)
-
-                console.log(`🔥 [${draggedGroupId}] 그룹 -> [${splitDirection}] 방향으로 네이티브 분할 신호 포착!`);
-                // TODO: 2단계에서 실제 옵시디언 분할 API (createLeafBySplit) 연동 예정
+                
+                // 🔥 3. 진짜 창 분할 및 탭 덩어리 이동 API 시작!
+                let targetLeaf: WorkspaceLeaf | null = null;
+                this.app.workspace.iterateAllLeaves(leaf => {
+                    // 방금 마우스가 떨어진 에디터(.workspace-leaf)의 실제 객체를 찾습니다.
+                    if ((leaf as any).containerEl === dropLeafEl) {
+                        targetLeaf = leaf;
+                    }
+                });
+                
+                if (targetLeaf) {
+                    // 드래그 중인 우리 그룹의 탭들을 싹 다 긁어모읍니다.
+                    const draggedLeaves: WorkspaceLeaf[] = [];
+                    this.app.workspace.iterateAllLeaves(leaf => {
+                        if (this.leafGroupMap.get(leaf) === draggedGroupId) {
+                            draggedLeaves.push(leaf);
+                        }
+                    });
+                    
+                    if (draggedLeaves.length > 0) {
+                        if (splitDirection !== 'center') {
+                            const direction = (splitDirection === 'left' || splitDirection === 'right') ? 'vertical' : 'horizontal';
+                            const before = (splitDirection === 'left' || splitDirection === 'top');
+                            
+                            // 💡 마법의 트릭: 더미(가짜) 탭을 하나 만들어서 옵시디언이 화면을 쪼개게 만듭니다.
+                            const dummyLeaf = this.app.workspace.createLeafBySplit(targetLeaf, direction, before);
+                            const newParent = (dummyLeaf as any).parent; // 새로 쪼개진 공간(부모) 확보!
+                            
+                            // 💡 우리가 묶어둔 탭들을 새로 쪼개진 방으로 전부 이사시킵니다.
+                            draggedLeaves.forEach(leaf => {
+                                const oldParent = (leaf as any).parent;
+                                if (oldParent) oldParent.removeChild(leaf); // 원래 방에서 빼고
+                                newParent.addChild(leaf); // 새 방에 넣기!
+                            });
+                            
+                            // 💡 임무를 다한 더미 탭은 조용히 암살(?)합니다.
+                            dummyLeaf.detach();
+                        } else {
+                            // Center(가운데) 드롭 시: 해당 탭 그룹으로 모두 병합
+                            const targetParent = (targetLeaf as any).parent;
+                            draggedLeaves.forEach(leaf => {
+                                const oldParent = (leaf as any).parent;
+                                if (oldParent !== targetParent) {
+                                    if (oldParent) oldParent.removeChild(leaf);
+                                    targetParent.addChild(leaf);
+                                }
+                            });
+                        }
+                        
+                        // 이사가 끝난 후 첫 번째 탭에 포커스를 줘서 화면 렌더링을 갱신시킵니다!
+                        this.app.workspace.setActiveLeaf(draggedLeaves[0], { focus: true });
+                    }
+                }
             }
             return;
         }
