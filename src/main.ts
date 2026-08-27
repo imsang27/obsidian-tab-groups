@@ -500,23 +500,40 @@ export default class TabGroupsPlugin extends Plugin {
         const container = wrapper.querySelector('.workspace-tab-header-container-inner') as HTMLElement;
         if (!container) return;
 
-        // 🔥 3. 다른 창으로 넘어왔다면 내부 소속(parent)부터 바꿔줍니다.
+        // 💡 3. 마우스가 가리켰던 정확한 위치(Hitbox) 노드 찾기
+        const targetNode = this.currentDropTarget.node as HTMLElement;
+        const isAfter = this.currentDropTarget.insertAfter;
+
+        // ✨ 핵심 수정 1: 옵시디언 내부 배열에 직접 꽂아넣기 위해 타겟 탭의 정확한 번호(인덱스)를 미리 계산합니다!
+        let targetLeafIndex = -1;
+        if (targetParent) {
+            const targetLeaf = this.findLeafFromHeader(targetNode);
+            if (targetLeaf) {
+                const idx = targetParent.children.indexOf(targetLeaf);
+                if (idx !== -1) {
+                    targetLeafIndex = isAfter ? idx + 1 : idx;
+                }
+            }
+        }
+
+        // 🔥 4. 다른 창으로 넘어왔다면 내부 소속(parent)을 '계산된 정확한 위치'로 변경합니다.
         let isCrossWindow = false;
         if (targetParent && sourceParent && targetParent !== sourceParent) {
             isCrossWindow = true;
-            draggedLeaves.forEach(leaf => {
+            
+            // 번호를 못 찾은 아주 예외적인 경우에만 맨 뒤로 설정
+            if (targetLeafIndex === -1) targetLeafIndex = targetParent.children.length;
+
+            draggedLeaves.forEach((leaf, idx) => {
                 const oldParent = (leaf as any).parent;
                 if (oldParent) oldParent.removeChild(leaf);
-                // 임시로 맨 뒤에 넣지만, 바로 아래 DOM 정렬 후 제자리를 찾아가니 걱정 마세요!
-                targetParent.insertChild(targetParent.children.length, leaf);
+                
+                // ✨ 맨 뒤(children.length)가 아니라, 파란 줄이 가리키던 그 번호에 순서대로 삽입!
+                targetParent.insertChild(targetLeafIndex + idx, leaf);
             });
         }
         
-        // 💡 4. 마우스가 가리켰던 정확한 위치(Hitbox) 계산
-        const targetNode = this.currentDropTarget.node as HTMLElement;
-        const isAfter = this.currentDropTarget.insertAfter;
-        
-        // ✨ 핵심 수정: 같은 창이든 다른 창이든 무조건 인디케이터가 가리키는 위치로 DOM 요소를 꽂아 넣습니다.
+        // 💡 5. 같은 창이든 다른 창이든 DOM 요소를 타겟 위치로 이동
         // 다른 창에서 왔을 수도 있으니 document 전체에서 드래그된 탭들(HTML 요소) 찾기
         const draggedHeaders = Array.from(document.querySelectorAll(`.workspace-tab-header[data-tab-group-id="${draggedGroupId}"]`)) as HTMLElement[];
         if (draggedHeaders.length === 0) return;
@@ -532,13 +549,13 @@ export default class TabGroupsPlugin extends Plugin {
             container.insertBefore(fragment, targetNode);
         }
         
-        // 타 창 이동이었다면 렌더링 갱신을 위해 포커스 이동
+        // 💡 6. DOM 화면 순서를 바탕으로 내부 데이터(children 배열)를 완벽하게 2차 검증
+        this.enforcePhysicalSorting();
+
+        // ✨ 핵심 수정 2: 포커스 이동(화면 갱신)은 반드시 정렬 검증이 싹 다 끝난 '제일 마지막'에 실행합니다!
         if (isCrossWindow && draggedLeaves.length > 0) {
             this.app.workspace.setActiveLeaf(draggedLeaves[0], { focus: true });
         }
-        
-        // 💡 5. DOM 화면 순서를 바탕으로 내부 데이터(children 배열)를 완벽하게 일치시킴
-        this.enforcePhysicalSorting();
     }
 
     setupObservers() {
