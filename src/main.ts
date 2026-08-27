@@ -270,9 +270,18 @@ export default class TabGroupsPlugin extends Plugin {
 
         const target = e.target as HTMLElement;
         const wrapper = target.closest('.workspace-tab-header-container');
+        
+        // 💡 수정된 부분: 탭 바가 아니더라도, 에디터 본문(.workspace-leaf) 위라면 허용!
         if (!wrapper) {
             this.dropIndicatorEl.style.display = 'none';
             this.currentDropTarget.node = null;
+            
+            // 에디터 본문 영역인지 확인
+            const isEditorBody = target.closest('.workspace-leaf-content') || target.closest('.view-header');
+            if (isEditorBody) {
+                // 드롭을 허용하기 위해 preventDefault 유지 (아무것도 안 하고 통과시킴)
+                return;
+            }
             return;
         }
 
@@ -379,26 +388,152 @@ export default class TabGroupsPlugin extends Plugin {
         const draggedGroupId = this.draggingGroupId;
         this.dropIndicatorEl.style.display = 'none'; // 드롭 시 인디케이터 숨김
         
-        if (!draggedGroupId || !this.currentDropTarget.node) return;
+        if (!draggedGroupId) return; // 💡 조건 완화: currentDropTarget.node가 없어도 통과시킴
         
         e.preventDefault();
         e.stopPropagation(); // 옵시디언 드롭 이벤트 차단
-
+        
         const target = e.target as HTMLElement;
         
         // 💡 Drop에서도 바깥 래퍼를 기준으로 먼저 찾도록 수정
         const wrapper = target.closest('.workspace-tab-header-container');
-        if (!wrapper) return;
+        // 💡 핵심 추가: 탭 바 밖(에디터 영역)에 떨어뜨렸을 때 새 창 분할 발동!
+        if (!wrapper) {
+            const dropLeafEl = target.closest('.workspace-leaf') as HTMLElement;
+            if (dropLeafEl) {
+                // 1. 드롭된 에디터 화면의 크기와 현재 마우스 좌표 계산
+                const rect = dropLeafEl.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // 2. 옵시디언처럼 화면을 가장자리 25% 영역으로 나눔 (판정 박스)
+                const edgeX = rect.width * 0.25;
+                const edgeY = rect.height * 0.25;
+                
+                let splitDirection = 'center';                               // 기본값: 현재 창에 합치기 
+                
+                // 3. 마우스 위치에 따른 상하좌우 분할 판정
+                if (x < edgeX) splitDirection = 'left';                      // 수직 분할 (왼쪽)
+                else if (x > rect.width - edgeX) splitDirection = 'right';   // 수직 분할 (오른쪽)
+                else if (y < edgeY) splitDirection = 'top';                  // 수평 분할 (위)
+                else if (y > rect.height - edgeY) splitDirection = 'bottom'; // 수평 분할 (아래)
+                
+                // 🔥 3. 진짜 창 분할 및 탭 덩어리 이동 API 시작!
+                let targetLeaf: WorkspaceLeaf | null = null;
+                this.app.workspace.iterateAllLeaves(leaf => {
+                    // 방금 마우스가 떨어진 에디터(.workspace-leaf)의 실제 객체를 찾습니다.
+                    if ((leaf as any).containerEl === dropLeafEl) {
+                        targetLeaf = leaf;
+                    }
+                });
+                
+                if (targetLeaf) {
+                    // 드래그 중인 우리 그룹의 탭들을 싹 다 긁어모읍니다.
+                    const draggedLeaves: WorkspaceLeaf[] = [];
+                    this.app.workspace.iterateAllLeaves(leaf => {
+                        if (this.leafGroupMap.get(leaf) === draggedGroupId) {
+                            draggedLeaves.push(leaf);
+                        }
+                    });
+                    
+                    if (draggedLeaves.length > 0) {
+                        if (splitDirection !== 'center') {
+                            const direction = (splitDirection === 'left' || splitDirection === 'right') ? 'vertical' : 'horizontal';
+                            const before = (splitDirection === 'left' || splitDirection === 'top');
+                            
+                            // 💡 마법의 트릭: 더미(가짜) 탭을 하나 만들어서 옵시디언이 화면을 쪼개게 만듭니다.
+                            const dummyLeaf = this.app.workspace.createLeafBySplit(targetLeaf, direction, before);
+                            const newParent = (dummyLeaf as any).parent; // 새로 쪼개진 공간(부모) 확보!
+
+                            // 💡 우리가 묶어둔 탭들을 새로 쪼개진 방으로 전부 이사시킵니다.
+                            draggedLeaves.forEach(leaf => {
+                                const oldParent = (leaf as any).parent;
+                                if (oldParent) oldParent.removeChild(leaf); // 원래 방에서 빼고
+                                // ✨ 핵심 수정: 옵시디언 내부 API에 맞춰 맨 뒤(children.length)에 탭을 밀어 넣습니다.
+                                newParent.insertChild(newParent.children.length, leaf); 
+                            });
+
+                            // 💡 임무를 다한 더미 탭은 조용히 암살(?)합니다.
+                            dummyLeaf.detach();
+                        } else {
+                            // Center(가운데) 드롭 시: 해당 탭 그룹으로 모두 병합
+                            const targetParent = (targetLeaf as any).parent;
+                            draggedLeaves.forEach(leaf => {
+                                const oldParent = (leaf as any).parent;
+                                if (oldParent !== targetParent) {
+                                    if (oldParent) oldParent.removeChild(leaf);
+                                    // ✨ 여기도 동일하게 insertChild 사용!
+                                    targetParent.insertChild(targetParent.children.length, leaf);
+                                }
+                            });
+                        }
+                        
+                        // 이사가 끝난 후 첫 번째 탭에 포커스를 줘서 화면 렌더링을 갱신시킵니다!
+                        this.app.workspace.setActiveLeaf(draggedLeaves[0], { focus: true });
+                    }
+                }
+            }
+            return;
+        }
+        
+        // 💡 1. 현재 드롭된 탭 바(wrapper)가 속한 부모 창(targetParent) 찾기
+        let targetParent: any = null;
+        this.app.workspace.iterateAllLeaves(leaf => {
+            // 이 탭 바 안에 존재하는 탭을 찾으면, 그 탭의 부모가 곧 타겟 창!
+            if (wrapper.contains((leaf as any).tabHeaderEl)) {
+                targetParent = (leaf as any).parent;
+            }
+        });
+        
+        // 💡 2. 내가 드래그하고 있는 탭들의 원래 부모 창(sourceParent) 찾기
+        const draggedLeaves: WorkspaceLeaf[] = [];
+        let sourceParent: any = null;
+        this.app.workspace.iterateAllLeaves(leaf => {
+            if (this.leafGroupMap.get(leaf) === draggedGroupId) {
+                draggedLeaves.push(leaf);
+                if (!sourceParent) sourceParent = (leaf as any).parent;
+            }
+        });
+        
+        if (!this.currentDropTarget.node) return; // 탭 바 내부 드롭인데 타겟이 없으면 취소
         
         const container = wrapper.querySelector('.workspace-tab-header-container-inner') as HTMLElement;
         if (!container) return;
-
+        
         const targetNode = this.currentDropTarget.node as HTMLElement;
         const isAfter = this.currentDropTarget.insertAfter;
-
+        
+        // 🔥 3. 만약 다른 창의 탭 바에 던졌다면? -> 해당 창으로 통째로 병합 이사!
+        let isCrossWindow = false;
+        if (targetParent && sourceParent && targetParent !== sourceParent) {
+            isCrossWindow = true;
+            console.log(`🔥 [${draggedGroupId}] 그룹 -> 다른 창의 탭 바로 병합 이사합니다!`);
+            
+            // ✨ 타겟 위치 정확히 계산 (라벨 위에 떨궜으면 그 다음 요소인 탭을 기준으로 위치 탐색)
+            let actualTargetHeader = targetNode;
+            if (targetNode.classList.contains('tab-group-label')) {
+                actualTargetHeader = targetNode.nextElementSibling as HTMLElement || targetNode;
+            }
+            
+            let targetLeafIndex = targetParent.children.length; 
+            const targetLeaf = this.findLeafFromHeader(actualTargetHeader);
+            if (targetLeaf) {
+                const idx = targetParent.children.indexOf(targetLeaf);
+                if (idx !== -1) targetLeafIndex = isAfter ? idx + 1 : idx;
+            }
+            
+            draggedLeaves.forEach((leaf, idx) => {
+                const oldParent = (leaf as any).parent;
+                if (oldParent) oldParent.removeChild(leaf);
+                
+                // 새 창의 맨 끝이 아닌, 우리가 계산한 위치(targetLeafIndex)에 추가
+                targetParent.insertChild(targetLeafIndex + idx, leaf);
+            });
+        }
+        
         // 드래그된 탭들(HTML 요소) 찾기
-        const allHeaders = Array.from(container.querySelectorAll('.workspace-tab-header')) as HTMLElement[];
-        const draggedHeaders = allHeaders.filter(h => h.getAttribute('data-tab-group-id') === draggedGroupId);
+        // ✨ 수정: 다른 창에서 넘어올 수도 있으니 container 내부가 아닌 전체 문서(document)에서 찾습니다.
+        const draggedHeaders = Array.from(document.querySelectorAll(`.workspace-tab-header[data-tab-group-id="${draggedGroupId}"]`)) as HTMLElement[];
         if (draggedHeaders.length === 0) return;
 
         // 💡 1. 꼬임 방지를 위해 드래그된 요소들을 화면에서 잠깐 뽑아냄
@@ -414,6 +549,11 @@ export default class TabGroupsPlugin extends Plugin {
 
         // 💡 3. 화면 순서가 완벽히 배치되었으니, 내부 배열(Leaf)을 정렬시킴
         this.enforcePhysicalSorting();
+
+        // 타 창으로 이사했다면 첫 번째 탭에 포커스를 줘서 렌더링 강제 갱신
+        if (isCrossWindow && draggedLeaves.length > 0) {
+            this.app.workspace.setActiveLeaf(draggedLeaves[0], { focus: true });
+        }
     }
 
     setupObservers() {
