@@ -653,9 +653,10 @@ export default class TabGroupsPlugin extends Plugin {
             if (!groupData.isCollapsed) {
                 await this.shiftFocusOut(groupId);
             }
-
-            groupData.isCollapsed = !groupData.isCollapsed;
-            this.enforcePhysicalSorting(); 
+            
+            groupData.isCollapsed = !groupData.isCollapsed; // 1. 접힘 상태 반전 (열림 -> 닫힘 / 닫힘 -> 열림)
+            await this.saveSettings();                      // ✨ 2. 핵심 수정: 상태가 바뀌었으니 data.json에 즉시 덮어쓰기!
+            this.enforcePhysicalSorting();                  // 3. 화면 업데이트
         });
 
         labelEl.draggable = true;
