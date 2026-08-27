@@ -1,5 +1,22 @@
 import { Plugin, Modal, App, Setting, Menu, TAbstractFile, WorkspaceLeaf } from 'obsidian';
 
+// ✨ 플러그인이 data.json에 저장할 데이터의 형태를 정의
+interface SavedGroupData {
+    id: string;
+    name: string;
+    color: string;
+    isCollapsed: boolean;
+    // 💡 나중에 탭(Leaf) 매핑 데이터를 저장할 배열
+    savedTabs: string[]; 
+}
+interface TabGroupsSettings {
+    savedGroups: SavedGroupData[];
+}
+
+const DEFAULT_SETTINGS: TabGroupsSettings = {
+    savedGroups: []
+}
+
 interface TabGroupData {
     name: string;
     color: string;
@@ -8,6 +25,7 @@ interface TabGroupData {
 }
 
 export default class TabGroupsPlugin extends Plugin {
+    settings: TabGroupsSettings; // ✨ 셋팅 변수 추가
     groups: Map<string, TabGroupData> = new Map();
     leafGroupMap: WeakMap<WorkspaceLeaf, string> = new WeakMap(); 
 
@@ -25,9 +43,14 @@ export default class TabGroupsPlugin extends Plugin {
     async onload() {
         console.log('🚀 Tab Groups 로드됨 (옵시디언 드래그 간섭 차단 캡처 이벤트 적용)');
 
+        // ✨ 1. 플러그인이 켜질 때 가장 먼저 데이터를 불러옵니다.
+        await this.loadSettings();
+        
+        // 👇 옵시디언 화면이 다 켜진 직후에 실행되는 곳
         this.app.workspace.onLayoutReady(() => {
-            this.setupObservers();
-            this.enforcePhysicalSorting();
+            this.restoreTabsFromSettings(); // ✨ 탭 매핑 먼저 완벽하게 복구하고!
+            this.setupObservers();          // 감시자 달고
+            this.enforcePhysicalSorting();  // 화면 정렬!
         });
 
         this.registerDomEvent(window, 'contextmenu', (e: MouseEvent) => {
@@ -117,8 +140,9 @@ export default class TabGroupsPlugin extends Plugin {
                     if (currentGroupId) {
                         menu.addItem((item) => {
                             item.setTitle('❌ 그룹에서 제외')
-                                .onClick(() => {
+                                .onClick(async () => { // 💡 async 추가
                                     this.leafGroupMap.delete(targetLeaf);
+                                    await this.saveSettings(); // ✨ 상태 변경 즉시 저장!
                                     this.enforcePhysicalSorting(); 
                                 });
                         });
@@ -130,9 +154,10 @@ export default class TabGroupsPlugin extends Plugin {
                             if (groupId !== currentGroupId) {
                                 menu.addItem((item) => {
                                     item.setTitle(`🎨 [${groupData.name}] 그룹에 넣기`)
-                                        .onClick(() => {
+                                        .onClick(async () => { // 💡 async 추가
                                             this.leafGroupMap.set(targetLeaf, groupId);
                                             groupData.isCollapsed = false; 
+                                            await this.saveSettings(); // ✨ 상태 변경 즉시 저장!
                                             this.enforcePhysicalSorting(); 
                                         });
                                 });
@@ -144,12 +169,17 @@ export default class TabGroupsPlugin extends Plugin {
                     menu.addItem((item) => {
                         item.setTitle('✨ 새 탭 그룹 만들기')
                             .setIcon('folder-plus')
+                            // 💡 콜백 함수에 async 추가!
                             .onClick(() => {
-                                new CreateGroupModal(this.app, (groupName, color) => {
+                                new CreateGroupModal(this.app, async (groupName, color) => {
                                     const groupId = 'group-' + Date.now();
                                     this.groups.set(groupId, { name: groupName, color: color, leafIds: new Set(), isCollapsed: false });
                                     
                                     this.leafGroupMap.set(targetLeaf, groupId);
+                                    
+                                    // ✨ 그룹이 생성되었으니 data.json에 즉시 저장!
+                                    await this.saveSettings();
+                                    
                                     this.enforcePhysicalSorting();
                                 }).open();
                             });
@@ -157,6 +187,59 @@ export default class TabGroupsPlugin extends Plugin {
                 }
             })
         );
+    }
+    
+    // ✨ 2. 데이터 불러오기 함수
+    async loadSettings() {
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+        
+        // 불러온 데이터를 바탕으로 this.groups 메모리에 세팅
+        this.settings.savedGroups.forEach(g => {
+            this.groups.set(g.id, {
+                name: g.name,
+                color: g.color,
+                isCollapsed: g.isCollapsed,
+                leafIds: new Set() // 💡 탭 매핑(복구)은 다음 단계에서 구현!
+            });
+        });
+    }
+    
+    // ✨ 4. 저장된 데이터와 현재 열려있는 탭을 대조해서 복구하는 함수
+    restoreTabsFromSettings() {
+        this.settings.savedGroups.forEach(savedGroup => {
+            const tabs = savedGroup.savedTabs || [];
+            
+            this.app.workspace.iterateAllLeaves(leaf => {
+                // 💡 켜진 탭의 ID가 저장소에 기록되어 있다면 그 그룹으로 쏙!
+                if (tabs.includes((leaf as any).id)) {
+                    this.leafGroupMap.set(leaf, savedGroup.id);
+                }
+            });
+        });
+    }
+    
+    // ✨ 3. 데이터 저장하기 함수 (고도화됨)
+    async saveSettings() {
+        this.settings.savedGroups = [];
+        
+        this.groups.forEach((groupData, groupId) => {
+            // 💡 현재 이 그룹에 속한 탭(Leaf)들의 고유 ID를 수집합니다.
+            const tabsInGroup: string[] = [];
+            this.app.workspace.iterateAllLeaves(leaf => {
+                if (this.leafGroupMap.get(leaf) === groupId) {
+                    tabsInGroup.push((leaf as any).id);
+                }
+            });
+
+            this.settings.savedGroups.push({
+                id: groupId,
+                name: groupData.name,
+                color: groupData.color,
+                isCollapsed: groupData.isCollapsed,
+                savedTabs: tabsInGroup // ✨ 수집한 탭 ID들을 저장소에 배열로 기록!
+            });
+        });
+        await this.saveData(this.settings);
     }
 
     // ✨ 1. 진입 단계부터 옵시디언의 방어막 완전 박살내기 (무력 제압)
@@ -570,9 +653,10 @@ export default class TabGroupsPlugin extends Plugin {
             if (!groupData.isCollapsed) {
                 await this.shiftFocusOut(groupId);
             }
-
-            groupData.isCollapsed = !groupData.isCollapsed;
-            this.enforcePhysicalSorting(); 
+            
+            groupData.isCollapsed = !groupData.isCollapsed; // 1. 접힘 상태 반전 (열림 -> 닫힘 / 닫힘 -> 열림)
+            await this.saveSettings();                      // ✨ 2. 핵심 수정: 상태가 바뀌었으니 data.json에 즉시 덮어쓰기!
+            this.enforcePhysicalSorting();                  // 3. 화면 업데이트
         });
 
         labelEl.draggable = true;
