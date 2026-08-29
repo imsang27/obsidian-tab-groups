@@ -978,17 +978,17 @@ class EditGroupModal extends Modal {
     }
 }
 
-// ✨ 수정: 요청하신 9가지 색상 (물 빠진 파스텔 톤)
+// ✨ 수정: 묵직한 미드톤(Mid-tone) 색상으로 변경
 const PRESET_COLORS = [
-    '#D0D0D0', // 그레이 (Gray)
-    '#A0C4FF', // 파란색 (Blue)
-    '#FFADAD', // 빨간색 (Red)
-    '#FDFFB6', // 노란색 (Yellow)
-    '#CAFFBF', // 초록색 (Green)
-    '#FFC6FF', // 핑크색 (Pink)
-    '#BDB2FF', // 보라색 (Purple)
-    '#9BF6FF', // 하늘색 (Sky Blue)
-    '#FFD6A5'  // 주황색 (Orange)
+    '#808080', // 그레이 (Gray)
+    '#5A8EE6', // 파란색 (Blue)
+    '#E66A6A', // 빨간색 (Red)
+    '#E5B55C', // 노란색 (Yellow)
+    '#6CB86C', // 초록색 (Green)
+    '#E673B3', // 핑크색 (Pink)
+    '#A478E6', // 보라색 (Purple)
+    '#56B6C2', // 하늘색 (Sky Blue)
+    '#E6955C'  // 주황색 (Orange)
 ];
 
 // ✨ UX 개선: 스포이드 시작 색상이 항상 현재 선택된 색상과 동기화되도록 개선된 함수
@@ -998,16 +998,16 @@ function renderColorPalette(containerEl: HTMLElement, currentColor: string, onCh
     paletteContainer.style.gap = '8px';
     paletteContainer.style.flexWrap = 'wrap';
     paletteContainer.style.justifyContent = 'flex-end';
-    
+        
     let activeCircle: HTMLElement | null = null;
     let customInput: HTMLInputElement; // ✨ 아래에서 생성할 input을 미리 선언해둠 (스코프 공유)
-
+    
     function updateActive(circle: HTMLElement) {
         if (activeCircle) activeCircle.style.border = '2px solid transparent';
         circle.style.border = '2px solid var(--text-normal)';
         activeCircle = circle;
     }
-
+    
     // 1. 프리셋 컬러 버튼들 생성
     PRESET_COLORS.forEach(color => {
         const circle = paletteContainer.createDiv();
@@ -1023,19 +1023,19 @@ function renderColorPalette(containerEl: HTMLElement, currentColor: string, onCh
         // 호버 시 살짝 커지는 애니메이션
         circle.addEventListener('mouseenter', () => circle.style.transform = 'scale(1.15)');
         circle.addEventListener('mouseleave', () => circle.style.transform = 'scale(1)');
-
+        
         // 현재 색상과 일치하면 활성화 테두리 표시
         if (color.toLowerCase() === currentColor.toLowerCase()) {
             updateActive(circle);
         }
-
+        
         circle.addEventListener('click', () => {
             updateActive(circle);
             if (customInput) customInput.value = color; // ✨ 프리셋 클릭 시 스포이드 시작 색상도 실시간 동기화!
             onChange(color);
         });
     });
-
+    
     // 2. 커스텀 스포이드 버튼 생성
     const customWrapper = paletteContainer.createDiv();
     customWrapper.style.width = '24px';
@@ -1043,6 +1043,12 @@ function renderColorPalette(containerEl: HTMLElement, currentColor: string, onCh
     customWrapper.style.borderRadius = '50%';
     customWrapper.style.cursor = 'pointer';
     customWrapper.style.background = 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)'; // 무지개색 커스텀 아이콘 효과
+    
+    // ✨ 추가된 속성: 바둑판(반복) 현상 방지 및 무지개 1.2배 확대, 중앙 정렬
+    customWrapper.style.backgroundSize = '120% 120%';
+    customWrapper.style.backgroundPosition = 'center';
+    customWrapper.style.backgroundRepeat = 'no-repeat';
+    
     customWrapper.style.position = 'relative';
     customWrapper.style.border = '2px solid transparent';
     customWrapper.style.boxSizing = 'border-box';
@@ -1050,13 +1056,12 @@ function renderColorPalette(containerEl: HTMLElement, currentColor: string, onCh
     
     customWrapper.addEventListener('mouseenter', () => customWrapper.style.transform = 'scale(1.15)');
     customWrapper.addEventListener('mouseleave', () => customWrapper.style.transform = 'scale(1)');
-
+    
     customInput = customWrapper.createEl('input', { type: 'color' });
     
     // ✨ 모달을 처음 열었을 때, 기존 그룹의 색상으로 스포이드(input) 시작 색상 세팅
     // (네이티브 input type="color"는 7자리 HEX 폼을 요구하므로 유효성 검사 추가)
     customInput.value = (currentColor && currentColor.length === 7) ? currentColor : '#000000';
-    
     customInput.style.opacity = '0';
     customInput.style.width = '200%';
     customInput.style.height = '200%';
@@ -1064,13 +1069,13 @@ function renderColorPalette(containerEl: HTMLElement, currentColor: string, onCh
     customInput.style.top = '-50%';
     customInput.style.left = '-50%';
     customInput.style.cursor = 'pointer';
-
+    
     // 프리셋에 없는 색상일 경우 무지개 버튼에 활성화 테두리 표시
     const isPreset = PRESET_COLORS.some(c => c.toLowerCase() === currentColor.toLowerCase());
     if (!isPreset) {
         updateActive(customWrapper);
     }
-
+    
     customInput.addEventListener('input', (e) => {
         const newColor = (e.target as HTMLInputElement).value;
         updateActive(customWrapper);
