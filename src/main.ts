@@ -799,7 +799,7 @@ export default class TabGroupsPlugin extends Plugin {
             this.enforcePhysicalSorting();                  // 3. 화면 업데이트
         });
         
-        // ✨ 수정: 우클릭 시 컨텍스트 메뉴를 거치지 않고 바로 '그룹 관리 모달' 호출
+        // ✨ 수정: 3가지 액션(닫기, 삭제, 해제)을 각각 다르게 처리하는 로직 추가
         labelEl.addEventListener('contextmenu', (e: MouseEvent) => {
             e.preventDefault(); // 기본 브라우저 우클릭 메뉴 차단
             
@@ -811,20 +811,43 @@ export default class TabGroupsPlugin extends Plugin {
                 async (newName, newColor) => {
                     groupData.name = newName;
                     groupData.color = newColor;
-                    await this.saveSettings();     // 변경사항 저장
-                    this.enforcePhysicalSorting(); // 화면 즉시 갱신
+                    await this.saveSettings();
+                    this.enforcePhysicalSorting();
                 },
-                // 2. 삭제(onDelete) 콜백 ✨ 신규 추가
-                async () => {
-                    this.app.workspace.iterateAllLeaves(leaf => {
-                        if (this.leafGroupMap.get(leaf) === groupId) {
-                            this.leafGroupMap.delete(leaf);
-                        }
-                    });
-                    // ✨ 그룹 데이터 완전 삭제
-                    this.groups.delete(groupId);
+                // 2. 액션(onAction) 콜백 - 닫기, 삭제, 해제 통합 처리
+                async (action: 'close' | 'delete' | 'ungroup') => { 
+                    if (action === 'close') {
+                        // [그룹 닫기]: 그룹에 속한 탭을 '실제로 모두 닫고', 그룹도 삭제
+                        // (주의: 반복문 도중 탭을 닫으면 트리가 꼬이므로 배열에 모아두었다가 한 번에 닫음)
+                        const leavesToClose: any[] = [];
+                        this.app.workspace.iterateAllLeaves(leaf => {
+                            if (this.leafGroupMap.get(leaf) === groupId) {
+                                leavesToClose.push(leaf);
+                            }
+                        });
+                        
+                        leavesToClose.forEach(leaf => leaf.detach()); // 네이티브 탭 닫기 명령
+                        this.groups.delete(groupId);
+                    }
+                    else if (action === 'delete') {
+                        // [그룹 삭제]: 탭을 일반 탭으로 풀고, 그룹 데이터도 완전히 삭제
+                        this.app.workspace.iterateAllLeaves(leaf => {
+                            if (this.leafGroupMap.get(leaf) === groupId) {
+                                this.leafGroupMap.delete(leaf);
+                            }
+                        });
+                        // ✨ 그룹 데이터 완전 삭제
+                        this.groups.delete(groupId);
+                    }
+                    else if (action === 'ungroup') {
+                        // [그룹 해제]: 탭만 일반 탭으로 풀고, 그룹 데이터는 유지
+                        this.app.workspace.iterateAllLeaves(leaf => {
+                            if (this.leafGroupMap.get(leaf) === groupId) {
+                                this.leafGroupMap.delete(leaf);
+                            }
+                        });
+                    }
                     
-                    // ✨ 저장 및 화면 동기화
                     await this.saveSettings();
                     this.enforcePhysicalSorting();
                 }
@@ -915,24 +938,30 @@ class CreateGroupModal extends Modal {
     }
 }
 
-// ✨ 수정: 이름, 색상 수정뿐만 아니라 '그룹 해제' 기능까지 품은 통합 관리 모달
+// ✨ 수정: 3가지 액션(덛가, 삭제, 해제) 버튼을 직관적으로 제공하는 관리 모달
 class EditGroupModal extends Modal {
     groupName: string;
     groupColor: string; 
     onSubmit: (groupName: string, color: string) => void;
-    onDelete: () => void; // ✨ 삭제 콜백 추가
+    onAction: (action: 'close' | 'delete' | 'ungroup') => void;
     
-    constructor(app: App, initialName: string, initialColor: string, onSubmit: (groupName: string, color: string) => void, onDelete: () => void) {
+    constructor(
+        app: App, 
+        initialName: string, 
+        initialColor: string, 
+        onSubmit: (groupName: string, color: string) => void, 
+        onAction: (action: 'close' | 'delete' | 'ungroup') => void
+        ) {
         super(app);
         this.groupName = initialName;
         this.groupColor = initialColor;
         this.onSubmit = onSubmit;
-        this.onDelete = onDelete;
+        this.onAction = onAction;
     }
     
     onOpen() {
         const { contentEl } = this;
-        contentEl.createEl('h2', { text: '탭 그룹 관리' }); // 타이틀을 '수정'에서 '관리'로 변경
+        contentEl.createEl('h2', { text: '탭 그룹 관리' }) // 타이틀을 '수정'에서 '관리'로 변경
         
         new Setting(contentEl)
             .setName('그룹 이름')
@@ -949,21 +978,35 @@ class EditGroupModal extends Modal {
             this.groupColor = newColor;
         });
         
-        // ✨ 하단 버튼 영역: '그룹 해제'와 '저장'을 한 줄에 통합
+        // ✨ 3가지 액션 버튼 영역 (닫기, 삭제, 해제를 한 줄에 나란히 배치)
         new Setting(contentEl)
+            .setName('그룹 작업')
             .addButton((btn) => btn
-                .setButtonText('그룹 해제')
-                .setWarning() // 옵시디언 네이티브의 빨간색 경고 스타일 적용
-                .onClick(() => {
-                    this.close();
-                    this.onDelete(); // 삭제 로직 실행
-                }))
+                .setButtonText('닫기')
+                .setTooltip('속한 모든 탭을 닫고 그룹도 삭제합니다.')
+                .setWarning() // 노란색/빨간색 경고
+                .onClick(() => { this.close(); this.onAction('close'); })
+            )
+            .addButton((btn) => btn
+                .setButtonText('삭제')
+                .setTooltip('탭들은 일반 탭으로 변하고, 그룹을 완전히 삭제합니다.')
+                .setWarning() // 노란색/빨간색 경고
+                .onClick(() => { this.close(); this.onAction('delete'); })
+            )
+            .addButton((btn) => btn
+                .setButtonText('해제')
+                .setTooltip('탭들은 일반 탭으로 변하고, 그룹 데이터는 남깁니다.')
+                .onClick(() => { this.close(); this.onAction('ungroup'); })
+            );
+            
+        // ✨ 맨 하단 저장 버튼
+        new Setting(contentEl)
             .addButton((btn) => btn
                 .setButtonText('저장')
                 .setCta() // 파란색 강조 스타일 적용
                 .onClick(() => {
                     this.close();
-                    this.onSubmit(this.groupName, this.groupColor); // 저장 로직 실행
+                    this.onSubmit(this.groupName, this.groupColor);
                 }));
     }
     
