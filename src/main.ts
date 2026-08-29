@@ -978,7 +978,7 @@ class EditGroupModal extends Modal {
     }
 }
 
-// ✨ 수정: 눈이 편안한 물 빠진 파스텔 톤(Muted) 프리셋 색상 배열
+// ✨ 수정: 요청하신 9가지 색상 (물 빠진 파스텔 톤)
 const PRESET_COLORS = [
     '#D0D0D0', // 그레이 (Gray)
     '#A0C4FF', // 파란색 (Blue)
@@ -991,44 +991,22 @@ const PRESET_COLORS = [
     '#FFD6A5'  // 주황색 (Orange)
 ];
 
-// ✨ 수정 2: 모든 CSS 색상 표준(HEX, RGB, HSL 등) 입력 텍스트 필드 연동
+// ✨ 버그 픽스: 변수 참조(ReferenceError)가 발생하지 않도록 스코프와 구조를 재정비한 함수
 function renderColorPalette(containerEl: HTMLElement, currentColor: string, onChange: (newColor: string) => void) {
     const paletteContainer = containerEl.createDiv({ cls: 'tab-group-color-palette' });
     paletteContainer.style.display = 'flex';
     paletteContainer.style.gap = '8px';
     paletteContainer.style.flexWrap = 'wrap';
-    paletteContainer.style.justifyContent = 'flex-end'; // 우측 정렬
-    paletteContainer.style.alignItems = 'center'; // 수직 중앙 정렬 추가
+    paletteContainer.style.justifyContent = 'flex-end';
     
-    const presetCircles: HTMLElement[] = [];
+    let activeCircle: HTMLElement | null = null;
 
-    // 💡 UI 상태를 완벽하게 동기화하는 헬퍼 함수
-    const syncUI = (newColor: string, source: 'preset' | 'custom' | 'text') => {
-        // 모든 테두리 초기화
-        presetCircles.forEach(c => c.style.border = '2px solid transparent');
-        customWrapper.style.border = '2px solid transparent';
-        
-        // 프리셋 색상인지 검사 후 강조 테두리 적용
-        const isPreset = PRESET_COLORS.map(c => c.toLowerCase()).includes(newColor.toLowerCase());
-        if (isPreset) {
-            const index = PRESET_COLORS.findIndex(c => c.toLowerCase() === newColor.toLowerCase());
-            if (index > -1) presetCircles[index].style.border = '2px solid var(--text-normal)';
-        } else {
-            customWrapper.style.border = '2px solid var(--text-normal)'; // 선택된 색상 강조
-        }
-
-        // 입력 텍스트 필드 동기화 (텍스트 창에서 직접 친 게 아닐 때만 업데이트)
-        if (source !== 'text') {
-            standardInput.value = newColor;
-        }
-        
-        // 커스텀 OS 피커 동기화 (값이 올바른 7자리 HEX일 때만 업데이트 가능)
-        if (source !== 'custom' && /^#[0-9A-Fa-f]{6}$/i.test(newColor)) {
-            customInput.value = newColor;
-        }
-
-        onChange(newColor); // 최종 저장 데이터로 전달
-    };
+    // function 선언문으로 변경하여 호이스팅(Hoisting) 적용 -> 어디서든 안전하게 호출 가능
+    function updateActive(circle: HTMLElement) {
+        if (activeCircle) activeCircle.style.border = '2px solid transparent';
+        circle.style.border = '2px solid var(--text-normal)';
+        activeCircle = circle;
+    }
 
     // 1. 프리셋 컬러 버튼들 생성
     PRESET_COLORS.forEach(color => {
@@ -1045,12 +1023,19 @@ function renderColorPalette(containerEl: HTMLElement, currentColor: string, onCh
         // 호버 시 살짝 커지는 애니메이션
         circle.addEventListener('mouseenter', () => circle.style.transform = 'scale(1.15)');
         circle.addEventListener('mouseleave', () => circle.style.transform = 'scale(1)');
-        
-        circle.addEventListener('click', () => syncUI(color, 'preset'));
-        presetCircles.push(circle);
+
+        // 현재 색상과 일치하면 활성화 테두리 표시
+        if (color.toLowerCase() === currentColor.toLowerCase()) {
+            updateActive(circle);
+        }
+
+        circle.addEventListener('click', () => {
+            updateActive(circle);
+            onChange(color);
+        });
     });
 
-    // 2. 맨 마지막 요소: 커스텀 컬러 피커 (스포이드 포함 OS 네이티브)
+    // 2. 커스텀 스포이드 버튼
     const customWrapper = paletteContainer.createDiv();
     customWrapper.style.width = '24px';
     customWrapper.style.height = '24px';
@@ -1066,39 +1051,27 @@ function renderColorPalette(containerEl: HTMLElement, currentColor: string, onCh
     customWrapper.addEventListener('mouseleave', () => customWrapper.style.transform = 'scale(1)');
 
     const customInput = customWrapper.createEl('input', { type: 'color' });
-    customInput.value = PRESET_COLORS.includes(currentColor.toUpperCase()) ? '#ffffff' : currentColor;
-    customInput.style.opacity = '0'; // 실제 input은 투명하게 숨김
-    customInput.style.width = '200%'; // 클릭 영역 확장을 위해 넉넉히
+    
+    // 안전한 색상 비교 로직
+    const isPreset = PRESET_COLORS.some(c => c.toLowerCase() === currentColor.toLowerCase());
+    customInput.value = isPreset ? '#ffffff' : currentColor;
+    
+    customInput.style.opacity = '0';
+    customInput.style.width = '200%';
     customInput.style.height = '200%';
     customInput.style.position = 'absolute';
     customInput.style.top = '-50%';
     customInput.style.left = '-50%';
     customInput.style.cursor = 'pointer';
-    
+
     // 프리셋에 없는 색상이면 커스텀 피커 쪽에 활성화 테두리 표시
-    if (!PRESET_COLORS.map(c => c.toLowerCase()).includes(currentColor.toLowerCase())) {
+    if (!isPreset) {
         updateActive(customWrapper);
     }
 
     customInput.addEventListener('input', (e) => {
-        syncUI((e.target as HTMLInputElement).value, 'custom');
+        const newColor = (e.target as HTMLInputElement).value;
+        updateActive(customWrapper);
+        onChange(newColor);
     });
-
-    // 3. 모든 표준(HEX, RGB, HSL 등) 입력을 지원하는 텍스트 필드
-    const standardInput = paletteContainer.createEl('input', { type: 'text' });
-    standardInput.placeholder = '#HEX, rgb(), hsl()';
-    standardInput.style.width = '140px';
-    standardInput.style.marginLeft = '8px';
-    standardInput.style.border = '1px solid var(--background-modifier-border)';
-    standardInput.style.borderRadius = '4px';
-    standardInput.style.padding = '4px 8px';
-    standardInput.style.background = 'var(--background-modifier-form-field)';
-    standardInput.style.color = 'var(--text-normal)';
-
-    standardInput.addEventListener('input', (e) => {
-        syncUI((e.target as HTMLInputElement).value, 'text');
-    });
-
-    // 💡 초기 열림 상태일 때 색상 동기화 트리거
-    syncUI(currentColor, 'text');
 }
