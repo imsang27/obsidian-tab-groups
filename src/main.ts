@@ -798,6 +798,54 @@ export default class TabGroupsPlugin extends Plugin {
             await this.saveSettings();                      // ✨ 2. 핵심 수정: 상태가 바뀌었으니 data.json에 즉시 덮어쓰기!
             this.enforcePhysicalSorting();                  // 3. 화면 업데이트
         });
+        
+        // ✨ 신규 추가: 우클릭 시 컨텍스트 메뉴(수정/삭제) 호출
+        labelEl.addEventListener('contextmenu', (e: MouseEvent) => {
+            e.preventDefault(); // 기본 브라우저 우클릭 메뉴 차단
+            
+            // 옵시디언 내장 Menu API 사용
+            const menu = new Menu();
+            
+            // 1. 그룹 수정 메뉴
+            menu.addItem((item) => {
+                item.setTitle('✏️ 그룹 수정')
+                    .setIcon('pencil')
+                    .onClick(() => {
+                        // ✨ 잠시 후에 만들 EditGroupModal을 호출합니다.
+                        new EditGroupModal(this.app, groupData.name, groupData.color, async (newName, newColor) => {
+                            groupData.name = newName;
+                            groupData.color = newColor;
+                            await this.saveSettings();     // 변경사항 저장
+                            this.enforcePhysicalSorting(); // 화면 즉시 갱신
+                        }).open();
+                    });
+            });
+            
+            menu.addSeparator();
+            
+            // 2. 그룹 삭제 메뉴
+            menu.addItem((item) => {
+                item.setTitle('🗑️ 그룹 삭제')
+                    .setIcon('trash')
+                    .onClick(async () => {
+                        // ✨ 이슈에 적어주신 대로: 내부 탭들을 먼저 일반 탭으로 안전하게 해제
+                        this.app.workspace.iterateAllLeaves(leaf => {
+                            if (this.leafGroupMap.get(leaf) === groupId) {
+                                this.leafGroupMap.delete(leaf);
+                            }
+                        });
+                        
+                        // ✨ 그룹 데이터 완전 삭제
+                        this.groups.delete(groupId);
+                        
+                        // ✨ 저장 및 화면 동기화
+                        await this.saveSettings();
+                        this.enforcePhysicalSorting();
+                    });
+            });
+            
+            menu.showAtMouseEvent(e);
+        });
 
         labelEl.draggable = true;
         labelEl.addEventListener('dragstart', (e) => {
@@ -872,6 +920,51 @@ class CreateGroupModal extends Modal {
             }));
     }
 
+    onClose() { 
+        const { contentEl } = this;
+        contentEl.empty(); 
+    }
+}
+
+// ✨ 신규 추가: 그룹 수정을 위한 전용 모달 클래스
+class EditGroupModal extends Modal {
+    groupName: string;
+    groupColor: string; 
+    onSubmit: (groupName: string, color: string) => void;
+    
+    // 생성할 때 기존 이름과 색상을 넘겨받습니다.
+    constructor(app: App, initialName: string, initialColor: string, onSubmit: (groupName: string, color: string) => void) {
+        super(app);
+        this.groupName = initialName;
+        this.groupColor = initialColor;
+        this.onSubmit = onSubmit;
+    }
+    
+    onOpen() {
+        const { contentEl } = this;
+        contentEl.createEl('h2', { text: '탭 그룹 수정' });
+        
+        new Setting(contentEl)
+            .setName('그룹 이름')
+            .addText((text) => {
+                text.setValue(this.groupName); // 기존 이름 불러오기
+                text.onChange((val) => this.groupName = val);
+            });
+            
+        new Setting(contentEl)
+            .setName('그룹 색상')
+            .addColorPicker((color) => {
+                color.setValue(this.groupColor); // 기존 색상 불러오기
+                color.onChange((val) => this.groupColor = val);
+            });
+            
+        new Setting(contentEl)
+            .addButton((btn) => btn.setButtonText('저장').setCta().onClick(() => {
+                this.close();
+                this.onSubmit(this.groupName, this.groupColor);
+            }));
+    }
+    
     onClose() { 
         const { contentEl } = this;
         contentEl.empty(); 
