@@ -799,7 +799,7 @@ export default class TabGroupsPlugin extends Plugin {
             this.enforcePhysicalSorting();                  // 3. 화면 업데이트
         });
         
-        // ✨ 신규 추가: 우클릭 시 컨텍스트 메뉴(수정/삭제) 호출
+        // 우클릭 시 컨텍스트 메뉴(수정/삭제) 호출
         labelEl.addEventListener('contextmenu', (e: MouseEvent) => {
             e.preventDefault(); // 기본 브라우저 우클릭 메뉴 차단
             
@@ -894,39 +894,44 @@ class CreateGroupModal extends Modal {
     groupName: string = '';
     groupColor: string = '#ff5c5c'; 
     onSubmit: (groupName: string, color: string) => void;
-
+    
     constructor(app: App, onSubmit: (groupName: string, color: string) => void) {
         super(app);
         this.onSubmit = onSubmit;
     }
-
+    
     onOpen() {
         const { contentEl } = this;
         contentEl.createEl('h2', { text: '새 탭 그룹 만들기' });
-
+        
         new Setting(contentEl)
             .setName('그룹 이름')
             .setDesc('이름을 비워두면 색상만 있는 라벨이 만들어져요.')
             .addText((text) => text.onChange((val) => this.groupName = val));
-
-        new Setting(contentEl)
-            .setName('그룹 색상')
-            .addColorPicker((color) => color.setValue(this.groupColor).onChange((val) => this.groupColor = val));
-
+        
+        const colorSetting = new Setting(contentEl)
+            .setName('그룹 색상');
+        
+        // 기존의 투박한 기본 피커를 날려버리고, 우리가 만든 예쁜 팔레트로 대체!
+        colorSetting.controlEl.empty();
+        renderColorPalette(colorSetting.controlEl, this.groupColor, (newColor) => {
+            this.groupColor = newColor;
+        });
+        
         new Setting(contentEl)
             .addButton((btn) => btn.setButtonText('그룹 생성').setCta().onClick(() => {
                 this.close();
                 this.onSubmit(this.groupName, this.groupColor);
             }));
     }
-
+    
     onClose() { 
         const { contentEl } = this;
         contentEl.empty(); 
     }
 }
 
-// ✨ 신규 추가: 그룹 수정을 위한 전용 모달 클래스
+// 그룹 수정을 위한 전용 모달 클래스
 class EditGroupModal extends Modal {
     groupName: string;
     groupColor: string; 
@@ -952,12 +957,14 @@ class EditGroupModal extends Modal {
             });
             
         new Setting(contentEl)
-            .setName('그룹 색상')
-            .addColorPicker((color) => {
-                color.setValue(this.groupColor); // 기존 색상 불러오기
-                color.onChange((val) => this.groupColor = val);
-            });
-            
+            .setName('그룹 색상');
+        
+        // 기존의 투박한 기본 피커를 날려버리고, 우리가 만든 예쁜 팔레트로 대체!
+        colorSetting.controlEl.empty();
+        renderColorPalette(colorSetting.controlEl, this.groupColor, (newColor) => {
+            this.groupColor = newColor;
+        });
+        
         new Setting(contentEl)
             .addButton((btn) => btn.setButtonText('저장').setCta().onClick(() => {
                 this.close();
@@ -969,4 +976,98 @@ class EditGroupModal extends Modal {
         const { contentEl } = this;
         contentEl.empty(); 
     }
+}
+
+// ✨ 신규 추가: 라이트/다크 테마 모두 시인성이 좋은 프리셋 색상 배열
+const PRESET_COLORS = [
+    '#FF5E5B', // Red
+    '#F28B82', // Light Red
+    '#FF8A5B', // Orange
+    '#FFD166', // Yellow
+    '#06D6A0', // Green
+    '#008080', // Teal
+    '#118AB2', // Blue Green
+    '#3A86FF', // Blue
+    '#8338EC', // Purple
+    '#A846A0', // Pink
+    '#DADCE0'  // Gray
+];
+
+// ✨ 신규 추가: 컬러 팔레트 DOM 생성 공통 헬퍼 함수
+function renderColorPalette(containerEl: HTMLElement, currentColor: string, onChange: (newColor: string) => void) {
+    const paletteContainer = containerEl.createDiv({ cls: 'tab-group-color-palette' });
+    paletteContainer.style.display = 'flex';
+    paletteContainer.style.gap = '8px';
+    paletteContainer.style.flexWrap = 'wrap';
+    paletteContainer.style.justifyContent = 'flex-end'; // 우측 정렬
+    
+    let activeCircle: HTMLElement | null = null;
+    
+    const updateActive = (circle: HTMLElement) => {
+        if (activeCircle) activeCircle.style.border = '2px solid transparent';
+        circle.style.border = '2px solid var(--text-normal)'; // 선택된 색상 강조
+        activeCircle = circle;
+    };
+    
+    // 1. 프리셋 컬러 버튼들 생성
+    PRESET_COLORS.forEach(color => {
+        const circle = paletteContainer.createDiv();
+        circle.style.width = '24px';
+        circle.style.height = '24px';
+        circle.style.borderRadius = '50%';
+        circle.style.backgroundColor = color;
+        circle.style.cursor = 'pointer';
+        circle.style.border = '2px solid transparent';
+        circle.style.boxSizing = 'border-box';
+        circle.style.transition = 'transform 0.1s ease-in-out';
+        
+        // 호버 시 살짝 커지는 애니메이션
+        circle.addEventListener('mouseenter', () => circle.style.transform = 'scale(1.15)');
+        circle.addEventListener('mouseleave', () => circle.style.transform = 'scale(1)');
+        
+        if (color.toLowerCase() === currentColor.toLowerCase()) {
+            updateActive(circle);
+        }
+        
+        circle.addEventListener('click', () => {
+            updateActive(circle);
+            onChange(color);
+        });
+    });
+    
+    // 2. 맨 마지막 요소: 커스텀 컬러 피커 (스포이드 포함)
+    const customWrapper = paletteContainer.createDiv();
+    customWrapper.style.width = '24px';
+    customWrapper.style.height = '24px';
+    customWrapper.style.borderRadius = '50%';
+    customWrapper.style.cursor = 'pointer';
+    customWrapper.style.background = 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)'; // 무지개색 커스텀 아이콘 효과
+    customWrapper.style.position = 'relative';
+    customWrapper.style.border = '2px solid transparent';
+    customWrapper.style.boxSizing = 'border-box';
+    customWrapper.style.overflow = 'hidden';
+    
+    customWrapper.addEventListener('mouseenter', () => customWrapper.style.transform = 'scale(1.15)');
+    customWrapper.addEventListener('mouseleave', () => customWrapper.style.transform = 'scale(1)');
+    
+    const customInput = customWrapper.createEl('input', { type: 'color' });
+    customInput.value = PRESET_COLORS.includes(currentColor.toUpperCase()) ? '#ffffff' : currentColor;
+    customInput.style.opacity = '0'; // 실제 input은 투명하게 숨김
+    customInput.style.width = '200%'; // 클릭 영역 확장을 위해 넉넉히
+    customInput.style.height = '200%';
+    customInput.style.position = 'absolute';
+    customInput.style.top = '-50%';
+    customInput.style.left = '-50%';
+    customInput.style.cursor = 'pointer';
+    
+    // 프리셋에 없는 색상이면 커스텀 피커 쪽에 활성화 테두리 표시
+    if (!PRESET_COLORS.map(c => c.toLowerCase()).includes(currentColor.toLowerCase())) {
+        updateActive(customWrapper);
+    }
+    
+    customInput.addEventListener('input', (e) => {
+        const newColor = (e.target as HTMLInputElement).value;
+        updateActive(customWrapper);
+        onChange(newColor);
+    });
 }
