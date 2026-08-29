@@ -991,7 +991,7 @@ const PRESET_COLORS = [
     '#FFD6A5'  // 주황색 (Orange)
 ];
 
-// ✨ 버그 픽스: 변수 참조(ReferenceError)가 발생하지 않도록 스코프와 구조를 재정비한 함수
+// ✨ UX 개선: 스포이드 시작 색상이 항상 현재 선택된 색상과 동기화되도록 개선된 함수
 function renderColorPalette(containerEl: HTMLElement, currentColor: string, onChange: (newColor: string) => void) {
     const paletteContainer = containerEl.createDiv({ cls: 'tab-group-color-palette' });
     paletteContainer.style.display = 'flex';
@@ -1000,8 +1000,8 @@ function renderColorPalette(containerEl: HTMLElement, currentColor: string, onCh
     paletteContainer.style.justifyContent = 'flex-end';
     
     let activeCircle: HTMLElement | null = null;
+    let customInput: HTMLInputElement; // ✨ 아래에서 생성할 input을 미리 선언해둠 (스코프 공유)
 
-    // function 선언문으로 변경하여 호이스팅(Hoisting) 적용 -> 어디서든 안전하게 호출 가능
     function updateActive(circle: HTMLElement) {
         if (activeCircle) activeCircle.style.border = '2px solid transparent';
         circle.style.border = '2px solid var(--text-normal)';
@@ -1031,11 +1031,12 @@ function renderColorPalette(containerEl: HTMLElement, currentColor: string, onCh
 
         circle.addEventListener('click', () => {
             updateActive(circle);
+            if (customInput) customInput.value = color; // ✨ 프리셋 클릭 시 스포이드 시작 색상도 실시간 동기화!
             onChange(color);
         });
     });
 
-    // 2. 커스텀 스포이드 버튼
+    // 2. 커스텀 스포이드 버튼 생성
     const customWrapper = paletteContainer.createDiv();
     customWrapper.style.width = '24px';
     customWrapper.style.height = '24px';
@@ -1050,11 +1051,11 @@ function renderColorPalette(containerEl: HTMLElement, currentColor: string, onCh
     customWrapper.addEventListener('mouseenter', () => customWrapper.style.transform = 'scale(1.15)');
     customWrapper.addEventListener('mouseleave', () => customWrapper.style.transform = 'scale(1)');
 
-    const customInput = customWrapper.createEl('input', { type: 'color' });
+    customInput = customWrapper.createEl('input', { type: 'color' });
     
-    // 안전한 색상 비교 로직
-    const isPreset = PRESET_COLORS.some(c => c.toLowerCase() === currentColor.toLowerCase());
-    customInput.value = isPreset ? '#ffffff' : currentColor;
+    // ✨ 모달을 처음 열었을 때, 기존 그룹의 색상으로 스포이드(input) 시작 색상 세팅
+    // (네이티브 input type="color"는 7자리 HEX 폼을 요구하므로 유효성 검사 추가)
+    customInput.value = (currentColor && currentColor.length === 7) ? currentColor : '#000000';
     
     customInput.style.opacity = '0';
     customInput.style.width = '200%';
@@ -1064,7 +1065,8 @@ function renderColorPalette(containerEl: HTMLElement, currentColor: string, onCh
     customInput.style.left = '-50%';
     customInput.style.cursor = 'pointer';
 
-    // 프리셋에 없는 색상이면 커스텀 피커 쪽에 활성화 테두리 표시
+    // 프리셋에 없는 색상일 경우 무지개 버튼에 활성화 테두리 표시
+    const isPreset = PRESET_COLORS.some(c => c.toLowerCase() === currentColor.toLowerCase());
     if (!isPreset) {
         updateActive(customWrapper);
     }
