@@ -63,10 +63,13 @@ export default class TabGroupsPlugin extends Plugin {
             }
         }, { capture: true });
 
+        // ✨ 신규 추가: 유저가 탭을 드래그해서 위치를 바꾸면 스마트 편입/이탈 로직 실행
         this.registerEvent(
             this.app.workspace.on('layout-change', () => {
-                this.setupObservers();
-                this.enforcePhysicalSorting();
+                // DOM이 완전히 업데이트될 수 있도록 아주 짧은 딜레이(setTimeout) 후 실행
+                setTimeout(() => {
+                    this.syncGroupStateFromDOM();
+                }, 50);
             })
         );
 
@@ -884,6 +887,61 @@ export default class TabGroupsPlugin extends Plugin {
         container.insertBefore(labelEl, leaderEl);
     }
     
+    // ✨ 신규 추가: 유저가 탭을 드래그 앤 드롭했을 때, 시각적 DOM 순서를 읽어내어 논리적 매핑(Map)을 동기화하는 스마트 로직
+    async syncGroupStateFromDOM() {
+        // 옵시디언 화면 내의 모든 탭 헤더 컨테이너를 찾습니다 (보통 분할 창마다 하나씩 존재)
+        const headerContainers = document.querySelectorAll('.workspace-tab-header-inner');
+        let hasChanges = false;
+
+        headerContainers.forEach(container => {
+            let currentGroupId: string | null = null; // 현재 스캔 중인 활성 그룹
+
+            // DOM 요소를 왼쪽에서 오른쪽으로 순서대로 순회
+            Array.from(container.children).forEach(el => {
+                // 1. 요소가 '그룹 라벨'인 경우: 활성 그룹 ID를 스위칭
+                if (el.classList.contains('tab-group-label')) {
+                    currentGroupId = (el as HTMLElement).dataset.groupId || null;
+                }
+                // 2. 요소가 '일반 탭(WorkspaceLeaf)'인 경우: 현재 활성 그룹에 편입 또는 이탈
+                else if (el.classList.contains('workspace-tab-header')) {
+                    let matchedLeaf: any = null;
+                    
+                    // DOM과 일치하는 실제 Leaf 객체를 찾음 (옵시디언 내부 API 활용)
+                    this.app.workspace.iterateAllLeaves(leaf => {
+                        if ((leaf as any).tabHeaderEl === el) {
+                            matchedLeaf = leaf;
+                        }
+                    });
+
+                    if (matchedLeaf) {
+                        const previousGroupId = this.leafGroupMap.get(matchedLeaf);
+                        
+                        if (currentGroupId) {
+                            // 현재 활성 그룹이 있다면 편입
+                            if (previousGroupId !== currentGroupId) {
+                                this.leafGroupMap.set(matchedLeaf, currentGroupId);
+                                hasChanges = true;
+                            }
+                        } else {
+                            // 활성 그룹이 없다면 (맨 앞쪽 등에 배치) 이탈 처리
+                            if (previousGroupId) {
+                                this.leafGroupMap.delete(matchedLeaf);
+                                hasChanges = true;
+                            }
+                        }
+                    }
+                }
+            });
+        });
+
+        // 변경사항이 발생했다면 설정 저장 및 UI(색상, 테두리 등) 렌더링 업데이트
+        if (hasChanges) {
+            await this.saveSettings();
+            // TODO: 기존에 작성하신 UI 업데이트 함수(ex: updateTabUI, updateColors 등)를 여기서 호출해야 합니다.
+            // this.updateTabUI(); 
+        }
+    }
+
     onunload() {
         console.log('🛑 Tab Groups 플러그인 종료됨');
         
