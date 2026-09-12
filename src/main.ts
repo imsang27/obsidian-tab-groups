@@ -20,7 +20,10 @@ export default class TabGroupsPlugin extends Plugin {
     // ✨ 드래그 피드백용 변수
     dropIndicatorEl: HTMLElement = document.createElement('div');
     currentDropTarget: { node: Node | null, insertAfter: boolean } = { node: null, insertAfter: false };
-    draggingGroupId: string | null = null; // 💡 요것 추가! (현재 쥐고 있는 그룹 기억용)
+    draggingGroupId: string | null = null;
+    
+    // ✨ 신규 추가: 자리를 확보하며 밀어내는 더미 탭 플레이스홀더 박스
+    placeholderEl: HTMLElement = document.createElement('div');
 
     async onload() {
         console.log('🚀 Tab Groups 로드됨 (옵시디언 드래그 간섭 차단 캡처 이벤트 적용)');
@@ -29,7 +32,7 @@ export default class TabGroupsPlugin extends Plugin {
             this.setupObservers();
             this.enforcePhysicalSorting();
         });
-
+        
         this.registerDomEvent(window, 'contextmenu', (e: MouseEvent) => {
             const target = e.target as HTMLElement;
             const header = target.closest('.workspace-tab-header') as HTMLElement | null;
@@ -56,6 +59,44 @@ export default class TabGroupsPlugin extends Plugin {
 
         // ✨ 인디케이터 세팅 및 마우스가 밖으로 나가면 가이드라인 숨기기
         this.dropIndicatorEl.className = 'tab-group-drop-indicator';
+
+        // ✨ 신규 추가: 테마 강조 색상이 적용된 플레이스홀더 박스 스타일 정의
+        this.placeholderEl.className = 'tab-group-drag-placeholder';
+        this.placeholderEl.style.display = 'none';
+        this.placeholderEl.style.width = '90px';
+        this.placeholderEl.style.height = '24px';
+        this.placeholderEl.style.border = '2px dashed var(--interactive-accent)';
+        this.placeholderEl.style.backgroundColor = 'color-mix(in srgb, var(--interactive-accent) 15%, transparent)';
+        this.placeholderEl.style.borderRadius = 'var(--radius-s, 4px)';
+        this.placeholderEl.style.boxSizing = 'border-box';
+        this.placeholderEl.style.pointerEvents = 'none'; // 드래그 마우스 이벤트를 방해하지 않음
+        this.placeholderEl.style.flexShrink = '0';
+        this.placeholderEl.style.margin = '0 3px';
+        this.placeholderEl.style.alignSelf = 'center';
+
+        // ✨ 신규 추가: 탭 바 위를 지나갈 때 실시간으로 플레이스홀더 위치 갱신
+        this.registerDomEvent(window, 'dragover', (e: DragEvent) => {
+            if (this.draggingGroupId) return; // 그룹 전체 드래그 시에는 기존 인디케이터에 양보
+
+            const target = e.target as HTMLElement;
+            const container = target.closest('.workspace-tab-header-container-inner') as HTMLElement;
+
+            if (!container) {
+                this.hidePlaceholder();
+                return;
+            }
+
+            this.updatePlaceholderPosition(container, e.clientX);
+        }, { capture: true });
+
+        // ✨ 드래그 종료/이탈 시 플레이스홀더 숨김 처리
+        this.registerDomEvent(window, 'dragleave', (e: DragEvent) => {
+            if (!e.relatedTarget) this.hidePlaceholder();
+        }, { capture: true });
+
+        this.registerDomEvent(window, 'drop', () => this.hidePlaceholder(), { capture: true });
+        this.registerDomEvent(window, 'dragend', () => this.hidePlaceholder(), { capture: true });
+
         window.addEventListener('dragleave', (e: DragEvent) => {
             if (!e.relatedTarget) this.dropIndicatorEl.style.display = 'none';
         }, { capture: true });
@@ -337,8 +378,20 @@ export default class TabGroupsPlugin extends Plugin {
         const containers = document.querySelectorAll('.workspace-tab-header-container-inner');
         containers.forEach(container => {
             if (!this.globalObservers.has(container)) {
-                const observer = new MutationObserver(() => {
-                    this.enforcePhysicalSorting(); // 훼손 감지 즉시 강제 정렬 및 재생성
+                const observer = new MutationObserver(async (mutations) => {
+                    if (this.draggingGroupId) return;
+                    
+                    // ✨ 플레이스홀더 자체의 삽입/제거로 발생한 DOM 변경은 감시 대상에서 제외
+                    const isOnlyPlaceholderMutation = mutations.every(m => {
+                        const nodes = [...Array.from(m.addedNodes), ...Array.from(m.removedNodes)];
+                        return nodes.length > 0 && nodes.every(n => 
+                            (n as HTMLElement).classList?.contains('tab-group-drag-placeholder')
+                        );
+                    });
+                    if (isOnlyPlaceholderMutation) return;
+                    
+                    await this.syncGroupStateFromDOM();
+                    this.enforcePhysicalSorting();
                 });
                 this.globalObservers.set(container, observer);
                 observer.observe(container, { childList: true, attributes: true, attributeFilter: ['class'] });
@@ -603,6 +656,57 @@ export default class TabGroupsPlugin extends Plugin {
 
         // 리더 탭 앞에 삽입
         container.insertBefore(labelEl, leaderEl);
+    }
+
+    // ✨ 플레이스홀더 제거 함수
+    hidePlaceholder() {
+        this.placeholderEl.style.display = 'none';
+        if (this.placeholderEl.parentElement) {
+            this.placeholderEl.remove();
+        }
+    }
+
+    // ✨ 마우스 좌표(X)에 따라 맨 앞, 중간, 맨 뒤 위치를 찾아 박스를 밀어 넣는 함수
+    updatePlaceholderPosition(container: HTMLElement, clientX: number) {
+        const visibleTabs = Array.from(container.children).filter(el => 
+            el !== this.placeholderEl &&
+            (el.classList.contains('workspace-tab-header') || el.classList.contains('tab-group-label')) &&
+            window.getComputedStyle(el).display !== 'none'
+        ) as HTMLElement[];
+
+        if (visibleTabs.length === 0) {
+            container.appendChild(this.placeholderEl);
+            this.placeholderEl.style.display = 'block';
+            return;
+        }
+
+        // 1. 맨 앞(첫 탭보다 왼쪽)인 경우
+        const firstRect = visibleTabs[0].getBoundingClientRect();
+        if (clientX < firstRect.left + firstRect.width / 2) {
+            container.insertBefore(this.placeholderEl, visibleTabs[0]);
+            this.placeholderEl.style.display = 'block';
+            return;
+        }
+
+        // 2. 맨 뒤(마지막 탭보다 오른쪽)인 경우
+        const lastRect = visibleTabs[visibleTabs.length - 1].getBoundingClientRect();
+        if (clientX > lastRect.right - lastRect.width / 2) {
+            container.appendChild(this.placeholderEl);
+            this.placeholderEl.style.display = 'block';
+            return;
+        }
+
+        // 3. 탭과 탭 사이인 경우
+        for (let i = 0; i < visibleTabs.length; i++) {
+            const rect = visibleTabs[i].getBoundingClientRect();
+            if (clientX <= rect.right) {
+                const isAfter = clientX > rect.left + rect.width / 2;
+                const targetNode = isAfter ? visibleTabs[i].nextSibling : visibleTabs[i];
+                container.insertBefore(this.placeholderEl, targetNode);
+                this.placeholderEl.style.display = 'block';
+                return;
+            }
+        }
     }
 
     onunload() {
