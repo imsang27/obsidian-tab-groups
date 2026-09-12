@@ -74,24 +74,6 @@ export default class TabGroupsPlugin extends Plugin {
         //     })
         // );
 
-        // ✨ 신규 추가: 단일 탭 드래그 시작 감지
-        this.registerDomEvent(window, 'dragstart', (e: DragEvent) => {
-            const target = e.target as HTMLElement;
-            if (target && target.closest('.workspace-tab-header')) {
-                this.isDraggingTab = true;
-            }
-        }, { capture: true });
-
-        // ✨ 신규 추가: 단일 탭 드롭 완료 시 DOM 순서를 읽어 스마트 편입/이탈 처리
-        this.registerDomEvent(window, 'dragend', () => {
-            if (this.isDraggingTab) {
-                this.isDraggingTab = false;
-                setTimeout(() => {
-                    this.syncGroupStateFromDOM();
-                }, 50);
-            }
-        }, { capture: true });
-
         // ✨ 옵시디언이 이벤트를 씹어먹기 전에 우리가 먼저(capture: true) 낚아챕니다!
         this.onDragOver = this.onDragOver.bind(this);
         this.onDrop = this.onDrop.bind(this);
@@ -582,10 +564,15 @@ export default class TabGroupsPlugin extends Plugin {
         const containers = document.querySelectorAll('.workspace-tab-header-container-inner');
         containers.forEach(container => {
             if (!this.globalObservers.has(container)) {
-                const observer = new MutationObserver(() => {
-                    // ✨ 드래그가 진행 중일 때는 강제 정렬을 건너뜁니다.
-                    if (this.isDraggingTab) return;
-                    this.enforcePhysicalSorting(); // 훼손 감지 즉시 강제 정렬 및 재생성
+                const observer = new MutationObserver(async () => {
+                    // ✨ 그룹 전체를 드래그하고 있을 때는 간섭하지 않음
+                    if (this.draggingGroupId) return;
+
+                    // 1. 방금 유저가 떨어뜨린 DOM 순서를 먼저 읽어서 맵(Map)을 최신화!
+                    await this.syncGroupStateFromDOM();
+
+                    // 2. 최신화된 소속을 바탕으로 예쁘게 물리 정렬 및 스타일 렌더링
+                    this.enforcePhysicalSorting();
                 });
                 this.globalObservers.set(container, observer);
                 observer.observe(container, { childList: true, attributes: true, attributeFilter: ['class'] });
@@ -908,7 +895,7 @@ export default class TabGroupsPlugin extends Plugin {
         container.insertBefore(labelEl, leaderEl);
     }
     
-    // ✨ 신규 추가: 유저가 탭을 드래그 앤 드롭했을 때, 시각적 DOM 순서를 읽어내어 논리적 매핑(Map)을 동기화하는 스마트 로직
+    // ✨ 순수하게 DOM 순서를 읽어 leafGroupMap과 settings만 최신화하는 함수
     async syncGroupStateFromDOM() {
         const containers = document.querySelectorAll('.workspace-tab-header-container-inner');
         let hasChanges = false;
@@ -917,7 +904,7 @@ export default class TabGroupsPlugin extends Plugin {
             let currentGroupId: string | null = null;
 
             Array.from(container.children).forEach(el => {
-                // 1. 그룹 라벨을 만나면 현재 활성 그룹 ID 갱신
+                // 1. 그룹 라벨을 만나면 현재 그룹 ID 갱신
                 if (el.classList.contains('tab-group-label')) {
                     currentGroupId = el.getAttribute('data-group-id');
                 }
@@ -942,10 +929,9 @@ export default class TabGroupsPlugin extends Plugin {
             });
         });
 
-        // 변경사항 발생 시 저장 및 정렬/라벨/색상 일괄 동기화
+        // 변경사항이 감지되면 파일에 저장
         if (hasChanges) {
             await this.saveSettings();
-            this.enforcePhysicalSorting(); // ✨ 색상 갱신 + 옵시디언 탭 배열 동기화 일괄 실행
         }
     }
 
