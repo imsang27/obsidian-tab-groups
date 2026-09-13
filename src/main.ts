@@ -60,19 +60,18 @@ export default class TabGroupsPlugin extends Plugin {
         // ✨ 인디케이터 세팅 및 마우스가 밖으로 나가면 가이드라인 숨기기
         this.dropIndicatorEl.className = 'tab-group-drop-indicator';
 
-        // ✨ 신규 추가: 테마 강조 색상이 적용된 플레이스홀더 박스 스타일 정의
+        // ✨ 수정: 테두리를 제거하고 테마 강조 색상(면)만 깔끔하게 채우도록 변경
         this.placeholderEl.className = 'tab-group-drag-placeholder';
         this.placeholderEl.style.display = 'none';
-        this.placeholderEl.style.width = '90px';
-        this.placeholderEl.style.height = '24px';
-        this.placeholderEl.style.border = '2px dashed var(--interactive-accent)';
-        this.placeholderEl.style.backgroundColor = 'color-mix(in srgb, var(--interactive-accent) 15%, transparent)';
-        this.placeholderEl.style.borderRadius = 'var(--radius-s, 4px)';
+        this.placeholderEl.style.border = 'none'; // 테두리 제거
+        this.placeholderEl.style.backgroundColor = 'var(--interactive-accent)';
+        this.placeholderEl.style.opacity = '0.35'; // 다른 탭과 구분되도록 은은한 반투명 처리
+        this.placeholderEl.style.borderRadius = 'var(--tab-radius, var(--radius-s, 4px))';
         this.placeholderEl.style.boxSizing = 'border-box';
-        this.placeholderEl.style.pointerEvents = 'none'; // 드래그 마우스 이벤트를 방해하지 않음
+        this.placeholderEl.style.pointerEvents = 'none';
         this.placeholderEl.style.flexShrink = '0';
-        this.placeholderEl.style.margin = '0 3px';
-        this.placeholderEl.style.alignSelf = 'center';
+        this.placeholderEl.style.margin = '0 2px';
+        this.placeholderEl.style.transition = 'all 0.1s ease'; // 부드러운 위치/크기 전환
 
         // ✨ 신규 추가: 탭 바 위를 지나갈 때 실시간으로 플레이스홀더 위치 갱신
         this.registerDomEvent(window, 'dragover', (e: DragEvent) => {
@@ -666,20 +665,36 @@ export default class TabGroupsPlugin extends Plugin {
         }
     }
 
-    // ✨ 마우스 좌표(X)에 따라 맨 앞, 중간, 맨 뒤 위치를 찾아 박스를 밀어 넣는 함수
+    // ✨ 수정: 주변 탭의 실제 렌더링 치수를 읽어와 1:1로 복제하는 함수
     updatePlaceholderPosition(container: HTMLElement, clientX: number) {
         const visibleTabs = Array.from(container.children).filter(el => 
             el !== this.placeholderEl &&
             (el.classList.contains('workspace-tab-header') || el.classList.contains('tab-group-label')) &&
             window.getComputedStyle(el).display !== 'none'
         ) as HTMLElement[];
+        
+        // 🎯 핵심: 화면에 보이는 실제 탭 중 하나를 골라 크기와 곡률을 그대로 복제
+        const sampleTab = visibleTabs.find(el => el.classList.contains('workspace-tab-header'));
+        if (sampleTab) {
+            const tabRect = sampleTab.getBoundingClientRect();
+            const computed = window.getComputedStyle(sampleTab);
 
+            this.placeholderEl.style.height = `${tabRect.height}px`;
+            this.placeholderEl.style.width = `${tabRect.width}px`; // 실제 탭 너비와 동일하게 확장
+            this.placeholderEl.style.borderRadius = computed.borderRadius;
+            this.placeholderEl.style.alignSelf = computed.alignSelf;
+        } else {
+            // 탭이 하나도 없을 때를 위한 최소 기본값
+            this.placeholderEl.style.height = '30px';
+            this.placeholderEl.style.width = '120px';
+        }
+        
         if (visibleTabs.length === 0) {
             container.appendChild(this.placeholderEl);
             this.placeholderEl.style.display = 'block';
             return;
         }
-
+        
         // 1. 맨 앞(첫 탭보다 왼쪽)인 경우
         const firstRect = visibleTabs[0].getBoundingClientRect();
         if (clientX < firstRect.left + firstRect.width / 2) {
@@ -687,7 +702,7 @@ export default class TabGroupsPlugin extends Plugin {
             this.placeholderEl.style.display = 'block';
             return;
         }
-
+        
         // 2. 맨 뒤(마지막 탭보다 오른쪽)인 경우
         const lastRect = visibleTabs[visibleTabs.length - 1].getBoundingClientRect();
         if (clientX > lastRect.right - lastRect.width / 2) {
@@ -695,7 +710,7 @@ export default class TabGroupsPlugin extends Plugin {
             this.placeholderEl.style.display = 'block';
             return;
         }
-
+        
         // 3. 탭과 탭 사이인 경우
         for (let i = 0; i < visibleTabs.length; i++) {
             const rect = visibleTabs[i].getBoundingClientRect();
@@ -708,7 +723,7 @@ export default class TabGroupsPlugin extends Plugin {
             }
         }
     }
-
+    
     onunload() {
         console.log('🛑 Tab Groups 플러그인 종료됨');
         
