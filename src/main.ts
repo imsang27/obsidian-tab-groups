@@ -31,23 +31,18 @@ export default class TabGroupsPlugin extends Plugin {
     
     // ✨ 신규 추가: 탭 드롭 직후 옵시디언의 새 창 분리(Popout) 강제 차단용 플래그
     preventPopoutUntil: number = 0;
-    originalOpenPopoutLeaf: any = null;
+    originalOpenPopout: any = null;
 
     async onload() {
         console.log('🚀 Tab Groups 로드됨 (옵시디언 드래그 간섭 차단 캡처 이벤트 적용)');
         
-        // ✨ 신규 추가: 옵시디언 코어의 탭 새 창 분리(openPopoutLeaf) 원천 차단 인터셉터
-        if (typeof (this.app.workspace as any).openPopoutLeaf === 'function') {
-            this.originalOpenPopoutLeaf = (this.app.workspace as any).openPopoutLeaf.bind(this.app.workspace);
-            (this.app.workspace as any).openPopoutLeaf = (leaf?: WorkspaceLeaf) => {
-                // 탭 드래그 중이거나 드롭 직후 600ms 이내라면 새 창 분리를 무효화하고 기존 leaf 유지
-                if (this.isDraggingTab || Date.now() < this.preventPopoutUntil) {
-                    console.log('🛡️ Tab Groups: 탭 드롭 중 새 창 분리(Popout) 차단 성공');
-                    return leaf || this.app.workspace.getLeaf();
-                }
-                return this.originalOpenPopoutLeaf(leaf);
-            };
-        }
+        // ✨ 더미 프록시 생성 함수 (옵시디언의 popoutWindow.insertChild 등 후속 호출 방어용)
+        const createDummyProxy = () => {
+            const dummy: any = new Proxy({}, {
+                get: () => (...args: any[]) => dummy
+            });
+            return dummy;
+        };
         
         this.app.workspace.onLayoutReady(() => {
             this.setupObservers();
@@ -72,6 +67,7 @@ export default class TabGroupsPlugin extends Plugin {
         );
         
         // ✨ 옵시디언이 이벤트를 씹어먹기 전에 우리가 먼저(capture: true) 낚아챕니다!
+        this.onDragEnter = this.onDragEnter.bind(this);
         this.onDragOver = this.onDragOver.bind(this);
         this.onDrop = this.onDrop.bind(this);
         window.addEventListener('dragenter', this.onDragEnter, { capture: true });
@@ -89,61 +85,65 @@ export default class TabGroupsPlugin extends Plugin {
         this.placeholderEl.style.opacity = '0.35'; // 다른 탭과 구분되도록 은은한 반투명 처리
         this.placeholderEl.style.borderRadius = 'var(--tab-radius, var(--radius-s, 4px))';
         this.placeholderEl.style.boxSizing = 'border-box';
-        this.placeholderEl.style.pointerEvents = 'none';
+        this.placeholderEl.style.pointerEvents = 'all';
+        (this.placeholderEl.style as any).webkitAppRegion = 'no-drag';
         this.placeholderEl.style.flexShrink = '0';
         this.placeholderEl.style.margin = '0 2px';
         
-        // ✨ 수정: 드래그 시작 시 잡고 있는 탭을 기억
+        // ✨ 드래그 시작 시 잡고 있는 탭을 기억
         this.registerDomEvent(window, 'dragstart', (e: DragEvent) => {
             const target = e.target as HTMLElement;
             const header = target.closest('.workspace-tab-header') as HTMLElement;
+
             if (header) {
                 this.isDraggingTab = true;
                 this.draggedTabHeader = header;
+                // 💡 탭 바 내부 드롭 및 분할 드롭 영역 인식을 위해 body 클래스 추가 제거
             }
         }, { capture: true });
 
         // ✨ 수정: dragover 이벤트
         this.registerDomEvent(window, 'dragover', (e: DragEvent) => {
-            // ✨ 수정 후: 탭을 잡고 있을 때만 플레이스홀더가 반응하도록 제한
+            // 그룹 드래그 중이거나 탭 드래그가 아니면 통과
             if (this.draggingGroupId || !this.isDraggingTab) return;
 
             const target = e.target as HTMLElement;
             const wrapper = target.closest('.workspace-tab-header-container');
-
+            
+            // 💡 [핵심] 마우스가 탭 바를 벗어나 본문 에디터/분할 영역으로 나갔을 때:
+            // preventDefault를 하지 않고 순정 옵시디언 분할 엔진에 이벤트를 그대로 통과시킵니다!
             if (!wrapper) {
                 this.hidePlaceholder();
+                this.cleanupNativeOverlay();
                 return;
             }
-
+            
             const container = wrapper.querySelector('.workspace-tab-header-container-inner') as HTMLElement;
             if (!container) {
                 this.hidePlaceholder();
                 return;
             }
-
+            
+            // 탭 헤더 바 내부일 때만 플레이스홀더를 띄우고 드롭 허용
             e.preventDefault();
             if (e.dataTransfer) {
-                e.dataTransfer.dropEffect = 'move'; // ✨ 명시적 이동 효과 부여
+                e.dataTransfer.dropEffect = 'move';
             }
             this.updatePlaceholderPosition(container, e.clientX);
         }, { capture: true });
         
         // ✨ 수정: 옵시디언이 드롭을 온전히 처리한 후 dragend 시점에 안전하게 정리
-        this.registerDomEvent(window, 'dragend', () => {
-            if (!this.isDraggingTab) return;
-            
+        this.registerDomEvent(window, 'dragend', (e: DragEvent) => {
             this.isDraggingTab = false;
             this.draggedTabHeader = null;
-            
-            // 옵시디언의 네이티브 탭 재배치가 끝난 직후 플레이스홀더 정리 및 동기화
-            setTimeout(async () => {
+            document.body.classList.remove('is-dragging-tab-group');
+            document.body.classList.remove('is-grabbing');
+            document.body.style.removeProperty('cursor');
+
+            setTimeout(() => {
                 this.hidePlaceholder();
-                
-                // 스마트 편입 함수가 있을 때만 안전하게 실행
-                if (typeof (this as any).syncGroupStateFromDOM === 'function') {
-                    await (this as any).syncGroupStateFromDOM();
-                }
+                this.cleanupNativeOverlay();
+                this.cleanupEmptyTabContainers(); // ✨ 추가: 드래그 종료 시 유령 창 청소
                 this.enforcePhysicalSorting();
             }, 50);
         }, { capture: true });
@@ -251,24 +251,28 @@ export default class TabGroupsPlugin extends Plugin {
         );
     }
     
-    // ✨ 1. 진입 단계부터 옵시디언의 방어막 완전 박살내기 (무력 제압)
+    // ✨ 1. 진입 단계 처리
     onDragEnter(e: DragEvent) {
         if (this.draggingGroupId) {
             e.preventDefault();
             e.stopPropagation();
-            // 🔥 핵심: 다른 그 어떤 옵시디언 코어 이벤트도 실행되지 못하도록 즉각 차단!
             e.stopImmediatePropagation(); 
-            if (e.dataTransfer) {
-                e.dataTransfer.dropEffect = 'move';
+            if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+        } else if (this.isDraggingTab) {
+            // ✨ 타겟이 상단 탭 바 내부일 때만 가로채고, 본문 분할 영역 진입 시에는 통과!
+            const target = e.target as HTMLElement;
+            if (target.closest('.workspace-tab-header-container')) {
+                e.preventDefault();
+                if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
             }
         }
     }
-
+    
     // ✨ 2. 빈 공간 타겟 그물망 넓히기
     onDragOver(e: DragEvent) {
         // 💡 보안 정책에 막히는 getData 대신, 아까 저장해둔 내장 메모리 변수 사용!
         const draggedGroupId = this.draggingGroupId;
-        if (!draggedGroupId) return;
+        if (!draggedGroupId) return; // 💡 단일 탭일 때는 즉시 패스하여 96번 줄 리스너로 넘김!
 
         // 💡 핵심: 그룹 ID가 확인되면, DOM을 탐색하기도 전에 무조건 닥치고 옵시디언부터 차단!
         e.preventDefault();
@@ -424,46 +428,80 @@ export default class TabGroupsPlugin extends Plugin {
             return;
         }
         
-        // 2. ✨ 단일 탭 드롭 처리 (새 창 분리 원천 차단)
+        // 2. ✨ 단일 탭 드롭 처리
         if (this.isDraggingTab && this.draggedTabHeader) {
             const target = e.target as HTMLElement;
             const wrapper = target.closest('.workspace-tab-header-container');
-            
+            const droppedHeader = this.draggedTabHeader;
+            const leaf = this.findLeafFromHeader(droppedHeader);
+
+            // 탭 바 내부로 정상 드롭된 경우
             if (wrapper) {
                 const container = wrapper.querySelector('.workspace-tab-header-container-inner') as HTMLElement;
                 
                 // 탭 바 내부로 정상 드롭된 경우
                 if (container && this.placeholderEl.parentElement === container) {
-                    // 🔥 핵심: 옵시디언의 '새 창 분리(Popout)' 코드가 돌지 못하도록 즉각 사살
-                    this.preventPopoutUntil = Date.now() + 600; // 600ms 동안 새 창 분리 차단
-                    
                     e.preventDefault();
                     e.stopPropagation();
                     e.stopImmediatePropagation();
                     
-                    // 플레이스홀더 자리에 드래그하던 탭을 물리적으로 삽입
-                    container.insertBefore(this.draggedTabHeader, this.placeholderEl);
-                    this.hidePlaceholder();
+                    // 플레이스홀더 위치 기준으로 인덱스 계산
+                    const visibleTabHeaders = Array.from(container.children).filter(el => 
+                        el.classList.contains('workspace-tab-header') && el !== droppedHeader
+                    );
                     
-                    const droppedHeader = this.draggedTabHeader;
+                    let targetIndex = 0;
+                    for (const tabEl of visibleTabHeaders) {
+                        if (tabEl.compareDocumentPosition(this.placeholderEl) & Node.DOCUMENT_POSITION_FOLLOWING) {
+                            targetIndex++;
+                        }
+                    }
+
+                    this.hidePlaceholder();
+                    this.cleanupNativeOverlay();
+                    
+                    document.body.classList.remove('is-dragging-tab-group');
+                    document.body.classList.remove('is-grabbing');
+                    document.body.style.removeProperty('cursor');
+                    
                     this.isDraggingTab = false;
                     this.draggedTabHeader = null;
-                    
-                    // 화면 배치에 맞춰 옵시디언 내부 탭 배열 동기화
-                    setTimeout(() => {
-                        this.enforcePhysicalSorting();
-                        
-                        const leaf = this.findLeafFromHeader(droppedHeader);
-                        if (leaf) {
-                            this.app.workspace.setActiveLeaf(leaf, { focus: true });
+
+                    if (leaf) {
+                        const oldParent = (leaf as any).parent;
+                        const neighborHeader = visibleTabHeaders[0] as HTMLElement | undefined;
+                        const neighborLeaf = neighborHeader ? this.findLeafFromHeader(neighborHeader) : null;
+                        const targetParent = neighborLeaf ? (neighborLeaf as any).parent : oldParent;
+
+                        const workspace = this.app.workspace as any;
+
+                        if (targetParent && oldParent !== targetParent) {
+                            if (typeof workspace.moveLeafToTabGroup === 'function') {
+                                workspace.moveLeafToTabGroup(leaf, targetParent, targetIndex);
+                            } else if (typeof targetParent.insertChild === 'function') {
+                                targetParent.insertChild(targetIndex, leaf);
+                            }
+                        } else {
+                            container.insertBefore(droppedHeader, container.children[targetIndex] || null);
                         }
-                    }, 0);
+
+                        setTimeout(() => {
+                            this.enforcePhysicalSorting();
+                            this.cleanupEmptyTabContainers(); // ✨ 추가: 드롭 직후 유령 창 정리
+                            this.app.workspace.setActiveLeaf(leaf, { focus: true });
+                        }, 20);
+                    }
                     return;
                 }
             }
             
-            // 탭 바 바깥에 떨어뜨린 경우: 플레이스홀더만 닫고 네이티브 동작에 위임
+            // 💡 탭 바 내부가 아닌 곳(새 창 분리, 분할 영역)으로 끌고 나간 경우:
+            // 옵시디언 기본 드래그 앤 드롭 시스템이 정상 분할할 수 있도록 우리 리소스만 깔끔히 치우고 손뗍니다.
             this.hidePlaceholder();
+            this.cleanupNativeOverlay();
+            document.body.classList.remove('is-dragging-tab-group');
+            document.body.classList.remove('is-grabbing');
+            document.body.style.removeProperty('cursor');
             this.isDraggingTab = false;
             this.draggedTabHeader = null;
         }
@@ -647,6 +685,7 @@ export default class TabGroupsPlugin extends Plugin {
             });
 
             this.renderGroupUI();
+            this.cleanupEmptyTabContainers(); // ✨ 추가: 물리 정렬 시 빈 껍데기 정리
         } finally {
             // ✨ 우리 작업이 완벽히 끝나면 감시자를 다시 가동합니다.
             this.globalObservers.forEach((obs, container) => {
@@ -761,6 +800,30 @@ export default class TabGroupsPlugin extends Plugin {
             this.placeholderEl.remove();
         }
     }
+
+    // ✨ 옵시디언 순정 드롭 오버레이(보라색 선) 강제 청소
+    cleanupNativeOverlay() {
+        document.querySelectorAll('.workspace-drop-overlay').forEach(el => el.remove());
+    }
+    
+    // ✨ 탭이 모두 빠져나가 텅 비어버린 유령 껍데기(WorkspaceTabs) 자동 청소
+    cleanupEmptyTabContainers() {
+        const tabContainers = document.querySelectorAll('.workspace-tab-header-container-inner');
+        tabContainers.forEach(container => {
+            const headers = container.querySelectorAll('.workspace-tab-header');
+            // 탭 헤더가 단 하나도 없고, 플레이스홀더도 없는 완전히 빈 컨테이너인 경우
+            if (headers.length === 0 && !container.contains(this.placeholderEl)) {
+                const tabsParent = container.closest('.workspace-tabs');
+                if (tabsParent) {
+                    // 메인 루트가 아닌 분할/사이드바 등의 빈 껍데기라면 DOM에서 안전하게 제거
+                    const leafContainer = tabsParent.closest('.workspace-leaf');
+                    if (leafContainer && !leafContainer.classList.contains('mod-root')) {
+                        tabsParent.remove();
+                    }
+                }
+            }
+        });
+    }
     
     // ✨ 수정: 중복 DOM 재배치를 차단하여 깜빡임 제거
     updatePlaceholderPosition(container: HTMLElement, clientX: number) {
@@ -840,11 +903,6 @@ export default class TabGroupsPlugin extends Plugin {
     onunload() {
         console.log('🛑 Tab Groups 플러그인 종료됨');
         
-        // ✨ 신규 추가: 원본 openPopoutLeaf 복원
-        if (this.originalOpenPopoutLeaf) {
-            (this.app.workspace as any).openPopoutLeaf = this.originalOpenPopoutLeaf;
-        }
-        
         // ✨ 플러그인 꺼질 때 가로채기 이벤트 확실하게 제거
         window.removeEventListener('dragenter', this.onDragEnter, { capture: true });
         window.removeEventListener('dragover', this.onDragOver, { capture: true });
@@ -853,6 +911,7 @@ export default class TabGroupsPlugin extends Plugin {
         this.placeholderEl.remove(); // ✨ 플레이스홀더 엘리먼트 메모리 해제
         this.globalObservers.forEach(obs => obs.disconnect());
         document.querySelectorAll('.tab-group-label').forEach(el => el.remove());
+        this.cleanupNativeOverlay(); // ✨ 추가: 네이티브 드롭 오버레이 정리
     }
 }
 
