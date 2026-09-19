@@ -25,12 +25,29 @@ export default class TabGroupsPlugin extends Plugin {
     // ✨ 자리를 확보하며 밀어내는 더미 탭 플레이스홀더 박스
     placeholderEl: HTMLElement = document.createElement('div');
     
-    // ✨ 신규 추가: 드래그 중인 단일 탭 추적 변수
+    // ✨ 드래그 중인 단일 탭 추적 변수
     isDraggingTab: boolean = false;
     draggedTabHeader: HTMLElement | null = null;
     
+    // ✨ 신규 추가: 탭 드롭 직후 옵시디언의 새 창 분리(Popout) 강제 차단용 플래그
+    preventPopoutUntil: number = 0;
+    originalOpenPopoutLeaf: any = null;
+
     async onload() {
         console.log('🚀 Tab Groups 로드됨 (옵시디언 드래그 간섭 차단 캡처 이벤트 적용)');
+        
+        // ✨ 신규 추가: 옵시디언 코어의 탭 새 창 분리(openPopoutLeaf) 원천 차단 인터셉터
+        if (typeof (this.app.workspace as any).openPopoutLeaf === 'function') {
+            this.originalOpenPopoutLeaf = (this.app.workspace as any).openPopoutLeaf.bind(this.app.workspace);
+            (this.app.workspace as any).openPopoutLeaf = (leaf?: WorkspaceLeaf) => {
+                // 탭 드래그 중이거나 드롭 직후 600ms 이내라면 새 창 분리를 무효화하고 기존 leaf 유지
+                if (this.isDraggingTab || Date.now() < this.preventPopoutUntil) {
+                    console.log('🛡️ Tab Groups: 탭 드롭 중 새 창 분리(Popout) 차단 성공');
+                    return leaf || this.app.workspace.getLeaf();
+                }
+                return this.originalOpenPopoutLeaf(leaf);
+            };
+        }
         
         this.app.workspace.onLayoutReady(() => {
             this.setupObservers();
@@ -407,7 +424,7 @@ export default class TabGroupsPlugin extends Plugin {
             return;
         }
         
-        // 2. ✨ 신규 추가: 단일 탭 드롭 처리 (새 창 분리 원천 차단)
+        // 2. ✨ 단일 탭 드롭 처리 (새 창 분리 원천 차단)
         if (this.isDraggingTab && this.draggedTabHeader) {
             const target = e.target as HTMLElement;
             const wrapper = target.closest('.workspace-tab-header-container');
@@ -418,6 +435,8 @@ export default class TabGroupsPlugin extends Plugin {
                 // 탭 바 내부로 정상 드롭된 경우
                 if (container && this.placeholderEl.parentElement === container) {
                     // 🔥 핵심: 옵시디언의 '새 창 분리(Popout)' 코드가 돌지 못하도록 즉각 사살
+                    this.preventPopoutUntil = Date.now() + 600; // 600ms 동안 새 창 분리 차단
+                    
                     e.preventDefault();
                     e.stopPropagation();
                     e.stopImmediatePropagation();
@@ -821,12 +840,17 @@ export default class TabGroupsPlugin extends Plugin {
     onunload() {
         console.log('🛑 Tab Groups 플러그인 종료됨');
         
+        // ✨ 신규 추가: 원본 openPopoutLeaf 복원
+        if (this.originalOpenPopoutLeaf) {
+            (this.app.workspace as any).openPopoutLeaf = this.originalOpenPopoutLeaf;
+        }
+        
         // ✨ 플러그인 꺼질 때 가로채기 이벤트 확실하게 제거
         window.removeEventListener('dragenter', this.onDragEnter, { capture: true });
         window.removeEventListener('dragover', this.onDragOver, { capture: true });
         window.removeEventListener('drop', this.onDrop, { capture: true });
         
-        this.placeholderEl.remove(); // ✨ 신규 추가: 플레이스홀더 엘리먼트 메모리 해제
+        this.placeholderEl.remove(); // ✨ 플레이스홀더 엘리먼트 메모리 해제
         this.globalObservers.forEach(obs => obs.disconnect());
         document.querySelectorAll('.tab-group-label').forEach(el => el.remove());
     }
