@@ -486,7 +486,7 @@ export default class TabGroupsPlugin extends Plugin {
                     });
                     if (isOnlyPlaceholderMutation) return;
                     
-                    await this.syncGroupStateFromDOM();
+                    // await this.syncGroupStateFromDOM();
                     this.enforcePhysicalSorting();
                 });
                 this.globalObservers.set(container, observer);
