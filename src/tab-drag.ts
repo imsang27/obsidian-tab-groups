@@ -27,7 +27,6 @@ export class TabDragController {
         const opts = { capture: true };
         this.plugin.registerDomEvent(window, 'dragstart', (e) => this.onDragStart(e), opts);
         this.plugin.registerDomEvent(window, 'dragover', (e) => this.onDragOver(e), opts);
-        this.plugin.registerDomEvent(window, 'dragleave', (e) => this.onDragLeave(e), opts);
         this.plugin.registerDomEvent(window, 'drop', (e) => this.onDrop(e), opts);
         this.plugin.registerDomEvent(window, 'dragend', () => this.onDragEnd(), opts);
     }
@@ -42,6 +41,10 @@ export class TabDragController {
         this.draggedLeaf = leaf;
         this.draggedHeader = header;
         this.draggedWidth = header.getBoundingClientRect().width;
+        // 💡 새 창 분리 방지: 탭 바 안쪽은 원래 창 이동 영역(-webkit-app-region: drag)이라,
+        // 플레이스홀더나 그 여백에 놓으면 OS가 "창 밖에 놓음"으로 처리해 새 창이 열립니다.
+        // 드래그하는 동안에는 탭 바 전체를 no-drag로 바꿉니다 (styles.css).
+        document.body.classList.add('is-dragging-tab');
     }
 
     onDragOver(e: DragEvent) {
@@ -59,16 +62,6 @@ export class TabDragController {
         if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
         document.body.classList.add('is-dragging-tab-in-tab-bar');
         this.updatePlaceholder(inner, e.clientX);
-    }
-
-    // ✨ 새 창 분리 방지: 옵시디언은 relatedTarget 없는 dragleave를 "창 밖으로 나감"으로 보고,
-    // drop을 받지 못한 채 dragend가 오면 새 창(Popout)을 엽니다. 플레이스홀더가 커서 아래에서
-    // 옮겨질 때도 relatedTarget 없는 dragleave가 나므로, 커서가 창 안에 있으면 옵시디언에 전달하지 않습니다.
-    // (실제로 창 밖으로 나갈 때는 좌표가 0,0으로 오므로 기존 새 창 분리 기능은 그대로 동작합니다.)
-    onDragLeave(e: DragEvent) {
-        if (!this.isDragging || e.relatedTarget) return;
-        const inside = e.clientX > 0 && e.clientY > 0 && e.clientX < window.innerWidth && e.clientY < window.innerHeight;
-        if (inside) e.stopImmediatePropagation();
     }
 
     onDrop(e: DragEvent) {
@@ -99,6 +92,7 @@ export class TabDragController {
         this.hidePlaceholder();
         this.draggedLeaf = null;
         this.draggedHeader = null;
+        document.body.classList.remove('is-dragging-tab');
     }
 
     findTabBarInner(target: HTMLElement): HTMLElement | null {

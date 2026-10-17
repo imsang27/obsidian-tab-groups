@@ -69,8 +69,14 @@ html body .tab-group-drop-indicator {
     flex-shrink: 0;
 }
 
-/* ✨ 라벨 드래그 중일 때 스페이서의 창 이동(OS 가로채기) 기능 무력화 */
-body.is-dragging-tab-group .workspace-tab-header-spacer {
+/* ✨ 탭·라벨 드래그 중에는 탭 바의 창 이동 영역(OS 가로채기)을 무력화
+   (그대로 두면 플레이스홀더·여백·빈 공간에 놓을 때 OS가 창 밖 드롭으로 처리해 새 창이 열림) */
+body.is-dragging-tab-group .workspace-tab-header-container,
+body.is-dragging-tab-group .workspace-tab-header-container-inner,
+body.is-dragging-tab-group .workspace-tab-header-spacer,
+body.is-dragging-tab .workspace-tab-header-container,
+body.is-dragging-tab .workspace-tab-header-container-inner,
+body.is-dragging-tab .workspace-tab-header-spacer {
     -webkit-app-region: no-drag !important;
 }
 /* ✨ 탭 하나를 끌 때 들어갈 자리를 밀어내며 보여 주는 플레이스홀더 */
