@@ -45,7 +45,17 @@ export class TabMoveTracker {
             // 🎯 한 칸 이동: 크롬처럼 그룹 경계(라벨)를 넘는 것도 한 걸음으로 칩니다.
             const direction = to - from;
             const neighborGroup = groupOf(before[from + direction]);
-            if (current && neighborGroup !== current) {
+            // 이웃 그룹 전체를 한 덩어리로 건너뛴 자리 (others 기준)
+            const pastBlock = (groupId: string) => direction > 0
+                ? blockEdge(others, from, 1, groupId, groupOf) + 1
+                : blockEdge(others, from - 1, -1, groupId, groupOf);
+            const isSoleTab = !!current && !others.some(l => groupOf(l) === current);
+
+            if (isSoleTab && neighborGroup !== current) {
+                // 탭 1개짜리 그룹 → 그룹째 이동 (일반 탭과는 한 칸, 이웃 그룹과는 그룹 전체와 자리 교체)
+                newGroup = current;
+                if (neighborGroup) newIndex = pastBlock(neighborGroup);
+            } else if (current && neighborGroup !== current) {
                 // 자기 그룹 가장자리에서 밖으로 → 자리는 그대로 두고 그룹에서만 빠짐
                 newGroup = null;
                 newIndex = from;
@@ -56,9 +66,7 @@ export class TabMoveTracker {
             } else if (!current && neighborGroup) {
                 // 접힌 그룹 → 그룹 전체를 한 덩어리로 건너뜀
                 newGroup = null;
-                newIndex = direction > 0
-                    ? blockEdge(others, from, 1, neighborGroup, groupOf) + 1
-                    : blockEdge(others, from - 1, -1, neighborGroup, groupOf);
+                newIndex = pastBlock(neighborGroup);
             } else {
                 newGroup = current; // 같은 그룹 안, 또는 그룹 밖끼리의 이동
             }
