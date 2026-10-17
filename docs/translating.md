@@ -11,6 +11,8 @@ Every language has one file in [`src/i18n/locales/`](../src/i18n/locales/):
 * `en.json`: English, the source language. Every other file is translated from this one.
 * `ko.json`, …: the translations.
 
+The maintainer writes each string in Korean first and then in English, so `ko.json` is the most accurate version of what a string means. If an English string is unclear, check `ko.json` (a machine translator helps) or ask in your pull request.
+
 Each line is `"key": "text"`. Translate only the text on the right. Leave the key on the left as it is.
 
 ```json
@@ -49,7 +51,7 @@ If editing `index.ts` feels like too much, just add the JSON file and open the p
 ## Update an existing translation
 ---
 > [!NOTE]
-> The translations other than English and Korean were first written with the help of AI and may not be accurate. If something sounds wrong or unnatural in your language, please fix it. Reviews by native speakers are very welcome.
+> Only the Korean text is written by a native speaker. The English text hasn't been reviewed by native speakers yet, and the other translations were first written with the help of AI, so they may not be accurate. If something sounds wrong or unnatural in your language, including English, please fix it. Reviews by native speakers are very welcome.
 
 The quickest way is to open your language's file on GitHub, select the pencil icon (**Edit this file**), fix the text, and propose the change.
 
