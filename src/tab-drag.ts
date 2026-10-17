@@ -4,6 +4,20 @@ import type TabGroupsPlugin from './main';
 const TAB_BAR_SELECTOR = '.workspace-tab-header-container';
 const TAB_BAR_INNER_SELECTOR = '.workspace-tab-header-container-inner';
 
+// 💡 옵시디언 비공개 API 중 이 파일이 쓰는 부분만 타입으로 정의 (옵시디언 기본 탭 드롭이 쓰는 것과 같은 메서드)
+interface InternalTabs {
+    children: WorkspaceLeaf[];
+    removeChild(leaf: WorkspaceLeaf): void;
+    insertChild(index: number, leaf: WorkspaceLeaf): void;
+    selectTabIndex?(index: number): void;
+}
+interface InternalLeaf {
+    parent: InternalTabs | null;
+    tabHeaderEl?: HTMLElement;
+    setDimension?(dimension: number | null): void;
+}
+const internal = (leaf: WorkspaceLeaf) => leaf as unknown as InternalLeaf;
+
 // ✨ 탭 하나를 끌 때: 탭 바 안에서는 자리 표시(플레이스홀더)로 들어갈 위치를 보여 주고,
 // 놓으면 그 자리에 옵시디언 내부 API로 탭을 옮깁니다. 탭 바 밖(분할·새 창)은 옵시디언 기본 동작에 맡깁니다.
 export class TabDragController {
@@ -15,8 +29,7 @@ export class TabDragController {
 
     constructor(plugin: TabGroupsPlugin) {
         this.plugin = plugin;
-        this.placeholderEl = document.createElement('div');
-        this.placeholderEl.className = 'tab-group-drag-placeholder';
+        this.placeholderEl = createDiv({ cls: 'tab-group-drag-placeholder' });
     }
 
     get isDragging(): boolean {
@@ -33,7 +46,7 @@ export class TabDragController {
 
     onDragStart(e: DragEvent) {
         if (this.plugin.draggingGroupId) return;
-        const header = (e.target as HTMLElement).closest?.('.workspace-tab-header') as HTMLElement | null;
+        const header = (e.target as HTMLElement).closest?.<HTMLElement>('.workspace-tab-header');
         if (!header) return;
         const leaf = this.plugin.findLeafFromHeader(header);
         if (!leaf) return;
@@ -66,13 +79,16 @@ export class TabDragController {
 
     onDrop(e: DragEvent) {
         const leaf = this.draggedLeaf;
-        const inner = this.placeholderEl.parentElement;
+        const inner = this.findTabBarInner(e.target as HTMLElement);
         if (!leaf || !inner) return; // 탭 바 밖 드롭은 옵시디언 기본 처리(분할 등)에 맡김
 
+        // 💡 마지막 dragover가 늦게 처리돼도 놓은 좌표 그대로 자리를 한 번 더 맞춥니다.
+        this.updatePlaceholder(inner, e.clientX);
         e.preventDefault();
         e.stopImmediatePropagation(); // 옵시디언이 같은 탭을 한 번 더 옮기지 않도록 차단
 
         const target = this.findTabsParent(inner);
+        const groupChanged = this.applyDropGroup(leaf);
         if (target) {
             const index = this.getDropIndex(target, leaf);
             this.moveLeaf(leaf, target, index);
@@ -80,6 +96,47 @@ export class TabDragController {
         this.finishDrag();
         this.plugin.enforcePhysicalSorting();
         this.plugin.app.workspace.setActiveLeaf(leaf, { focus: true });
+        if (groupChanged) void this.plugin.saveSettings();
+    }
+
+    // ✨ 놓은 자리에 따라 그룹 소속을 정합니다. (플레이스홀더 양옆의 보이는 탭·라벨 기준)
+    // - 펼쳐진 그룹의 라벨 바로 뒤, 또는 같은 그룹 탭 두 개 사이 → 그 그룹에 편입
+    // - 자기 그룹의 맨 끝(앞은 같은 그룹 탭, 뒤는 다른 것) → 그대로 유지
+    // - 그 밖의 자리 → 그룹에서 빠짐
+    // 그룹이 바뀌었으면 true를 돌려줍니다.
+    applyDropGroup(leaf: WorkspaceLeaf): boolean {
+        const prev = this.neighbor('previousElementSibling');
+        const next = this.neighbor('nextElementSibling');
+        const isLabel = (el: Element | null) => !!el?.classList.contains('tab-group-label');
+        const groupOf = (el: Element | null) =>
+            el?.getAttribute('data-tab-group-id') ?? el?.getAttribute('data-group-id') ?? null;
+        const isExpanded = (groupId: string | null) =>
+            !!groupId && this.plugin.groups.get(groupId)?.isCollapsed === false;
+
+        const current = this.plugin.leafGroupMap.get(leaf) ?? null;
+        const prevGroup = groupOf(prev);
+        const nextGroup = isLabel(next) ? null : groupOf(next);
+
+        let newGroup: string | null = null;
+        if (isLabel(prev) && isExpanded(prevGroup)) newGroup = prevGroup;
+        else if (!isLabel(prev) && prevGroup && prevGroup === nextGroup) newGroup = prevGroup;
+        else if (!isLabel(prev) && prevGroup && prevGroup === current) newGroup = current;
+
+        if (newGroup === current) return false;
+        if (newGroup) this.plugin.leafGroupMap.set(leaf, newGroup);
+        else this.plugin.leafGroupMap.delete(leaf);
+        return true;
+    }
+
+    // 💡 플레이스홀더 옆의 보이는 탭·라벨 (끌고 있는 탭과 접힌 탭은 건너뜀)
+    neighbor(direction: 'previousElementSibling' | 'nextElementSibling'): Element | null {
+        let el = this.placeholderEl[direction];
+        while (el) {
+            const isItem = el.classList.contains('workspace-tab-header') || el.classList.contains('tab-group-label');
+            if (isItem && el !== this.draggedHeader && window.getComputedStyle(el).display !== 'none') return el;
+            el = el[direction];
+        }
+        return null;
     }
 
     onDragEnd() {
@@ -101,34 +158,34 @@ export class TabDragController {
     }
 
     // 💡 탭 바 DOM에 대응하는 옵시디언 탭 묶음(WorkspaceTabs) 객체 찾기
-    findTabsParent(inner: HTMLElement): any {
-        let found: any = null;
+    findTabsParent(inner: HTMLElement): InternalTabs | null {
+        let found: InternalTabs | null = null;
         this.plugin.app.workspace.iterateAllLeaves(l => {
-            const parent = (l as any).parent;
-            if (!found && parent && (l as any).tabHeaderEl?.parentElement === inner) found = parent;
+            const { parent, tabHeaderEl } = internal(l);
+            if (!found && parent && tabHeaderEl?.parentElement === inner) found = parent;
         });
         return found;
     }
 
     // 💡 플레이스홀더 앞에 있는 탭(끌고 있는 탭 제외) 개수 = 놓을 위치
-    getDropIndex(target: any, leaf: WorkspaceLeaf): number {
-        const others = (target.children as WorkspaceLeaf[]).filter(l => l !== leaf);
+    getDropIndex(target: InternalTabs, leaf: WorkspaceLeaf): number {
+        const others = target.children.filter(l => l !== leaf);
         return others.filter(l => {
-            const header = (l as any).tabHeaderEl as HTMLElement | undefined;
+            const header = internal(l).tabHeaderEl;
             return !!header && !!(header.compareDocumentPosition(this.placeholderEl) & Node.DOCUMENT_POSITION_FOLLOWING);
         }).length;
     }
 
     // 💡 옵시디언 기본 탭 드롭과 같은 순서로 옮깁니다 (removeChild → insertChild → selectTabIndex).
-    moveLeaf(leaf: WorkspaceLeaf, target: any, index: number) {
-        const source = (leaf as any).parent;
+    moveLeaf(leaf: WorkspaceLeaf, target: InternalTabs, index: number) {
+        const source = internal(leaf).parent;
         if (source === target && target.children.indexOf(leaf) === index) return;
 
         source?.removeChild(leaf);
-        if (source !== target) (leaf as any).setDimension?.(null);
+        if (source !== target) internal(leaf).setDimension?.(null);
         target.insertChild(index, leaf);
         target.selectTabIndex?.(target.children.indexOf(leaf));
-        (this.plugin.app.workspace as any).requestResize?.();
+        (this.plugin.app.workspace as unknown as { requestResize?(): void }).requestResize?.();
     }
 
     hidePlaceholder() {
@@ -151,7 +208,7 @@ export class TabDragController {
 
         // 💡 위치는 플레이스홀더가 없을 때의 탭 배치 기준으로 계산합니다.
         // (플레이스홀더가 탭을 밀어낸 배치로 계산하면 커서가 가만히 있어도 자리가 왔다 갔다 합니다.)
-        this.placeholderEl.style.display = 'none';
+        this.placeholderEl.classList.add('is-measuring');
         const sample = items.find(el => el.classList.contains('workspace-tab-header'));
         const sampleWidth = sample?.getBoundingClientRect().width;
         // 각 요소의 가운데를 기준으로, 커서보다 오른쪽에 있는 첫 요소 앞에 넣습니다.
@@ -159,7 +216,7 @@ export class TabDragController {
             const rect = el.getBoundingClientRect();
             return clientX < rect.left + rect.width / 2;
         }) ?? null;
-        this.placeholderEl.style.display = '';
+        this.placeholderEl.classList.remove('is-measuring');
 
         // 🎯 놓을 탭 바의 탭과 같은 너비로 자리를 만듭니다.
         this.placeholderEl.style.width = `${sampleWidth || this.draggedWidth || 120}px`;
@@ -170,12 +227,19 @@ export class TabDragController {
         }
     }
 
-    // 💡 맨 뒤로 놓을 때: 마지막 탭 바로 뒤 (숨김 탭·인디케이터 같은 꼬리 요소보다 앞)
+    // 💡 맨 뒤로 놓을 때: 마지막으로 보이는 요소 뒤. 접힌 그룹의 숨은 탭과 끌고 있는 탭은 건너뛰어,
+    // 접힌 그룹 라벨과 그 탭들 사이에 끼어들지 않게 합니다.
     lastItemNextSibling(inner: HTMLElement, items: HTMLElement[]): Node | null {
         const last = items[items.length - 1];
         if (!last) return null;
-        let next = last.nextSibling;
-        if (next === this.placeholderEl) next = next.nextSibling;
+        let next = last.nextElementSibling;
+        while (next && (
+            next === this.placeholderEl ||
+            next === this.draggedHeader ||
+            (next.classList.contains('workspace-tab-header') && window.getComputedStyle(next).display === 'none')
+        )) {
+            next = next.nextElementSibling;
+        }
         return next;
     }
 
