@@ -1,5 +1,6 @@
 import { WorkspaceLeaf } from 'obsidian';
 import type TabGroupsPlugin from './main';
+import { GroupSlot, resolveGroupAt } from './tab-group-rules';
 
 const TAB_BAR_SELECTOR = '.workspace-tab-header-container';
 const TAB_BAR_INNER_SELECTOR = '.workspace-tab-header-container-inner';
@@ -94,33 +95,25 @@ export class TabDragController {
             this.moveLeaf(leaf, target, index);
         }
         this.finishDrag();
-        this.plugin.enforcePhysicalSorting();
+        this.plugin.enforcePhysicalSorting({ trackMoves: false });
         this.plugin.app.workspace.setActiveLeaf(leaf, { focus: true });
         if (groupChanged) void this.plugin.saveSettings();
     }
 
-    // ✨ 놓은 자리에 따라 그룹 소속을 정합니다. (플레이스홀더 양옆의 보이는 탭·라벨 기준)
-    // - 펼쳐진 그룹의 라벨 바로 뒤, 또는 같은 그룹 탭 두 개 사이 → 그 그룹에 편입
-    // - 자기 그룹의 맨 끝(앞은 같은 그룹 탭, 뒤는 다른 것) → 그대로 유지
-    // - 그 밖의 자리 → 그룹에서 빠짐
+    // ✨ 놓은 자리에 따라 그룹 소속을 정합니다. (플레이스홀더 양옆의 보이는 탭·라벨 기준, 규칙은 resolveGroupAt)
     // 그룹이 바뀌었으면 true를 돌려줍니다.
     applyDropGroup(leaf: WorkspaceLeaf): boolean {
-        const prev = this.neighbor('previousElementSibling');
-        const next = this.neighbor('nextElementSibling');
-        const isLabel = (el: Element | null) => !!el?.classList.contains('tab-group-label');
-        const groupOf = (el: Element | null) =>
-            el?.getAttribute('data-tab-group-id') ?? el?.getAttribute('data-group-id') ?? null;
-        const isExpanded = (groupId: string | null) =>
-            !!groupId && this.plugin.groups.get(groupId)?.isCollapsed === false;
-
+        const slot = (el: Element | null): GroupSlot | null => el && {
+            groupId: el.getAttribute('data-tab-group-id') ?? el.getAttribute('data-group-id'),
+            isLabel: el.classList.contains('tab-group-label'),
+        };
         const current = this.plugin.leafGroupMap.get(leaf) ?? null;
-        const prevGroup = groupOf(prev);
-        const nextGroup = isLabel(next) ? null : groupOf(next);
-
-        let newGroup: string | null = null;
-        if (isLabel(prev) && isExpanded(prevGroup)) newGroup = prevGroup;
-        else if (!isLabel(prev) && prevGroup && prevGroup === nextGroup) newGroup = prevGroup;
-        else if (!isLabel(prev) && prevGroup && prevGroup === current) newGroup = current;
+        const newGroup = resolveGroupAt(
+            slot(this.neighbor('previousElementSibling')),
+            slot(this.neighbor('nextElementSibling')),
+            current,
+            (groupId) => this.plugin.isGroupExpanded(groupId),
+        );
 
         if (newGroup === current) return false;
         if (newGroup) this.plugin.leafGroupMap.set(leaf, newGroup);
@@ -142,7 +135,7 @@ export class TabDragController {
     onDragEnd() {
         if (!this.isDragging) return;
         this.finishDrag();
-        window.setTimeout(() => this.plugin.enforcePhysicalSorting(), 0);
+        window.setTimeout(() => this.plugin.enforcePhysicalSorting({ trackMoves: false }), 0);
     }
 
     finishDrag() {

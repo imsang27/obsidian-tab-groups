@@ -1,6 +1,7 @@
 import { Plugin, Modal, App, Setting, Menu, TAbstractFile, WorkspaceLeaf } from 'obsidian';
 import { TabGroupsSettings, DEFAULT_SETTINGS } from './settings';
 import { TabDragController } from './tab-drag';
+import { TabMoveTracker } from './tab-move';
 
 interface TabGroupData {
     name: string;
@@ -27,6 +28,9 @@ export default class TabGroupsPlugin extends Plugin {
     
     // ✨ 탭 하나 드래그(플레이스홀더·드롭) 담당
     tabDrag: TabDragController = new TabDragController(this);
+    
+    // ✨ 단축키·다른 플러그인으로 탭을 옮겼을 때의 그룹 편입·이탈 담당
+    tabMoves: TabMoveTracker = new TabMoveTracker(this);
 
     async onload() {
         console.log('🚀 Tab Groups 로드됨 (옵시디언 드래그 간섭 차단 캡처 이벤트 적용)');
@@ -541,8 +545,8 @@ export default class TabGroupsPlugin extends Plugin {
             container.insertBefore(fragment, targetNode);
         }
         
-        // 💡 3. 화면 순서가 완벽히 배치되었으니, 내부 배열(Leaf)을 정렬시킴
-        this.enforcePhysicalSorting();
+        // 💡 3. 화면 순서가 완벽히 배치되었으니, 내부 배열(Leaf)을 정렬시킴 (그룹 통째 이동이라 탭 이동 판정은 끔)
+        this.enforcePhysicalSorting({ trackMoves: false });
         
         // 타 창으로 이사했다면 첫 번째 탭에 포커스를 줘서 렌더링 강제 갱신
         if (isCrossWindow && draggedLeaves[0]) {
@@ -663,14 +667,26 @@ export default class TabGroupsPlugin extends Plugin {
         });
     }
     
-    enforcePhysicalSorting() {
+    isGroupExpanded(groupId: string): boolean {
+        return this.groups.get(groupId)?.isCollapsed === false;
+    }
+    
+    // 💡 trackMoves: 지난 정렬 뒤 탭 하나가 옮겨졌으면(단축키·Pane Relief 등) 그룹 편입·이탈을 먼저 반영
+    enforcePhysicalSorting(options: { trackMoves?: boolean } = {}) {
         // ✨ 무한루프 방지: 우리가 DOM을 엎어버리는 동안에는 감시자를 잠시 끕니다.
         this.globalObservers.forEach(obs => obs.disconnect());
         
         try {
-            this.restoreDomAttributes();
-            
             const tabContainers = document.querySelectorAll('.workspace-tab-header-container-inner');
+            
+            let groupChanged = false;
+            if (options.trackMoves !== false) {
+                tabContainers.forEach(container => {
+                    if (this.tabMoves.applyMove(container)) groupChanged = true;
+                });
+            }
+            
+            this.restoreDomAttributes();
             
             tabContainers.forEach(container => {
                 const headers = Array.from(container.querySelectorAll('.workspace-tab-header')) as HTMLElement[];
@@ -727,6 +743,9 @@ export default class TabGroupsPlugin extends Plugin {
             });
             
             this.renderGroupUI();
+            
+            tabContainers.forEach(container => this.tabMoves.remember(container));
+            if (groupChanged) void this.saveSettings(); // ✨ 그룹 소속이 바뀌었으니 data.json에 저장
         } finally {
             // ✨ 우리 작업이 완벽히 끝나면 감시자를 다시 가동합니다.
             this.globalObservers.forEach((obs, container) => {
