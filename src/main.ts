@@ -159,7 +159,8 @@ export default class TabGroupsPlugin extends Plugin {
                     
                     if (currentGroupId) {
                         menu.addItem((item) => {
-                            item.setTitle('❌ 그룹에서 제외')
+                            item.setTitle('Remove from group')
+                                .setIcon('folder-minus')
                                 .onClick(async () => { // 💡 async 추가
                                     this.leafGroupMap.delete(targetLeaf);
                                     await this.saveSettings(); // ✨ 상태 변경 즉시 저장!
@@ -173,7 +174,8 @@ export default class TabGroupsPlugin extends Plugin {
                         this.groups.forEach((groupData, groupId) => {
                             if (groupId !== currentGroupId) {
                                 menu.addItem((item) => {
-                                    item.setTitle(`🎨 [${groupData.name}] 그룹에 넣기`)
+                                    item.setTitle(groupData.name ? `Add to "${groupData.name}"` : 'Add to unnamed group')
+                                        .setIcon('folder-input')
                                         .onClick(async () => { // 💡 async 추가
                                             this.leafGroupMap.set(targetLeaf, groupId);
                                             groupData.isCollapsed = false; 
@@ -187,7 +189,7 @@ export default class TabGroupsPlugin extends Plugin {
                     }
                     
                     menu.addItem((item) => {
-                        item.setTitle('✨ 새 탭 그룹 만들기')
+                        item.setTitle('Create tab group')
                             .setIcon('folder-plus')
                             // 💡 콜백 함수에 async 추가!
                             .onClick(() => {
@@ -862,15 +864,15 @@ class CreateGroupModal extends Modal {
     
     onOpen() {
         const { contentEl } = this;
-        contentEl.createEl('h2', { text: '새 탭 그룹 만들기' });
+        contentEl.createEl('h2', { text: 'Create tab group' });
         
         new Setting(contentEl)
-            .setName('그룹 이름')
-            .setDesc('이름을 비워두면 색상만 있는 라벨이 만들어져요.')
+            .setName('Name')
+            .setDesc('Leave empty to show only a colored label.')
             .addText((text) => text.onChange((val) => this.groupName = val));
         
         const colorSetting = new Setting(contentEl)
-            .setName('그룹 색상');
+            .setName('Color');
         
         // 기존의 투박한 기본 피커를 날려버리고, 우리가 만든 예쁜 팔레트로 대체!
         colorSetting.controlEl.empty();
@@ -879,7 +881,7 @@ class CreateGroupModal extends Modal {
         });
         
         new Setting(contentEl)
-            .addButton((btn) => btn.setButtonText('그룹 생성').setCta().onClick(() => {
+            .addButton((btn) => btn.setButtonText('Create').setCta().onClick(() => {
                 this.close();
                 void this.onSubmit(this.groupName, this.groupColor);
             }));
@@ -914,17 +916,17 @@ class EditGroupModal extends Modal {
     
     onOpen() {
         const { contentEl } = this;
-        contentEl.createEl('h2', { text: '탭 그룹 관리' }) // 타이틀을 '수정'에서 '관리'로 변경
+        contentEl.createEl('h2', { text: 'Edit tab group' });
         
         new Setting(contentEl)
-            .setName('그룹 이름')
+            .setName('Name')
             .addText((text) => {
                 text.setValue(this.groupName);
                 text.onChange((val) => this.groupName = val);
             });
             
         const colorSetting = new Setting(contentEl)
-            .setName('그룹 색상');
+            .setName('Color');
         
         colorSetting.controlEl.empty();
         renderColorPalette(colorSetting.controlEl, this.groupColor, (newColor) => {
@@ -933,29 +935,29 @@ class EditGroupModal extends Modal {
         
         // ✨ 3가지 액션 버튼 영역 (닫기, 삭제, 해제를 한 줄에 나란히 배치)
         new Setting(contentEl)
-            .setName('그룹 작업')
+            .setName('Group actions')
             .addButton((btn) => btn
-                .setButtonText('닫기')
-                .setTooltip('속한 모든 탭을 닫고 그룹도 삭제합니다.')
+                .setButtonText('Close tabs')
+                .setTooltip('Close all tabs in the group and delete the group.')
                 .setWarning() // 노란색/빨간색 경고
                 .onClick(() => { this.close(); void this.onAction('close'); })
             )
             .addButton((btn) => btn
-                .setButtonText('삭제')
-                .setTooltip('탭들은 일반 탭으로 변하고, 그룹을 완전히 삭제합니다.')
+                .setButtonText('Delete group')
+                .setTooltip('Keep the tabs open as regular tabs and delete the group.')
                 .setWarning() // 노란색/빨간색 경고
                 .onClick(() => { this.close(); void this.onAction('delete'); })
             )
             .addButton((btn) => btn
-                .setButtonText('해제')
-                .setTooltip('탭들은 일반 탭으로 변하고, 그룹 데이터는 남깁니다.')
+                .setButtonText('Ungroup')
+                .setTooltip('Keep the tabs open as regular tabs. The empty group stays available in the tab menu.')
                 .onClick(() => { this.close(); void this.onAction('ungroup'); })
             );
             
         // ✨ 맨 하단 저장 버튼
         new Setting(contentEl)
             .addButton((btn) => btn
-                .setButtonText('저장')
+                .setButtonText('Save')
                 .setCta() // 파란색 강조 스타일 적용
                 .onClick(() => {
                     this.close();
