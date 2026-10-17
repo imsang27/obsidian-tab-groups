@@ -1,38 +1,17 @@
-import { App, PluginSettingTab, Setting } from 'obsidian';
-import MyPlugin from './main';
-
-export interface MyPluginSettings {
-	mySetting: string;
+// ✨ 플러그인이 data.json에 저장할 데이터의 형태를 정의
+export interface SavedGroupData {
+	id: string;
+	name: string;
+	color: string;
+	isCollapsed: boolean;
+	// 💡 그룹에 속한 탭(Leaf)의 고유 ID 목록
+	savedTabs: string[];
 }
 
-export const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default',
+export interface TabGroupsSettings {
+	savedGroups: SavedGroupData[];
+}
+
+export const DEFAULT_SETTINGS: TabGroupsSettings = {
+	savedGroups: [],
 };
-
-export class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		const { containerEl } = this;
-
-		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName('Settings #1')
-			.setDesc("It's a secret")
-			.addText((text) =>
-				text
-					.setPlaceholder('Enter your secret')
-					.setValue(this.plugin.settings.mySetting)
-					.onChange(async (value) => {
-						this.plugin.settings.mySetting = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-	}
-}

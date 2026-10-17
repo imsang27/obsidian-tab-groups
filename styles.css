@@ -53,21 +53,55 @@ html body div.app-container .workspace .workspace-tab-header.tab-group-hidden.is
     overflow: hidden !important;
 }
 
-/* ✨ 드래그 위치 시각적 가이드라인 (Drop Indicator) */
+/* ✨ 드래그 위치 시각적 가이드라인 (Drop Placeholder 로 진화!) */
 html body .tab-group-drop-indicator {
-    position: absolute;
-    width: 3px;
-    background-color: var(--interactive-accent);
-    border-radius: 2px;
+    /* position: absolute; 제거됨 */
+    width: 150px; /* 실제 탭과 비슷한 기본 너비 */
+    height: calc(100% - 8px);
+    margin: 4px 2px;
+    background-color: var(--background-modifier-hover); /* 반투명한 배경 */
+    border: 2px dashed var(--interactive-accent); /* 점선 테두리 */
+    border-radius: var(--tab-radius);
     z-index: 999;
-    pointer-events: none; /* 마우스 이벤트 방해 금지 */
-    top: 6px;
-    bottom: 6px;
+    pointer-events: none !important; /* 마우스 이벤트 방해 금지 (매우 중요) */
     display: none; /* 평소엔 숨김 */
-    transition: left 0.05s ease-out; /* 부드럽게 따라다니는 효과 */
+    transition: width 0.15s ease-out, margin 0.15s ease-out; /* 부드럽게 공간이 벌어지는 효과 */
+    flex-shrink: 0;
 }
 
-/* ✨ 라벨 드래그 중일 때 스페이서의 창 이동(OS 가로채기) 기능 무력화 */
-body.is-dragging-tab-group .workspace-tab-header-spacer {
+/* ✨ 탭·라벨 드래그 중에는 탭 바의 창 이동 영역(OS 가로채기)을 무력화
+   (그대로 두면 플레이스홀더·여백·빈 공간에 놓을 때 OS가 창 밖 드롭으로 처리해 새 창이 열림) */
+body.is-dragging-tab-group .workspace-tab-header-container,
+body.is-dragging-tab-group .workspace-tab-header-container-inner,
+body.is-dragging-tab-group .workspace-tab-header-spacer,
+body.is-dragging-tab .workspace-tab-header-container,
+body.is-dragging-tab .workspace-tab-header-container-inner,
+body.is-dragging-tab .workspace-tab-header-spacer {
     -webkit-app-region: no-drag !important;
+}
+/* ✨ 탭 하나를 끌 때 들어갈 자리를 밀어내며 보여 주는 플레이스홀더 */
+html body .tab-group-drag-placeholder {
+    flex-shrink: 0;
+    align-self: stretch;
+    margin: 4px 2px;
+    border-radius: var(--tab-radius, var(--radius-s, 4px));
+    background-color: var(--interactive-accent);
+    opacity: 0.35;
+    pointer-events: all;
+    -webkit-app-region: no-drag;
+}
+
+/* 위치 계산 중에는 잠깐 빼서, 플레이스홀더가 없을 때의 탭 배치를 잽니다 */
+html body .tab-group-drag-placeholder.is-measuring {
+    display: none;
+}
+
+/* 같은 탭 바 안에서 끄는 동안 원래 탭 자리는 접어서 빈칸이 하나만 보이게 함 */
+html body .workspace-tab-header.tab-group-drag-source {
+    display: none !important;
+}
+
+/* 탭 바 안에서는 옵시디언 기본 드롭 선 대신 플레이스홀더만 표시 */
+body.is-dragging-tab-in-tab-bar .workspace-drop-overlay {
+    display: none !important;
 }

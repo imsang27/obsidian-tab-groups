@@ -1,21 +1,6 @@
 import { Plugin, Modal, App, Setting, Menu, TAbstractFile, WorkspaceLeaf } from 'obsidian';
-
-// ✨ 플러그인이 data.json에 저장할 데이터의 형태를 정의
-interface SavedGroupData {
-    id: string;
-    name: string;
-    color: string;
-    isCollapsed: boolean;
-    // 💡 나중에 탭(Leaf) 매핑 데이터를 저장할 배열
-    savedTabs: string[]; 
-}
-interface TabGroupsSettings {
-    savedGroups: SavedGroupData[];
-}
-
-const DEFAULT_SETTINGS: TabGroupsSettings = {
-    savedGroups: []
-}
+import { TabGroupsSettings, DEFAULT_SETTINGS } from './settings';
+import { TabDragController } from './tab-drag';
 
 interface TabGroupData {
     name: string;
@@ -25,7 +10,7 @@ interface TabGroupData {
 }
 
 export default class TabGroupsPlugin extends Plugin {
-    settings: TabGroupsSettings; // ✨ 셋팅 변수 추가
+    settings: TabGroupsSettings = { ...DEFAULT_SETTINGS }; // ✨ 셋팅 변수 추가
     groups: Map<string, TabGroupData> = new Map();
     leafGroupMap: WeakMap<WorkspaceLeaf, string> = new WeakMap(); 
 
@@ -38,22 +23,24 @@ export default class TabGroupsPlugin extends Plugin {
     // ✨ 드래그 피드백용 변수
     dropIndicatorEl: HTMLElement = document.createElement('div');
     currentDropTarget: { node: Node | null, insertAfter: boolean } = { node: null, insertAfter: false };
-    draggingGroupId: string | null = null; // 💡 요것 추가! (현재 쥐고 있는 그룹 기억용)
-    isDraggingTab: boolean = false; // ✨ 신규 추가: 단일 탭 드래그 중인지 추적하는 플래그
+    draggingGroupId: string | null = null;
+    
+    // ✨ 탭 하나 드래그(플레이스홀더·드롭) 담당
+    tabDrag: TabDragController = new TabDragController(this);
 
     async onload() {
         console.log('🚀 Tab Groups 로드됨 (옵시디언 드래그 간섭 차단 캡처 이벤트 적용)');
 
         // ✨ 1. 플러그인이 켜질 때 가장 먼저 데이터를 불러옵니다.
         await this.loadSettings();
-        
+
         // 👇 옵시디언 화면이 다 켜진 직후에 실행되는 곳
         this.app.workspace.onLayoutReady(() => {
             this.restoreTabsFromSettings(); // ✨ 탭 매핑 먼저 완벽하게 복구하고!
             this.setupObservers();          // 감시자 달고
             this.enforcePhysicalSorting();  // 화면 정렬!
         });
-
+        
         this.registerDomEvent(window, 'contextmenu', (e: MouseEvent) => {
             const target = e.target as HTMLElement;
             const header = target.closest('.workspace-tab-header') as HTMLElement | null;
@@ -63,30 +50,31 @@ export default class TabGroupsPlugin extends Plugin {
                 this.lastClickedLeaf = null;
             }
         }, { capture: true });
-
-        // ✨ 신규 추가: 유저가 탭을 드래그해서 위치를 바꾸면 스마트 편입/이탈 로직 실행
-        // this.registerEvent(
-        //     this.app.workspace.on('layout-change', () => {
-        //         // DOM이 완전히 업데이트될 수 있도록 아주 짧은 딜레이(setTimeout) 후 실행
-        //         setTimeout(() => {
-        //             this.syncGroupStateFromDOM();
-        //         }, 50);
-        //     })
-        // );
-
+        
+        this.registerEvent(
+            this.app.workspace.on('layout-change', () => {
+                this.setupObservers();
+                this.enforcePhysicalSorting();
+            })
+        );
+        
         // ✨ 옵시디언이 이벤트를 씹어먹기 전에 우리가 먼저(capture: true) 낚아챕니다!
+        this.onDragEnter = this.onDragEnter.bind(this);
         this.onDragOver = this.onDragOver.bind(this);
         this.onDrop = this.onDrop.bind(this);
         window.addEventListener('dragenter', this.onDragEnter, { capture: true });
         window.addEventListener('dragover', this.onDragOver, { capture: true });
         window.addEventListener('drop', this.onDrop, { capture: true });
-
+        
         // ✨ 인디케이터 세팅 및 마우스가 밖으로 나가면 가이드라인 숨기기
         this.dropIndicatorEl.className = 'tab-group-drop-indicator';
-        window.addEventListener('dragleave', (e: DragEvent) => {
+        
+        this.tabDrag.register();
+        
+        this.registerDomEvent(window, 'dragleave', (e: DragEvent) => {
             if (!e.relatedTarget) this.dropIndicatorEl.style.display = 'none';
         }, { capture: true });
-
+        
         // 스마트 펼침 유지
         this.registerEvent(
             this.app.workspace.on('active-leaf-change', (leaf: WorkspaceLeaf | null) => {
@@ -94,12 +82,12 @@ export default class TabGroupsPlugin extends Plugin {
                 
                 const headerEl = (leaf as any).tabHeaderEl as HTMLElement;
                 if (!headerEl) return;
-
+                
                 const parent = (leaf as any).parent;
                 const children = parent?.children as WorkspaceLeaf[] || [];
                 const currentIndex = children.indexOf(leaf);
                 const prevIndex = this.previousActiveLeaf ? children.indexOf(this.previousActiveLeaf) : -1;
-
+                
                 let isSequential = false;
                 let direction = 1;
                 if (prevIndex !== -1) {
@@ -109,7 +97,7 @@ export default class TabGroupsPlugin extends Plugin {
                         isSequential = true; direction = -1;
                     }
                 }
-
+                
                 const groupId = this.leafGroupMap.get(leaf);
                 if (groupId) {
                     const groupData = this.groups.get(groupId);
@@ -132,15 +120,15 @@ export default class TabGroupsPlugin extends Plugin {
                 }
             })
         );
-
+        
         this.registerEvent(
             this.app.workspace.on('file-menu', (menu: Menu, file: TAbstractFile, source: string) => {
                 if (source === 'tab-header' && this.lastClickedLeaf) {
                     const targetLeaf = this.lastClickedLeaf; 
                     const currentGroupId = this.leafGroupMap.get(targetLeaf);
-
+                    
                     menu.addSeparator();
-
+                    
                     if (currentGroupId) {
                         menu.addItem((item) => {
                             item.setTitle('❌ 그룹에서 제외')
@@ -152,7 +140,7 @@ export default class TabGroupsPlugin extends Plugin {
                         });
                         menu.addSeparator();
                     }
-
+                    
                     if (this.groups.size > 0) {
                         this.groups.forEach((groupData, groupId) => {
                             if (groupId !== currentGroupId) {
@@ -169,7 +157,7 @@ export default class TabGroupsPlugin extends Plugin {
                         });
                         menu.addSeparator();
                     }
-
+                    
                     menu.addItem((item) => {
                         item.setTitle('✨ 새 탭 그룹 만들기')
                             .setIcon('folder-plus')
@@ -246,24 +234,21 @@ export default class TabGroupsPlugin extends Plugin {
         await this.saveData(this.settings);
     }
 
-    // ✨ 1. 진입 단계부터 옵시디언의 방어막 완전 박살내기 (무력 제압)
+    // ✨ 1. 진입 단계 처리
     onDragEnter(e: DragEvent) {
         if (this.draggingGroupId) {
             e.preventDefault();
             e.stopPropagation();
-            // 🔥 핵심: 다른 그 어떤 옵시디언 코어 이벤트도 실행되지 못하도록 즉각 차단!
             e.stopImmediatePropagation(); 
-            if (e.dataTransfer) {
-                e.dataTransfer.dropEffect = 'move';
-            }
+            if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
         }
     }
-
+    
     // ✨ 2. 빈 공간 타겟 그물망 넓히기
     onDragOver(e: DragEvent) {
         // 💡 보안 정책에 막히는 getData 대신, 아까 저장해둔 내장 메모리 변수 사용!
         const draggedGroupId = this.draggingGroupId;
-        if (!draggedGroupId) return;
+        if (!draggedGroupId) return; // 💡 단일 탭일 때는 즉시 패스하여 96번 줄 리스너로 넘김!
 
         // 💡 핵심: 그룹 ID가 확인되면, DOM을 탐색하기도 전에 무조건 닥치고 옵시디언부터 차단!
         e.preventDefault();
@@ -318,12 +303,12 @@ export default class TabGroupsPlugin extends Plugin {
                 return true;
             }) as HTMLElement[];
 
-            if (visibleChildren.length > 0) {
+            const lastEl = visibleChildren[visibleChildren.length - 1];
+            if (lastEl) {
                 this.dropIndicatorEl.style.display = 'block';
-                const lastEl = visibleChildren[visibleChildren.length - 1];
-                const rect = lastEl.getBoundingClientRect();
                 
-                this.dropIndicatorEl.style.left = `${rect.right - containerRect.left + 5}px`;
+                // 마지막 요소 뒤에 가짜 탭 삽입
+                container.insertBefore(this.dropIndicatorEl, lastEl.nextSibling);
                 this.currentDropTarget = { node: lastEl, insertAfter: true };
             }
             return; // 💡 더 이상 아래 로직 볼 필요 없이 여기서 끝!
@@ -361,22 +346,22 @@ export default class TabGroupsPlugin extends Plugin {
                 const firstEl = groupEls[0] as HTMLElement;
                 const lastEl = groupEls[groupEls.length - 1] as HTMLElement;
 
+                // ✨ 위치 계산(style.left) 대신 진짜로 요소를 탭 사이에 삽입하여 공간을 밀어냄!
                 if (isAfter) {
-                    // 해당 그룹 전체의 뒤쪽으로
-                    const lastRect = lastEl.getBoundingClientRect();
-                    this.dropIndicatorEl.style.left = `${lastRect.right - containerRect.left}px`;
+                    container.insertBefore(this.dropIndicatorEl, lastEl.nextSibling);
                     this.currentDropTarget = { node: lastEl, insertAfter: true };
                 } else {
-                    // 해당 그룹 전체의 앞쪽으로
-                    const firstRect = firstEl.getBoundingClientRect();
-                    this.dropIndicatorEl.style.left = `${firstRect.left - containerRect.left}px`;
+                    container.insertBefore(this.dropIndicatorEl, firstEl);
                     this.currentDropTarget = { node: firstEl, insertAfter: false };
                 }
             } else {
                 this.dropIndicatorEl.style.display = 'block';
-                this.dropIndicatorEl.style.left = isAfter
-                    ? `${rect.right - containerRect.left}px`
-                    : `${rect.left - containerRect.left}px`;
+                // ✨ 단일 탭/라벨 판정 시에도 마찬가지로 물리적 삽입!
+                if (isAfter) {
+                    container.insertBefore(this.dropIndicatorEl, hoverTarget.nextSibling);
+                } else {
+                    container.insertBefore(this.dropIndicatorEl, hoverTarget);
+                }
                 this.currentDropTarget = { node: hoverTarget, insertAfter: isAfter };
             }
         } else {
@@ -386,13 +371,18 @@ export default class TabGroupsPlugin extends Plugin {
         }
     }
 
-    // ✨ 빈 공간 드롭 허용 로직 적용
+    // ✨ 빈 공간 및 탭 드롭 허용 로직
     onDrop(e: DragEvent) {
         // 💡 Drop에서도 getData 대신 확실한 내장 메모리를 사용합니다.
         const draggedGroupId = this.draggingGroupId;
         this.dropIndicatorEl.style.display = 'none'; // 드롭 시 인디케이터 숨김
         
-        if (!draggedGroupId) return; // 💡 조건 완화: currentDropTarget.node가 없어도 통과시킴
+        // 💡 단일 탭 드롭은 TabDragController가 처리
+        if (draggedGroupId) this.onGroupDrop(e, draggedGroupId);
+    }
+    
+    // ✨ 그룹(라벨) 드롭 처리: 창 분할, 다른 창으로 병합, 같은 탭 바 안 재배치
+    onGroupDrop(e: DragEvent, draggedGroupId: string) {
         
         e.preventDefault();
         e.stopPropagation(); // 옵시디언 드롭 이벤트 차단
@@ -473,7 +463,7 @@ export default class TabGroupsPlugin extends Plugin {
                         }
                         
                         // 이사가 끝난 후 첫 번째 탭에 포커스를 줘서 화면 렌더링을 갱신시킵니다!
-                        this.app.workspace.setActiveLeaf(draggedLeaves[0], { focus: true });
+                        this.app.workspace.setActiveLeaf(draggedLeaves[0]!, { focus: true });
                     }
                 }
             }
@@ -555,7 +545,7 @@ export default class TabGroupsPlugin extends Plugin {
         this.enforcePhysicalSorting();
         
         // 타 창으로 이사했다면 첫 번째 탭에 포커스를 줘서 렌더링 강제 갱신
-        if (isCrossWindow && draggedLeaves.length > 0) {
+        if (isCrossWindow && draggedLeaves[0]) {
             this.app.workspace.setActiveLeaf(draggedLeaves[0], { focus: true });
         }
     }
@@ -564,14 +554,19 @@ export default class TabGroupsPlugin extends Plugin {
         const containers = document.querySelectorAll('.workspace-tab-header-container-inner');
         containers.forEach(container => {
             if (!this.globalObservers.has(container)) {
-                const observer = new MutationObserver(async () => {
-                    // ✨ 그룹 전체를 드래그하고 있을 때는 간섭하지 않음
-                    if (this.draggingGroupId) return;
-
-                    // 1. 방금 유저가 떨어뜨린 DOM 순서를 먼저 읽어서 맵(Map)을 최신화!
-                    await this.syncGroupStateFromDOM();
-
-                    // 2. 최신화된 소속을 바탕으로 예쁘게 물리 정렬 및 스타일 렌더링
+                const observer = new MutationObserver(async (mutations) => {
+                    // ✨ 탭을 손으로 잡고 드래그 중이거나 그룹 드래그 중일 때는 절대 간섭하지 않음
+                    if (this.draggingGroupId || this.tabDrag.isDragging) return;
+                    
+                    // ✨ 플레이스홀더 자체의 삽입/제거로 발생한 DOM 변경은 감시 대상에서 제외
+                    const isOnlyPlaceholderMutation = mutations.every(m => {
+                        const nodes = [...Array.from(m.addedNodes), ...Array.from(m.removedNodes)];
+                        return nodes.length > 0 && nodes.every(n => 
+                            (n as HTMLElement).classList?.contains('tab-group-drag-placeholder')
+                        );
+                    });
+                    if (isOnlyPlaceholderMutation) return;
+                    
                     this.enforcePhysicalSorting();
                 });
                 this.globalObservers.set(container, observer);
@@ -612,7 +607,7 @@ export default class TabGroupsPlugin extends Plugin {
             if (nextIndex >= children.length) nextIndex = 0;
             if (nextIndex < 0) nextIndex = children.length - 1;
             
-            const candidate = children[nextIndex];
+            const candidate = children[nextIndex]!;
             const candidateGroupId = this.leafGroupMap.get(candidate);
             
             let isHidden = false;
@@ -766,6 +761,7 @@ export default class TabGroupsPlugin extends Plugin {
                 if (!groupData) return;
                 
                 const leader = groupHeaders[0];
+                if (!leader) return;
                 
                 // 🚨 무조건 새로 찍어냄
                 this.insertStandaloneLabel(leader, groupId, groupData);
@@ -894,46 +890,6 @@ export default class TabGroupsPlugin extends Plugin {
         // 리더 탭 앞에 삽입
         container.insertBefore(labelEl, leaderEl);
     }
-    
-    // ✨ 순수하게 DOM 순서를 읽어 leafGroupMap과 settings만 최신화하는 함수
-    async syncGroupStateFromDOM() {
-        const containers = document.querySelectorAll('.workspace-tab-header-container-inner');
-        let hasChanges = false;
-
-        containers.forEach(container => {
-            let currentGroupId: string | null = null;
-
-            Array.from(container.children).forEach(el => {
-                // 1. 그룹 라벨을 만나면 현재 그룹 ID 갱신
-                if (el.classList.contains('tab-group-label')) {
-                    currentGroupId = el.getAttribute('data-group-id');
-                }
-                // 2. 탭을 만나면 현재 활성 그룹에 편입/이탈 처리
-                else if (el.classList.contains('workspace-tab-header')) {
-                    const leaf = this.findLeafFromHeader(el);
-                    if (leaf) {
-                        const previousGroupId = this.leafGroupMap.get(leaf);
-                        if (currentGroupId) {
-                            if (previousGroupId !== currentGroupId) {
-                                this.leafGroupMap.set(leaf, currentGroupId);
-                                hasChanges = true;
-                            }
-                        } else {
-                            if (previousGroupId) {
-                                this.leafGroupMap.delete(leaf);
-                                hasChanges = true;
-                            }
-                        }
-                    }
-                }
-            });
-        });
-
-        // 변경사항이 감지되면 파일에 저장
-        if (hasChanges) {
-            await this.saveSettings();
-        }
-    }
 
     onunload() {
         console.log('🛑 Tab Groups 플러그인 종료됨');
@@ -943,6 +899,8 @@ export default class TabGroupsPlugin extends Plugin {
         window.removeEventListener('dragover', this.onDragOver, { capture: true });
         window.removeEventListener('drop', this.onDrop, { capture: true });
         
+        this.tabDrag.unload();
+        this.dropIndicatorEl.remove();
         this.globalObservers.forEach(obs => obs.disconnect());
         document.querySelectorAll('.tab-group-label').forEach(el => el.remove());
     }
