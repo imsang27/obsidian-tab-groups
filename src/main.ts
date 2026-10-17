@@ -1,6 +1,7 @@
 import { Plugin, Modal, App, Setting, Menu, TAbstractFile, WorkspaceLeaf } from 'obsidian';
 import { TabGroupsSettings, DEFAULT_SETTINGS } from './settings';
 import { TabDragController } from './tab-drag';
+import { GroupDragController } from './group-drag';
 import { TabMoveTracker } from './tab-move';
 
 interface TabGroupData {
@@ -22,12 +23,13 @@ export default class TabGroupsPlugin extends Plugin {
     globalObservers: Map<Element, MutationObserver> = new Map();
     
     // ✨ 드래그 피드백용 변수
-    dropIndicatorEl: HTMLElement = document.createElement('div');
     currentDropTarget: { node: Node | null, insertAfter: boolean } = { node: null, insertAfter: false };
     draggingGroupId: string | null = null;
     
     // ✨ 탭 하나 드래그(플레이스홀더·드롭) 담당
     tabDrag: TabDragController = new TabDragController(this);
+    // ✨ 그룹(라벨) 드래그의 플레이스홀더 담당
+    groupDrag: GroupDragController = new GroupDragController();
     
     // ✨ 단축키·다른 플러그인으로 탭을 옮겼을 때의 그룹 편입·이탈 담당
     tabMoves: TabMoveTracker = new TabMoveTracker(this);
@@ -70,13 +72,11 @@ export default class TabGroupsPlugin extends Plugin {
         window.addEventListener('dragover', this.onDragOver, { capture: true });
         window.addEventListener('drop', this.onDrop, { capture: true });
         
-        // ✨ 인디케이터 세팅 및 마우스가 밖으로 나가면 가이드라인 숨기기
-        this.dropIndicatorEl.className = 'tab-group-drop-indicator';
-        
         this.tabDrag.register();
-        
+
+        // ✨ 그룹을 끌다가 창 밖으로 나가면 자리 표시 숨기기
         this.registerDomEvent(window, 'dragleave', (e: DragEvent) => {
-            if (!e.relatedTarget) this.dropIndicatorEl.style.display = 'none';
+            if (!e.relatedTarget) this.groupDrag.hide();
         }, { capture: true });
         
         // 스마트 펼침 유지
@@ -248,11 +248,10 @@ export default class TabGroupsPlugin extends Plugin {
         }
     }
     
-    // ✨ 2. 빈 공간 타겟 그물망 넓히기
+    // ✨ 2. 그룹을 끄는 동안: 탭 바 안이면 탭 드래그와 같은 플레이스홀더로 들어갈 자리를 보여 줌
     onDragOver(e: DragEvent) {
         // 💡 보안 정책에 막히는 getData 대신, 아까 저장해둔 내장 메모리 변수 사용!
-        const draggedGroupId = this.draggingGroupId;
-        if (!draggedGroupId) return; // 💡 단일 탭일 때는 즉시 패스하여 96번 줄 리스너로 넘김!
+        if (!this.draggingGroupId) return; // 💡 단일 탭일 때는 즉시 패스하여 TabDragController로 넘김!
 
         // 💡 핵심: 그룹 ID가 확인되면, DOM을 탐색하기도 전에 무조건 닥치고 옵시디언부터 차단!
         e.preventDefault();
@@ -261,137 +260,44 @@ export default class TabGroupsPlugin extends Plugin {
         e.stopImmediatePropagation();
         if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
 
-        const target = e.target as HTMLElement;
-        const wrapper = target.closest('.workspace-tab-header-container');
-        
-        // 💡 수정된 부분: 탭 바가 아니더라도, 에디터 본문(.workspace-leaf) 위라면 허용!
-        if (!wrapper) {
-            this.dropIndicatorEl.style.display = 'none';
+        const container = this.findTabBarInner(e.target as HTMLElement);
+        if (!container) {
+            // 💡 탭 바 밖(에디터 본문 등): 자리 표시만 치우고 드롭은 허용 (onGroupDrop에서 창 분할·병합)
+            this.groupDrag.hide();
             this.currentDropTarget.node = null;
-            
-            // 에디터 본문 영역인지 확인
-            const isEditorBody = target.closest('.workspace-leaf-content') || target.closest('.view-header');
-            if (isEditorBody) {
-                // 드롭을 허용하기 위해 preventDefault 유지 (아무것도 안 하고 통과시킴)
-                return;
-            }
             return;
         }
 
-        const container = wrapper.querySelector('.workspace-tab-header-container-inner') as HTMLElement;
-        if (!container) return;
+        const target = this.groupDrag.update(container, e.clientX);
+        this.currentDropTarget = target ?? { node: null, insertAfter: false };
+    }
 
-        if (this.dropIndicatorEl.parentElement !== container) {
-            container.appendChild(this.dropIndicatorEl);
-            container.style.position = 'relative'; // 절대 좌표 기준점 설정
-        }
-
-        // 💡 3. 핵심 방어선 추가: 스페이서뿐만 아니라 그 밑바닥인 래퍼(container) 자체를 짚어도 빈 공간으로 인정!
-        const isRightSpace = target.classList.contains('workspace-tab-header-spacer') || 
-                             target.classList.contains('workspace-tab-header-container') || // ✨ 그물망 추가!
-                             target.closest('.workspace-tab-header-new-tab') ||
-                             target.closest('.workspace-tab-header-tab-list') ||
-                             target.closest('.sidebar-toggle-button');
-
-        const containerRect = container.getBoundingClientRect();
-
-        // 💡 2. 마우스가 우측 빈 공간 영역에 있다면 무조건 맨 끝으로 판정!
-        if (isRightSpace) {
-            const visibleChildren = Array.from(container.children).filter(el => {
-                if (el === this.dropIndicatorEl) return false;
-                if (!el.classList.contains('workspace-tab-header') && !el.classList.contains('tab-group-label')) return false;
-                if (window.getComputedStyle(el).display === 'none') return false; 
-                
-                const elGroupId = el.getAttribute('data-tab-group-id') || el.getAttribute('data-group-id');
-                if (elGroupId === draggedGroupId) return false; 
-                return true;
-            }) as HTMLElement[];
-
-            const lastEl = visibleChildren[visibleChildren.length - 1];
-            if (lastEl) {
-                this.dropIndicatorEl.style.display = 'block';
-                
-                // 마지막 요소 뒤에 가짜 탭 삽입
-                container.insertBefore(this.dropIndicatorEl, lastEl.nextSibling);
-                this.currentDropTarget = { node: lastEl, insertAfter: true };
-            }
-            return; // 💡 더 이상 아래 로직 볼 필요 없이 여기서 끝!
-        }
-
-        // 💡 3. 마우스가 정상적인 탭/라벨 영역(inner 내부)에 있을 때의 기존 로직
-        const dropHeader = target.closest('.workspace-tab-header') as HTMLElement;
-        const dropLabel = target.closest('.tab-group-label') as HTMLElement;
-        // 💡 핵심: 스페이서 위라면 hoverTarget를 '빈 공간' 로직을 타게 합니다.
-        const hoverTarget = dropHeader || dropLabel;
-
-        if (hoverTarget) {
-            const hoverGroupId = hoverTarget.getAttribute('data-tab-group-id') || hoverTarget.getAttribute('data-group-id');
-
-            // 💡 1. 자기 자신(자신의 탭이나 라벨) 위에 드롭하는 엣지 케이스 완벽 차단
-            if (hoverGroupId === draggedGroupId) {
-                this.dropIndicatorEl.style.display = 'none';
-                this.currentDropTarget.node = null;
-                return;
-            }
-
-            this.dropIndicatorEl.style.display = 'block';
-
-            // 💡 Hitbox 마법: 마우스가 요소의 절반을 넘었는지(오른쪽) 안 넘었는지(왼쪽) 계산!
-            const rect = hoverTarget.getBoundingClientRect();
-            const isAfter = e.clientX > rect.left + rect.width / 2;
-
-            if (hoverGroupId) {
-                // 💡 2. 다른 그룹 위에 올렸을 때 -> 그룹을 하나의 덩어리로 보고 맨 앞/맨 뒤로만 안내
-                const groupEls = Array.from(container.children).filter(el =>
-                    el.getAttribute('data-tab-group-id') === hoverGroupId ||
-                    el.getAttribute('data-group-id') === hoverGroupId
-                );
-                
-                const firstEl = groupEls[0] as HTMLElement;
-                const lastEl = groupEls[groupEls.length - 1] as HTMLElement;
-
-                // ✨ 위치 계산(style.left) 대신 진짜로 요소를 탭 사이에 삽입하여 공간을 밀어냄!
-                if (isAfter) {
-                    container.insertBefore(this.dropIndicatorEl, lastEl.nextSibling);
-                    this.currentDropTarget = { node: lastEl, insertAfter: true };
-                } else {
-                    container.insertBefore(this.dropIndicatorEl, firstEl);
-                    this.currentDropTarget = { node: firstEl, insertAfter: false };
-                }
-            } else {
-                this.dropIndicatorEl.style.display = 'block';
-                // ✨ 단일 탭/라벨 판정 시에도 마찬가지로 물리적 삽입!
-                if (isAfter) {
-                    container.insertBefore(this.dropIndicatorEl, hoverTarget.nextSibling);
-                } else {
-                    container.insertBefore(this.dropIndicatorEl, hoverTarget);
-                }
-                this.currentDropTarget = { node: hoverTarget, insertAfter: isAfter };
-            }
-        } else {
-            // hoverTarget이 없는 빈 영역 (inner 안의 여백 등) 방어 코드
-            this.dropIndicatorEl.style.display = 'none';
-            this.currentDropTarget.node = null;
-        }
+    findTabBarInner(target: HTMLElement): HTMLElement | null {
+        const wrapper = target.closest?.('.workspace-tab-header-container');
+        return wrapper ? wrapper.querySelector<HTMLElement>('.workspace-tab-header-container-inner') : null;
     }
 
     // ✨ 빈 공간 및 탭 드롭 허용 로직
     onDrop(e: DragEvent) {
         // 💡 Drop에서도 getData 대신 확실한 내장 메모리를 사용합니다.
         const draggedGroupId = this.draggingGroupId;
-        this.dropIndicatorEl.style.display = 'none'; // 드롭 시 인디케이터 숨김
-        
-        // 💡 단일 탭 드롭은 TabDragController가 처리
-        if (draggedGroupId) this.onGroupDrop(e, draggedGroupId);
+        if (!draggedGroupId) return; // 💡 단일 탭 드롭은 TabDragController가 처리
+
+        // 💡 마지막 dragover가 늦게 처리돼도 놓은 좌표 그대로 자리를 한 번 더 맞춥니다.
+        const container = this.findTabBarInner(e.target as HTMLElement);
+        if (container) this.currentDropTarget = this.groupDrag.update(container, e.clientX) ?? { node: null, insertAfter: false };
+        // 💡 플레이스홀더 위에 놓았으면 e.target이 곧 치워지므로, 놓은 곳은 미리 탭 바로 바꿔 둡니다.
+        const dropTarget = container ?? e.target as HTMLElement;
+        this.groupDrag.finish(); // 플레이스홀더를 치우고 숨겼던 그룹을 되돌린 뒤 옮깁니다.
+        this.onGroupDrop(e, draggedGroupId, dropTarget);
     }
-    
+
     // ✨ 그룹(라벨) 드롭 처리: 창 분할, 다른 창으로 병합, 같은 탭 바 안 재배치
-    onGroupDrop(e: DragEvent, draggedGroupId: string) {
-        
+    onGroupDrop(e: DragEvent, draggedGroupId: string, target: HTMLElement) {
+
         e.preventDefault();
         e.stopPropagation(); // 옵시디언 드롭 이벤트 차단
-        
-        const target = e.target as HTMLElement;
+
         
         // 💡 Drop에서도 바깥 래퍼를 기준으로 먼저 찾도록 수정
         const wrapper = target.closest('.workspace-tab-header-container');
@@ -887,19 +793,17 @@ export default class TabGroupsPlugin extends Plugin {
             
             this.draggingGroupId = groupId; // 💡 드래그 시작! 무슨 그룹인지 내장 메모리에 꽉 저장!
             document.body.classList.add('is-dragging-tab-group'); // 드래그 시작 시 body에 신호 보내기
-            
+            this.groupDrag.start(groupId, labelEl); // 플레이스홀더 너비로 쓸 그룹 너비를 재 둠
+
             // 반투명 잔상(Ghost)을 라벨이 아닌 '리더 탭' 모습으로 바꿔치기
             const leaderTab = labelEl.nextElementSibling as HTMLElement;
             if (leaderTab && leaderTab.classList.contains('workspace-tab-header')) {
-                e.dataTransfer!.setDragImage(leaderTab, 20, 15); 
+                e.dataTransfer!.setDragImage(leaderTab, 20, 15);
             }
-            
-            setTimeout(() => labelEl.classList.add('is-dragging'), 0);
         });
         labelEl.addEventListener('dragend', () => {
-            labelEl.classList.remove('is-dragging');
             this.draggingGroupId = null; // 💡 마우스 놓으면 까먹기 (초기화)
-            this.dropIndicatorEl.style.display = 'none'; // 혹시 남을 인디케이터 찌꺼기 제거
+            this.groupDrag.finish(); // 혹시 남은 플레이스홀더를 치우고 숨겼던 그룹을 되돌림
             document.body.classList.remove('is-dragging-tab-group'); // 드래그 종료 시 body 신호 제거
         });
         
@@ -919,7 +823,7 @@ export default class TabGroupsPlugin extends Plugin {
         window.removeEventListener('drop', this.onDrop, { capture: true });
         
         this.tabDrag.unload();
-        this.dropIndicatorEl.remove();
+        this.groupDrag.finish();
         this.globalObservers.forEach(obs => obs.disconnect());
         document.querySelectorAll('.tab-group-label').forEach(el => el.remove());
     }

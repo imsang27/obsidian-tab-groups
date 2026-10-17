@@ -31,12 +31,6 @@ html body .tab-group-label:hover {
     opacity: 0.8;
 }
 
-/* ✨ 라벨을 드래그 중일 때의 시각적 효과 */
-html body .tab-group-label.is-dragging {
-    opacity: 0.5;
-    transform: scale(0.95);
-}
-
 /* 최상위 강제 숨김 클래스 */
 html body div.app-container .workspace .workspace-tab-header.tab-group-hidden,
 html body div.app-container .workspace .workspace-tab-header.tab-group-hidden.is-active {
@@ -51,22 +45,6 @@ html body div.app-container .workspace .workspace-tab-header.tab-group-hidden.is
     pointer-events: none !important;
     flex: 0 0 0 !important;
     overflow: hidden !important;
-}
-
-/* ✨ 드래그 위치 시각적 가이드라인 (Drop Placeholder 로 진화!) */
-html body .tab-group-drop-indicator {
-    /* position: absolute; 제거됨 */
-    width: 150px; /* 실제 탭과 비슷한 기본 너비 */
-    height: calc(100% - 8px);
-    margin: 4px 2px;
-    background-color: var(--background-modifier-hover); /* 반투명한 배경 */
-    border: 2px dashed var(--interactive-accent); /* 점선 테두리 */
-    border-radius: var(--tab-radius);
-    z-index: 999;
-    pointer-events: none !important; /* 마우스 이벤트 방해 금지 (매우 중요) */
-    display: none; /* 평소엔 숨김 */
-    transition: width 0.15s ease-out, margin 0.15s ease-out; /* 부드럽게 공간이 벌어지는 효과 */
-    flex-shrink: 0;
 }
 
 /* ✨ 탭·라벨 드래그 중에는 탭 바의 창 이동 영역(OS 가로채기)을 무력화
@@ -96,8 +74,9 @@ html body .tab-group-drag-placeholder.is-measuring {
     display: none;
 }
 
-/* 같은 탭 바 안에서 끄는 동안 원래 탭 자리는 접어서 빈칸이 하나만 보이게 함 */
-html body .workspace-tab-header.tab-group-drag-source {
+/* 같은 탭 바 안에서 끄는 동안 원래 탭(그룹이면 라벨과 탭들) 자리는 접어서 빈칸이 하나만 보이게 함 */
+html body .workspace-tab-header.tab-group-drag-source,
+html body .tab-group-label.tab-group-drag-source {
     display: none !important;
 }
 
