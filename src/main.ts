@@ -1,4 +1,4 @@
-import { Plugin, Modal, App, Setting, Menu, TAbstractFile, WorkspaceLeaf } from 'obsidian';
+import { Plugin, Modal, App, Setting, Menu, TAbstractFile, WorkspaceLeaf, WorkspaceSplit } from 'obsidian';
 import { TabGroupsSettings, DEFAULT_SETTINGS } from './settings';
 import { TabDragController } from './tab-drag';
 import { GroupDragController, splitDirectionAt } from './group-drag';
@@ -170,9 +170,11 @@ export default class TabGroupsPlugin extends Plugin {
                             headerEl.classList.add('tab-group-hidden');
                             this.skipHiddenTab(leaf, direction);
                         } else {
+                            // 💡 링크·빠른 전환기 등으로 숨은 탭을 직접 열면 그룹을 펼치고 그 상태를 저장
                             groupData.isCollapsed = false;
                             this.previousActiveLeaf = leaf;
                             this.enforcePhysicalSorting();
+                            void this.saveSettings();
                         }
                     } else {
                         this.previousActiveLeaf = leaf;
@@ -227,7 +229,7 @@ export default class TabGroupsPlugin extends Plugin {
                             .setIcon('folder-plus')
                             // 💡 콜백 함수에 async 추가!
                             .onClick(() => {
-                                new CreateGroupModal(this.app, async (groupName, color) => {
+                                new CreateGroupModal(this.app, this.nextGroupColor(), async (groupName, color) => {
                                     const groupId = 'group-' + Date.now();
                                     this.groups.set(groupId, { name: groupName, color: color, leafIds: new Set(), isCollapsed: false });
                                     
@@ -337,6 +339,25 @@ export default class TabGroupsPlugin extends Plugin {
         const target = this.groupDrag.update(container, e.clientX);
         this.currentDropTarget = target ?? { node: null, insertAfter: false };
     };
+
+    // 💡 모든 탭 바(메인 창 + 팝업 창). document만 뒤지면 팝업 창의 탭 바를 놓치므로 탭에서 거꾸로 찾습니다.
+    tabContainers(): HTMLElement[] {
+        const containers = new Set<HTMLElement>();
+        this.app.workspace.iterateAllLeaves(leaf => {
+            const container = internal(leaf).tabHeaderEl?.parentElement;
+            if (container?.classList.contains('workspace-tab-header-container-inner')) containers.add(container);
+        });
+        return [...containers];
+    }
+
+    // 💡 그룹에 속한 탭들
+    groupLeaves(groupId: string): WorkspaceLeaf[] {
+        const leaves: WorkspaceLeaf[] = [];
+        this.app.workspace.iterateAllLeaves(leaf => {
+            if (this.leafGroupMap.get(leaf) === groupId) leaves.push(leaf);
+        });
+        return leaves;
+    }
 
     findTabBarInner(target: HTMLElement): HTMLElement | null {
         const wrapper = target.closest?.('.workspace-tab-header-container');
@@ -489,7 +510,9 @@ export default class TabGroupsPlugin extends Plugin {
         
         // 드래그된 탭들(HTML 요소) 찾기
         // ✨ 수정: 다른 창에서 넘어올 수도 있으니 container 내부가 아닌 전체 문서(document)에서 찾습니다.
-        const draggedHeaders = Array.from(document.querySelectorAll<HTMLElement>(`.workspace-tab-header[data-tab-group-id="${draggedGroupId}"]`));
+        const draggedHeaders = this.groupLeaves(draggedGroupId)
+            .map(leaf => internal(leaf).tabHeaderEl)
+            .filter((header): header is HTMLElement => !!header);
         if (draggedHeaders.length === 0) return;
 
         // 💡 1. 꼬임 방지를 위해 드래그된 요소들을 화면에서 잠깐 뽑아냄
@@ -513,8 +536,13 @@ export default class TabGroupsPlugin extends Plugin {
     }
     
     setupObservers() {
-        const containers = document.querySelectorAll('.workspace-tab-header-container-inner');
-        containers.forEach(container => {
+        // 💡 닫힌 창의 탭 바 감시자는 떼어 냅니다. (남겨 두면 창을 열고 닫을 때마다 쌓임)
+        this.globalObservers.forEach((observer, container) => {
+            if (container.isConnected) return;
+            observer.disconnect();
+            this.globalObservers.delete(container);
+        });
+        this.tabContainers().forEach(container => {
             if (!this.globalObservers.has(container)) {
                 const observer = new MutationObserver((mutations) => {
                     // 🚨 꺼진 인스턴스의 감시자가 남아 있으면 스스로 떼어 냅니다. (다른 인스턴스와 핑퐁 방지)
@@ -539,20 +567,21 @@ export default class TabGroupsPlugin extends Plugin {
         });
     }
     
+    // 💡 접으려는 그룹의 탭이 그 창에서 선택돼 있으면, 같은 창에서 가장 가까운 보이는 탭으로 옮깁니다.
+    // 보이는 탭이 하나도 없으면 크롬처럼 새 탭을 엽니다. (그대로 두면 숨은 탭의 내용이 계속 보임)
     async shiftFocusOut(groupId: string) {
-        const activeHeader = document.querySelector<HTMLElement>('.workspace-tab-header.is-active');
-        if (activeHeader && activeHeader.getAttribute('data-tab-group-id') === groupId) {
-            const allHeaders = Array.from(document.querySelectorAll<HTMLElement>('.workspace-tab-header'));
-            const targetHeader = allHeaders.find(h => h.getAttribute('data-tab-group-id') !== groupId && !h.classList.contains('tab-group-hidden'));
-            
-            if (targetHeader) {
-                const targetLeaf = this.findLeafFromHeader(targetHeader);
-                if (targetLeaf) {
-                    this.app.workspace.setActiveLeaf(targetLeaf, { focus: true });
-                    await new Promise(resolve => window.setTimeout(resolve, 20));
-                }
-            }
-        }
+        const pane = this.groupLeaves(groupId).map(leaf => internal(leaf).parent).find(p => p);
+        if (!pane) return;
+        const selected = pane.children[pane.currentTab ?? -1];
+        if (!selected || this.leafGroupMap.get(selected) !== groupId) return;
+
+        const index = pane.children.indexOf(selected);
+        const isVisible = (leaf: WorkspaceLeaf) => this.leafGroupMap.get(leaf) !== groupId && !this.isLeafHidden(leaf);
+        const target = pane.children.slice(index + 1).find(isVisible)
+            ?? pane.children.slice(0, index).reverse().find(isVisible)
+            ?? this.app.workspace.createLeafInParent(pane as unknown as WorkspaceSplit, pane.children.length);
+        this.app.workspace.setActiveLeaf(target, { focus: true });
+        await new Promise(resolve => window.setTimeout(resolve, 20));
     }
     
     skipHiddenTab(currentLeaf: WorkspaceLeaf, direction: number) {
@@ -627,6 +656,53 @@ export default class TabGroupsPlugin extends Plugin {
         });
     }
     
+    // 💡 탭 하나를 다른 창으로 옮기면(옵시디언 기본 드래그·분할 등) 그룹이 두 창에 걸칩니다.
+    // 크롬처럼 옮겨 간 탭은 그룹에서 빠지고, 그룹은 원래 창(라벨이 있던 창, 없으면 탭이 더 많은 창)에 남깁니다.
+    // 소속이 바뀌었으면 true.
+    detachStrayTabs(): boolean {
+        const byGroup = new Map<string, Map<InternalTabs, WorkspaceLeaf[]>>();
+        this.app.workspace.iterateAllLeaves(leaf => {
+            const groupId = this.leafGroupMap.get(leaf);
+            const pane = internal(leaf).parent;
+            if (!groupId || !pane) return;
+            if (!byGroup.has(groupId)) byGroup.set(groupId, new Map());
+            const panes = byGroup.get(groupId)!;
+            if (!panes.has(pane)) panes.set(pane, []);
+            panes.get(pane)!.push(leaf);
+        });
+
+        let changed = false;
+        byGroup.forEach((panes, groupId) => {
+            if (panes.size < 2) return;
+            const entries = [...panes.entries()];
+            const hasLabel = ([pane]: [InternalTabs, WorkspaceLeaf[]]) => {
+                const header = pane.children.map(l => internal(l).tabHeaderEl).find(h => h);
+                return !!header?.parentElement?.querySelector(`.tab-group-label[data-group-id="${groupId}"]`);
+            };
+            const keep = entries.find(hasLabel) ?? entries.reduce((a, b) => (b[1].length > a[1].length ? b : a));
+            entries.forEach(entry => {
+                if (entry === keep) return;
+                entry[1].forEach(leaf => this.leafGroupMap.delete(leaf));
+                changed = true;
+            });
+        });
+        return changed;
+    }
+
+    // 💡 새 그룹의 기본 색: 아직 다른 그룹이 쓰지 않은 팔레트 색 (모두 쓰였으면 첫 색)
+    nextGroupColor(): string {
+        const used = new Set([...this.groups.values()].map(g => g.color.toLowerCase()));
+        return PRESET_COLORS.find(c => !used.has(c.toLowerCase())) ?? PRESET_COLORS[0]!;
+    }
+
+    // 💡 그룹 삭제: 탭은 일반 탭으로 남기고 그룹 정보를 지웁니다. (관리 창·설정 화면에서 사용)
+    async deleteGroup(groupId: string) {
+        this.groupLeaves(groupId).forEach(leaf => this.leafGroupMap.delete(leaf));
+        this.groups.delete(groupId);
+        await this.saveSettings();
+        this.enforcePhysicalSorting();
+    }
+
     isGroupExpanded(groupId: string): boolean {
         return this.groups.get(groupId)?.isCollapsed === false;
     }
@@ -643,15 +719,16 @@ export default class TabGroupsPlugin extends Plugin {
         this.globalObservers.forEach(obs => obs.disconnect());
         
         try {
-            const tabContainers = document.querySelectorAll('.workspace-tab-header-container-inner');
-            
+            const tabContainers = this.tabContainers();
+
             let groupChanged = false;
             if (options.trackMoves !== false) {
                 tabContainers.forEach(container => {
                     if (this.tabMoves.applyMove(container)) groupChanged = true;
                 });
             }
-            
+            if (this.detachStrayTabs()) groupChanged = true;
+
             this.restoreDomAttributes();
             
             tabContainers.forEach(container => {
@@ -721,9 +798,7 @@ export default class TabGroupsPlugin extends Plugin {
     }
     
     renderGroupUI() {
-        const tabContainers = document.querySelectorAll('.workspace-tab-header-container-inner');
-        
-        tabContainers.forEach(container => {
+        this.tabContainers().forEach(container => {
             // 🚨 가장 안정적인 과거 방식: 라벨 무조건 전체 삭제
             container.querySelectorAll('.tab-group-label').forEach(el => el.remove());
             
@@ -815,13 +890,8 @@ export default class TabGroupsPlugin extends Plugin {
                     }
                     else if (action === 'delete') {
                         // [그룹 삭제]: 탭을 일반 탭으로 풀고, 그룹 데이터도 완전히 삭제
-                        this.app.workspace.iterateAllLeaves(leaf => {
-                            if (this.leafGroupMap.get(leaf) === groupId) {
-                                this.leafGroupMap.delete(leaf);
-                            }
-                        });
-                        // ✨ 그룹 데이터 완전 삭제
-                        this.groups.delete(groupId);
+                        await this.deleteGroup(groupId);
+                        return;
                     }
                     else if (action === 'ungroup') {
                         // [그룹 해제]: 탭만 일반 탭으로 풀고, 그룹 데이터는 유지
@@ -868,8 +938,8 @@ export default class TabGroupsPlugin extends Plugin {
         this.tabDrag.unload();
         this.groupDrag.finish();
         this.globalObservers.forEach(obs => obs.disconnect());
-        document.querySelectorAll('.tab-group-label').forEach(el => el.remove());
-        // 🚨 탭 헤더를 원래 모습으로 되돌립니다. (그대로 두면 끈 뒤에도 접힌 그룹의 탭이 숨겨진 채 남음)
+        this.tabContainers().forEach(container => container.querySelectorAll('.tab-group-label').forEach(el => el.remove()));
+        // 🚨탭 헤더를 원래 모습으로 되돌립니다. (그대로 두면 끈 뒤에도 접힌 그룹의 탭이 숨겨진 채 남음)
         this.app.workspace.iterateAllLeaves(leaf => {
             const header = internal(leaf).tabHeaderEl;
             if (header) clearGroupHeader(header);
@@ -880,23 +950,33 @@ export default class TabGroupsPlugin extends Plugin {
 
 class CreateGroupModal extends Modal {
     groupName: string = '';
-    groupColor: string = '#ff5c5c'; 
+    groupColor: string;
     onSubmit: (groupName: string, color: string) => void | Promise<void>;
-    
-    constructor(app: App, onSubmit: (groupName: string, color: string) => void | Promise<void>) {
+
+    constructor(app: App, initialColor: string, onSubmit: (groupName: string, color: string) => void | Promise<void>) {
         super(app);
+        this.groupColor = initialColor;
         this.onSubmit = onSubmit;
     }
-    
+
+    submit() {
+        this.close();
+        void this.onSubmit(this.groupName, this.groupColor);
+    }
+
     onOpen() {
         const { contentEl } = this;
-        contentEl.createEl('h2', { text: t('modal.createTitle') });
-        
+        this.titleEl.setText(t('modal.createTitle'));
+
         new Setting(contentEl)
             .setName(t('modal.name'))
             .setDesc(t('modal.nameDesc'))
-            .addText((text) => text.onChange((val) => this.groupName = val));
-        
+            .addText((text) => {
+                text.onChange((val) => this.groupName = val);
+                onEnter(text.inputEl, () => this.submit());
+                window.setTimeout(() => text.inputEl.focus(), 0);
+            });
+
         const colorSetting = new Setting(contentEl)
             .setName(t('modal.color'));
         
@@ -907,10 +987,7 @@ class CreateGroupModal extends Modal {
         });
         
         new Setting(contentEl)
-            .addButton((btn) => btn.setButtonText(t('modal.create')).setCta().onClick(() => {
-                this.close();
-                void this.onSubmit(this.groupName, this.groupColor);
-            }));
+            .addButton((btn) => btn.setButtonText(t('modal.create')).setCta().onClick(() => this.submit()));
     }
     
     onClose() { 
@@ -942,13 +1019,14 @@ class EditGroupModal extends Modal {
     
     onOpen() {
         const { contentEl } = this;
-        contentEl.createEl('h2', { text: t('modal.editTitle') });
+        this.titleEl.setText(t('modal.editTitle'));
         
         new Setting(contentEl)
             .setName(t('modal.name'))
             .addText((text) => {
                 text.setValue(this.groupName);
                 text.onChange((val) => this.groupName = val);
+                onEnter(text.inputEl, () => this.submit());
             });
             
         const colorSetting = new Setting(contentEl)
@@ -985,10 +1063,12 @@ class EditGroupModal extends Modal {
             .addButton((btn) => btn
                 .setButtonText(t('modal.save'))
                 .setCta() // 파란색 강조 스타일 적용
-                .onClick(() => {
-                    this.close();
-                    void this.onSubmit(this.groupName, this.groupColor);
-                }));
+                .onClick(() => this.submit()));
+    }
+
+    submit() {
+        this.close();
+        void this.onSubmit(this.groupName, this.groupColor);
     }
     
     onClose() { 
@@ -997,8 +1077,17 @@ class EditGroupModal extends Modal {
     }
 }
 
+// 💡 이름 칸에서 Enter를 누르면 만들기·저장 (한글 등 입력 조합 중의 Enter는 무시)
+function onEnter(inputEl: HTMLInputElement, submit: () => void) {
+    inputEl.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.key !== 'Enter' || e.isComposing) return;
+        e.preventDefault();
+        submit();
+    });
+}
+
 // ✨ 수정: 묵직한 미드톤(Mid-tone) 색상으로 변경
-const PRESET_COLORS = [
+export const PRESET_COLORS = [
     '#808080', // 그레이 (Gray)
     '#5A8EE6', // 파란색 (Blue)
     '#E66A6A', // 빨간색 (Red)
