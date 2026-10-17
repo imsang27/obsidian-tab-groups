@@ -1,6 +1,6 @@
 # Tab Groups
 
-English | [한국어](./README_ko.md)
+English | [한국어](./docs/readme-ko.md)
 
 Bring Chrome-like tab grouping, color-coding, and collapsible tab management into your Obsidian workspace.
 
@@ -17,11 +17,9 @@ Organize your messy tab bar by clustering related notes under labeled, color-map
 
 ## 🚀 Usage
 ---
-1. Right-click a tab and select **새 탭 그룹 만들기** (create a new tab group). Enter a name (optional) and pick a color.
-2. To add another tab, right-click it and select **[group name] 그룹에 넣기**, or drag it into the group.
+1. Right-click a tab and select **Create tab group**. Enter a name (optional) and pick a color.
+2. To add another tab, right-click it and select **Add to "group name"**, or drag it into the group. To take a tab out, select **Remove from group** or drag it out.
 3. Click the group label to collapse or expand it. Right-click the label to rename it, change its color, ungroup or delete it, or close all of its tabs.
-
-> The interface is currently in Korean.
 
 ## 🛠️ Installation
 ---
