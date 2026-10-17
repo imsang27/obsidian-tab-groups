@@ -1,4 +1,4 @@
-import { moment } from 'obsidian';
+import { getLanguage } from 'obsidian';
 import de from './locales/de.json';
 import en from './locales/en.json';
 import es from './locales/es.json';
@@ -44,11 +44,10 @@ function isLanguage(code: string): code is Language {
     return Object.prototype.hasOwnProperty.call(LOCALES, code);
 }
 
-// 💡 옵시디언 화면 언어. 옵시디언은 고른 언어 코드를 localStorage의 language에 저장합니다. (영어면 비어 있음)
-// 없으면 moment 로캘(옵시디언이 화면 언어로 맞춰 둠)로 대신합니다.
+// 💡 옵시디언 화면 언어 (설정 → 일반 → 언어에서 고른 언어 코드)
 // 같은 코드(zh-tw)가 없으면 기본 언어(zh)로, 그것도 없으면 같은 계열(pt → pt-br)로, 그것도 없으면 영어
 function obsidianLanguage(): Language {
-    const locale = (window.localStorage.getItem('language') || moment.locale()).toLowerCase();
+    const locale = getLanguage().toLowerCase();
     const base = locale.split('-')[0] ?? locale;
     if (isLanguage(locale)) return locale;
     if (isLanguage(base)) return base;

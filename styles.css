@@ -2,12 +2,16 @@
    Obsidian Tab Groups (완전 독립 아키텍처 v4)
    ==================================================== */
 
+/* 💡 important 선언 없이 선택자 우선순위로 옵시디언 기본 스타일을 덮어씁니다.
+   :not(#tab-groups) 는 아무 요소도 거르지 않고 ID 하나만큼 우선순위를 올리는 장치입니다.
+   (옵시디언 탭 헤더 규칙은 클래스 3~5개 수준이라 이것 하나로 확실히 이깁니다) */
+
 html body .tab-group-label {
-    display: inline-flex !important;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     padding: 2px 10px;
-    margin: 4px 2px !important; 
+    margin: 4px 2px;
     border-radius: 6px;
     font-size: 11px;
     font-weight: 600;
@@ -19,12 +23,12 @@ html body .tab-group-label {
     min-width: 24px;
     min-height: 22px;
     white-space: nowrap;
-    flex-shrink: 0 !important; 
+    flex-shrink: 0;
     z-index: 10;
     
     /* 일렉트론 창 이동 영역에서 라벨 제외 */
-    -webkit-app-region: no-drag !important; /* 창 이동은 막음 */
-    -webkit-user-drag: element !important;  /* 드래그는 가능 */
+    -webkit-app-region: no-drag; /* 창 이동은 막음 */
+    -webkit-user-drag: element;  /* 드래그는 가능 */
 }
 
 /* 라벨 배경색은 그룹 색 (코드에서 --tab-group-color로 넘김) */
@@ -37,37 +41,26 @@ html body .tab-group-label:hover {
 }
 
 /* 그룹에 속한 탭: 위쪽 색 줄과 옅은 배경 (색은 --tab-group-color / --tab-group-tint) */
-html body .workspace-tab-header.tab-group-member {
-    border-top: 3px solid var(--tab-group-color) !important;
-    background-color: var(--tab-group-tint) !important;
+/* (선택·호버된 탭의 옵시디언 배경보다 우선) */
+html body .workspace-tab-header.tab-group-member:not(#tab-groups) {
+    border-top: 3px solid var(--tab-group-color);
+    background-color: var(--tab-group-tint);
 }
 
-/* 최상위 강제 숨김 클래스 (접힌 그룹의 탭) */
-html body div.app-container .workspace .workspace-tab-header.tab-group-hidden,
-html body div.app-container .workspace .workspace-tab-header.tab-group-hidden.is-active,
-html body .workspace-tab-header.tab-group-hidden {
-    display: none !important;
-    width: 0 !important;
-    min-width: 0 !important;
-    max-width: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    border: none !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    flex: 0 0 0 !important;
-    overflow: hidden !important;
+/* 접힌 그룹의 탭 숨김 (선택된 탭이어도 숨김) */
+html body .workspace-tab-header.tab-group-hidden:not(#tab-groups) {
+    display: none;
 }
 
 /* ✨ 탭·라벨 드래그 중에는 탭 바의 창 이동 영역(OS 가로채기)을 무력화
    (그대로 두면 플레이스홀더·여백·빈 공간에 놓을 때 OS가 창 밖 드롭으로 처리해 새 창이 열림) */
-body.is-dragging-tab-group .workspace-tab-header-container,
-body.is-dragging-tab-group .workspace-tab-header-container-inner,
-body.is-dragging-tab-group .workspace-tab-header-spacer,
-body.is-dragging-tab .workspace-tab-header-container,
-body.is-dragging-tab .workspace-tab-header-container-inner,
-body.is-dragging-tab .workspace-tab-header-spacer {
-    -webkit-app-region: no-drag !important;
+body.is-dragging-tab-group:not(#tab-groups) .workspace-tab-header-container,
+body.is-dragging-tab-group:not(#tab-groups) .workspace-tab-header-container-inner,
+body.is-dragging-tab-group:not(#tab-groups) .workspace-tab-header-spacer,
+body.is-dragging-tab:not(#tab-groups) .workspace-tab-header-container,
+body.is-dragging-tab:not(#tab-groups) .workspace-tab-header-container-inner,
+body.is-dragging-tab:not(#tab-groups) .workspace-tab-header-spacer {
+    -webkit-app-region: no-drag;
 }
 /* ✨ 탭 하나를 끌 때 들어갈 자리를 밀어내며 보여 주는 플레이스홀더 */
 html body .tab-group-drag-placeholder {
@@ -88,9 +81,9 @@ html body .tab-group-drag-placeholder.is-measuring {
 }
 
 /* 같은 탭 바 안에서 끄는 동안 원래 탭(그룹이면 라벨과 탭들) 자리는 접어서 빈칸이 하나만 보이게 함 */
-html body .workspace-tab-header.tab-group-drag-source,
+html body .workspace-tab-header.tab-group-drag-source:not(#tab-groups),
 html body .tab-group-label.tab-group-drag-source {
-    display: none !important;
+    display: none;
 }
 
 /* ✨ 그룹을 편집 화면 위로 끌 때 분할될 영역 미리보기 (모양은 옵시디언 기본 .workspace-drop-overlay를 따름) */
@@ -100,9 +93,10 @@ html body .tab-group-split-preview {
     height: var(--tab-group-preview-height);
 }
 
-/* 탭 바 안에서는 옵시디언 기본 드롭 선 대신 플레이스홀더만 표시 */
+/* 탭 바 안에서는 옵시디언 기본 드롭 선 대신 플레이스홀더만 표시
+   (옵시디언은 드롭 선을 보일 때 인라인 display를 지우기만 하므로 일반 규칙으로 숨길 수 있음) */
 body.is-dragging-tab-in-tab-bar .workspace-drop-overlay {
-    display: none !important;
+    display: none;
 }
 
 /* ✨ 그룹 만들기·관리 창의 색상 팔레트 */
