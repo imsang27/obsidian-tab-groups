@@ -1,0 +1,39 @@
+name: Translation
+description: Add a new language or fix a translation without opening a pull request.
+title: "[Translation] "
+labels: ["translation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping translate Tab Groups! See the [translation guide](https://github.com/imsang27/obsidian-tab-groups/blob/main/docs/translating.md) for details.
+  - type: input
+    id: language
+    attributes:
+      label: Language
+      description: The language name and the code shown by `moment.locale()` in the Obsidian developer console.
+      placeholder: Français (fr)
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Type
+      options:
+        - New language
+        - Fix or update an existing translation
+    validations:
+      required: true
+  - type: textarea
+    id: translation
+    attributes:
+      label: Translation
+      description: Paste the translated content of `en.json`, or only the strings you changed. Keep the keys and `{placeholders}` as they are.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Anything the maintainer should know, such as strings you weren't sure about.
