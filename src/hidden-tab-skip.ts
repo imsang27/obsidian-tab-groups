@@ -1,4 +1,4 @@
-import { WorkspaceLeaf } from 'obsidian';
+import { View, WorkspaceLeaf } from 'obsidian';
 import type TabGroupsPlugin from './main';
 
 type SetActiveLeaf = (leaf: WorkspaceLeaf, ...args: unknown[]) => void;
@@ -19,7 +19,7 @@ const CYCLE_COMMANDS = new Set([
 // 숨은 탭을 먼저 활성화한 뒤 다음 작업(setTimeout)에서 옮기면 그 사이 화면이 그려져 번쩍이므로,
 // 순환 명령이 실행되는 동안 workspace.setActiveLeaf를 가로채 같은 작업 안에서 바로 다음에 보이는 탭으로 바꿉니다.
 export function registerHiddenTabSkip(plugin: TabGroupsPlugin) {
-    const workspace = plugin.app.workspace as unknown as { setActiveLeaf: SetActiveLeaf, activeLeaf: WorkspaceLeaf | null };
+    const workspace = plugin.app.workspace as unknown as { setActiveLeaf: SetActiveLeaf };
     const commands = (plugin.app as unknown as { commands: { executeCommand: ExecuteCommand } }).commands;
     let cycling = false;
 
@@ -36,7 +36,8 @@ export function registerHiddenTabSkip(plugin: TabGroupsPlugin) {
 
     const originalSetActive = workspace.setActiveLeaf;
     const patchedSetActive: SetActiveLeaf = function (this: unknown, leaf, ...args) {
-        const current = workspace.activeLeaf;
+        // 💡 폐기 예정인 workspace.activeLeaf 대신, 지금 활성 화면의 탭을 씁니다.
+        const current = plugin.app.workspace.getActiveViewOfType(View)?.leaf ?? null;
         const target = cycling ? visibleTarget(plugin, leaf, current) : null;
         if (!target) return originalSetActive.call(this, leaf, ...args);
 
