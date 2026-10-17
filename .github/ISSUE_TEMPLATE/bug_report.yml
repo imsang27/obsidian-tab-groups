@@ -1,0 +1,62 @@
+name: Bug report
+description: Something doesn't work as expected.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the report! Please search the [existing issues](https://github.com/imsang27/obsidian-tab-groups/issues) first.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you see, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Create a group with two tabs
+        2. Collapse the group
+        3. Drag another tab next to the label
+        4. ...
+    validations:
+      required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Tab Groups version
+      description: "**Settings → Community plugins → Tab Groups**"
+      placeholder: "1.3.0"
+    validations:
+      required: true
+  - type: input
+    id: obsidian-version
+    attributes:
+      label: Obsidian version
+      description: "**Settings → General → App**"
+      placeholder: "1.12.7"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+    validations:
+      required: true
+  - type: textarea
+    id: plugins
+    attributes:
+      label: Other plugins that change tabs
+      description: For example Pane Relief. Does the bug still happen with them turned off?
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots, recordings or console errors
+      description: Errors from the developer console (Ctrl+Shift+I, or Cmd+Option+I on macOS) help a lot.

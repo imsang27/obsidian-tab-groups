@@ -1,0 +1,25 @@
+name: Translations
+
+# 🌐 Translations: checks keys, {placeholders} and JSON format against en.json,
+# marks problems on the changed lines and writes a coverage table to the run summary.
+on:
+    push:
+        branches: ['**']
+        paths:
+            - 'src/i18n/**'
+            - 'scripts/check-translations.mjs'
+    pull_request:
+        branches: ['**']
+        paths:
+            - 'src/i18n/**'
+            - 'scripts/check-translations.mjs'
+
+jobs:
+    check:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v6
+            - uses: actions/setup-node@v6
+              with:
+                  node-version: 24
+            - run: node scripts/check-translations.mjs

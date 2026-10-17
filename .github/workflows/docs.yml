@@ -1,0 +1,26 @@
+name: Docs
+
+# 📝 Documentation: checks that links between files in this repository (README, guides, images) are not broken.
+on:
+    push:
+        branches: ['**']
+        paths:
+            - '**.md'
+            - 'docs/**'
+    pull_request:
+        branches: ['**']
+        paths:
+            - '**.md'
+            - 'docs/**'
+
+jobs:
+    links:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v6
+            - name: Check relative links
+              uses: lycheeverse/lychee-action@v2
+              with:
+                  # --offline: only files in this repository, no requests to external sites
+                  args: --offline --no-progress './**/*.md'
+                  fail: true

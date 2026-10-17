@@ -79,6 +79,10 @@ Translations are welcome! Each language is a small JSON file in [`src/i18n/local
 
 Missing strings are shown in English, so partial translations are fine. See the [translation guide](./docs/translating.md) for details.
 
+## 🤝 Contributing
+---
+Bug reports, ideas, translations and code are all welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md).
+
 ## 📄 License
 ---
 This project is licensed under the [MIT License](./LICENSE).

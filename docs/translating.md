@@ -55,7 +55,7 @@ The quickest way is to open your language's file on GitHub, select the pencil ic
 
 When new strings are added to `en.json`, other languages show them in English until someone translates them. Edit the language's file, add or fix the strings, and open a pull request.
 
-To see which strings are missing, look at the `npm run check-translations` step of the pull request check, or run it locally:
+To see which strings are missing, open the **Translations** check on your pull request. Its summary shows a coverage table, and problems are marked on the lines of your file. You can also run it locally:
 
 ```bash
 npm install

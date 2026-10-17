@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Contributing guide
+    url: https://github.com/imsang27/obsidian-tab-groups/blob/main/CONTRIBUTING.md
+    about: How to report bugs, translate, and contribute code.
+  - name: Translation guide
+    url: https://github.com/imsang27/obsidian-tab-groups/blob/main/docs/translating.md
+    about: Add a language or fix a translation right on GitHub.

@@ -1,0 +1,16 @@
+name: Label pull request
+
+# Adds area labels (translation, documentation, core) from .github/labeler.yml.
+# pull_request_target lets this work on pull requests from forks. It never checks out or runs the pull request's code.
+on:
+    pull_request_target:
+        types: [opened, synchronize, reopened]
+
+jobs:
+    label:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            pull-requests: write
+        steps:
+            - uses: actions/labeler@v5

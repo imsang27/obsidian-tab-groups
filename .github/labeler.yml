@@ -1,0 +1,18 @@
+# Labels pull requests by the files they change. Used by .github/workflows/labeler.yml.
+translation:
+    - changed-files:
+          - any-glob-to-any-file:
+                - 'src/i18n/locales/**'
+                - 'docs/translating*.md'
+
+documentation:
+    - changed-files:
+          - any-glob-to-any-file:
+                - '**/*.md'
+                - 'LICENSE'
+
+core:
+    - changed-files:
+          - any-glob-to-any-file:
+                - 'src/**/*.ts'
+                - 'styles.css'
