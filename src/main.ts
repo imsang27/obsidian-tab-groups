@@ -4,6 +4,7 @@ import { TabDragController } from './tab-drag';
 import { GroupDragController } from './group-drag';
 import { TabMoveTracker } from './tab-move';
 import { registerHiddenTabSkip } from './hidden-tab-skip';
+import { registerExplorerOpen } from './explorer-open';
 
 interface TabGroupData {
     name: string;
@@ -50,12 +51,20 @@ export default class TabGroupsPlugin extends Plugin {
     // ✨ 단축키·다른 플러그인으로 탭을 옮겼을 때의 그룹 편입·이탈 담당
     tabMoves: TabMoveTracker = new TabMoveTracker(this);
 
+    // 💡 onunload가 불렸는지 (비동기 onload가 끝나기 전에 꺼질 수 있음)
+    unloaded = false;
+
     async onload() {
         // ✨ 1. 플러그인이 켜질 때 가장 먼저 데이터를 불러옵니다.
         await this.loadSettings();
+        // 🚨 불러오는 사이 꺼졌으면(hot-reload와 plugin:reload가 겹칠 때 등) 여기서 멈춥니다.
+        // 꺼진 뒤에 감시자·이벤트를 달면 아무도 떼지 않아, 새로 켜진 인스턴스의 감시자와
+        // 서로의 DOM 정렬에 끝없이 반응하며 옵시디언이 멈춥니다.
+        if (this.unloaded) return;
 
         // 👇 옵시디언 화면이 다 켜진 직후에 실행되는 곳
         this.app.workspace.onLayoutReady(() => {
+            if (this.unloaded) return;
             this.restoreTabsFromSettings(); // ✨ 탭 매핑 먼저 완벽하게 복구하고!
             this.setupObservers();          // 감시자 달고
             this.enforcePhysicalSorting();  // 화면 정렬!
@@ -92,6 +101,9 @@ export default class TabGroupsPlugin extends Plugin {
         
         // ✨ Ctrl+Tab 등으로 탭을 순환할 때 접힌 그룹의 탭은 번쩍임 없이 건너뜀
         registerHiddenTabSkip(this);
+        
+        // ✨ 탐색기에서 연 노트가 접힌 그룹에 이미 열려 있으면 그 탭으로 이동
+        registerExplorerOpen(this);
 
         // 스마트 펼침 유지
         this.registerEvent(
@@ -478,6 +490,8 @@ export default class TabGroupsPlugin extends Plugin {
         containers.forEach(container => {
             if (!this.globalObservers.has(container)) {
                 const observer = new MutationObserver((mutations) => {
+                    // 🚨 꺼진 인스턴스의 감시자가 남아 있으면 스스로 떼어 냅니다. (다른 인스턴스와 핑퐁 방지)
+                    if (this.unloaded) { observer.disconnect(); return; }
                     // ✨ 탭을 손으로 잡고 드래그 중이거나 그룹 드래그 중일 때는 절대 간섭하지 않음
                     if (this.draggingGroupId || this.tabDrag.isDragging) return;
                     
@@ -822,6 +836,8 @@ export default class TabGroupsPlugin extends Plugin {
     }
 
     onunload() {
+        this.unloaded = true;
+
         // ✨ 플러그인 꺼질 때 가로채기 이벤트 확실하게 제거
         window.removeEventListener('dragenter', this.onDragEnter, { capture: true });
         window.removeEventListener('dragover', this.onDragOver, { capture: true });
