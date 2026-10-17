@@ -11,8 +11,8 @@ body:
     id: language
     attributes:
       label: Language
-      description: The language name and the code shown by `moment.locale()` in the Obsidian developer console.
-      placeholder: Français (fr)
+      description: The language name and its code from Obsidian's language list (https://github.com/obsidianmd/obsidian-translations#existing-languages).
+      placeholder: Italiano (it)
     validations:
       required: true
   - type: dropdown

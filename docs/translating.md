@@ -27,18 +27,18 @@ Each line is `"key": "text"`. Translate only the text on the right. Leave the ke
 
 ## Add a new language
 ---
-1. Find your language code. In Obsidian, select your language in **Settings → General → Language**, press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> (<kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>I</kbd> on macOS) to open the developer console, and enter `moment.locale()`. The result (for example `fr`) is your code. Use it in lowercase.
-2. On GitHub, open [`src/i18n/locales/en.json`](../src/i18n/locales/en.json), copy its content, and create a new file in the same folder named `<code>.json` (for example `fr.json`). GitHub forks the repository for you.
+1. Find your language code in [Obsidian's language list](https://github.com/obsidianmd/obsidian-translations#existing-languages) (for example `it` for Italian, `pt-BR` for Brazilian Portuguese). Use it in lowercase: `it`, `pt-br`.
+2. On GitHub, open [`src/i18n/locales/en.json`](../src/i18n/locales/en.json), copy its content, and create a new file in the same folder named `<code>.json` (for example `it.json`). GitHub forks the repository for you.
 3. Translate the text.
 4. Open [`src/i18n/index.ts`](../src/i18n/index.ts) and register the file in two places, next to the existing languages:
     ```ts
-    import fr from './locales/fr.json';
+    import it from './locales/it.json';
     ```
     ```ts
     const LOCALES = {
         en: { name: 'English', strings: en },
         ko: { name: '한국어', strings: ko },
-        fr: { name: 'Français', strings: fr },
+        it: { name: 'Italiano', strings: it },
     };
     ```
     `name` is your language's name written in that language. It appears in the **Language** setting.
@@ -48,6 +48,8 @@ If editing `index.ts` feels like too much, just add the JSON file and open the p
 
 ## Update an existing translation
 ---
+The translations other than English and Korean were first written by the maintainer with the help of AI. If something sounds unnatural in your language, please fix it. Reviews by native speakers are very welcome.
+
 When new strings are added to `en.json`, other languages show them in English until someone translates them. Edit the language's file, add or fix the strings, and open a pull request.
 
 To see which strings are missing, look at the `npm run check-translations` step of the pull request check, or run it locally:

@@ -27,18 +27,18 @@
 
 ## 새 언어 추가하기
 ---
-1. 언어 코드를 확인합니다. 옵시디언 **설정 → 일반 → 언어**에서 그 언어를 고른 뒤, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd>(macOS는 <kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>I</kbd>)로 개발자 콘솔을 열고 `moment.locale()`을 입력하세요. 나온 값(예: `fr`)이 언어 코드입니다. 소문자로 씁니다.
-2. 깃허브에서 [`src/i18n/locales/en.json`](../src/i18n/locales/en.json)을 열어 내용을 복사하고, 같은 폴더에 `<코드>.json`(예: `fr.json`) 파일을 새로 만드세요. 저장소 포크는 깃허브가 알아서 해 줍니다.
+1. [옵시디언 언어 목록](https://github.com/obsidianmd/obsidian-translations#existing-languages)에서 언어 코드를 확인합니다. (예: 이탈리아어 `it`, 브라질 포르투갈어 `pt-BR`) 소문자로 씁니다: `it`, `pt-br`.
+2. 깃허브에서 [`src/i18n/locales/en.json`](../src/i18n/locales/en.json)을 열어 내용을 복사하고, 같은 폴더에 `<코드>.json`(예: `it.json`) 파일을 새로 만드세요. 저장소 포크는 깃허브가 알아서 해 줍니다.
 3. 문구를 번역합니다.
 4. [`src/i18n/index.ts`](../src/i18n/index.ts)를 열어 기존 언어 옆 두 곳에 파일을 등록합니다.
     ```ts
-    import fr from './locales/fr.json';
+    import it from './locales/it.json';
     ```
     ```ts
     const LOCALES = {
         en: { name: 'English', strings: en },
         ko: { name: '한국어', strings: ko },
-        fr: { name: 'Français', strings: fr },
+        it: { name: 'Italiano', strings: it },
     };
     ```
     `name`은 그 언어로 적은 언어 이름이고, **언어** 설정에 표시됩니다.
@@ -48,6 +48,8 @@
 
 ## 기존 번역 고치기
 ---
+영어와 한국어를 뺀 번역은 처음에 관리자가 AI의 도움을 받아 작성했습니다. 어색한 표현이 있으면 고쳐 주세요. 원어민의 검토를 특히 환영합니다.
+
 `en.json`에 새 문구가 생기면, 누군가 번역하기 전까지 다른 언어에서는 영어로 보입니다. 그 언어의 파일에서 문구를 더하거나 고친 뒤 풀 리퀘스트를 올려 주세요.
 
 빠진 문구는 풀 리퀘스트 검사의 `npm run check-translations` 단계에서 보거나, 직접 실행해서 확인할 수 있습니다.
