@@ -24,7 +24,7 @@
     "settings.groupsDesc": "Os grupos são mantidos mesmo quando nenhuma de suas abas está aberta, então você pode adicionar abas a eles novamente pelo menu de abas. Exclua os que você não precisa mais.",
     "settings.noGroups": "Ainda não há grupos. Clique com o botão direito em uma aba e selecione \"Criar grupo de abas\".",
     "settings.openTabs": "Abas abertas: {count}",
-    "settings.delete": "Excluir",
+    "settings.delete": "Excluir grupo",
     "settings.deleteTip": "Exclui o grupo. As abas continuam abertas como abas normais.",
     "group.unnamed": "Grupo sem nome"
 }

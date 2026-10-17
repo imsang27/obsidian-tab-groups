@@ -24,7 +24,7 @@
     "settings.groupsDesc": "Les groupes sont conservés même si aucun de leurs onglets n'est ouvert : vous pouvez leur ajouter de nouveau des onglets depuis le menu des onglets. Supprimez ceux dont vous n'avez plus besoin.",
     "settings.noGroups": "Aucun groupe pour l'instant. Faites un clic droit sur un onglet et sélectionnez « Créer un groupe d'onglets ».",
     "settings.openTabs": "Onglets ouverts : {count}",
-    "settings.delete": "Supprimer",
+    "settings.delete": "Supprimer le groupe",
     "settings.deleteTip": "Supprimer le groupe. Ses onglets restent ouverts comme onglets normaux.",
     "group.unnamed": "Groupe sans nom"
 }

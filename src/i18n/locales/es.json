@@ -24,7 +24,7 @@
     "settings.groupsDesc": "Los grupos se conservan aunque no tengan pestañas abiertas, así que puedes volver a añadirles pestañas desde el menú de pestañas. Elimina los que ya no necesites.",
     "settings.noGroups": "Aún no hay grupos. Haz clic derecho en una pestaña y selecciona «Crear grupo de pestañas».",
     "settings.openTabs": "Pestañas abiertas: {count}",
-    "settings.delete": "Eliminar",
+    "settings.delete": "Eliminar grupo",
     "settings.deleteTip": "Elimina el grupo. Sus pestañas siguen abiertas como pestañas normales.",
     "group.unnamed": "Grupo sin nombre"
 }

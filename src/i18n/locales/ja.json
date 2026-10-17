@@ -24,7 +24,7 @@
     "settings.groupsDesc": "開いているタブがなくてもグループは残るので、タブメニューから再びタブを追加できます。不要になったグループはここで削除してください。",
     "settings.noGroups": "まだグループがありません。タブを右クリックして「タブグループを作成」を選択してください。",
     "settings.openTabs": "開いているタブ: {count}",
-    "settings.delete": "削除",
+    "settings.delete": "グループを削除",
     "settings.deleteTip": "グループを削除します。タブは通常のタブとして残ります。",
     "group.unnamed": "名前のないグループ"
 }

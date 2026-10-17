@@ -24,7 +24,7 @@
     "settings.groupsDesc": "即使组内没有打开的标签页，组也会保留，你可以从标签页菜单再次添加标签页。不再需要的组可以在这里删除。",
     "settings.noGroups": "还没有组。右键点击标签页，选择“新建标签页组”。",
     "settings.openTabs": "{count} 个打开的标签页",
-    "settings.delete": "删除",
+    "settings.delete": "删除组",
     "settings.deleteTip": "删除该组。其中的标签页保留为普通标签页。",
     "group.unnamed": "未命名组"
 }

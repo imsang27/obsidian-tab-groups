@@ -24,7 +24,7 @@
     "settings.groupsDesc": "即使群組中沒有開啟的分頁，群組也會保留，你可以從分頁選單再次加入分頁。不再需要的群組可以在這裡刪除。",
     "settings.noGroups": "尚無群組。在分頁上按右鍵，選擇「建立分頁群組」。",
     "settings.openTabs": "{count} 個開啟的分頁",
-    "settings.delete": "刪除",
+    "settings.delete": "刪除群組",
     "settings.deleteTip": "刪除群組。其中的分頁會保留為一般分頁。",
     "group.unnamed": "未命名群組"
 }

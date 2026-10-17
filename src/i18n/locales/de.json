@@ -24,7 +24,7 @@
     "settings.groupsDesc": "Gruppen bleiben erhalten, auch wenn keiner ihrer Tabs geöffnet ist, sodass du ihnen über das Tab-Menü wieder Tabs hinzufügen kannst. Lösche die Gruppen, die du nicht mehr brauchst.",
     "settings.noGroups": "Noch keine Gruppen. Klicke mit der rechten Maustaste auf einen Tab und wähle „Tab-Gruppe erstellen“.",
     "settings.openTabs": "Geöffnete Tabs: {count}",
-    "settings.delete": "Löschen",
+    "settings.delete": "Gruppe löschen",
     "settings.deleteTip": "Die Gruppe löschen. Ihre Tabs bleiben als normale Tabs geöffnet.",
     "group.unnamed": "Unbenannte Gruppe"
 }

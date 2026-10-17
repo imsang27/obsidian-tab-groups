@@ -24,7 +24,7 @@
     "settings.groupsDesc": "Groups are kept even when none of their tabs are open, so you can add tabs to them again from the tab menu. Delete the ones you no longer need.",
     "settings.noGroups": "No groups yet. Right-click a tab and select \"Create tab group\".",
     "settings.openTabs": "{count} open tabs",
-    "settings.delete": "Delete",
+    "settings.delete": "Delete group",
     "settings.deleteTip": "Delete the group. Its tabs stay open as regular tabs.",
     "group.unnamed": "Unnamed group"
 }

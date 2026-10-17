@@ -24,7 +24,7 @@
     "settings.groupsDesc": "열린 탭이 없어도 그룹은 남아 있어서, 탭 메뉴에서 다시 탭을 넣을 수 있습니다. 더 쓰지 않는 그룹은 여기서 지우세요.",
     "settings.noGroups": "아직 그룹이 없습니다. 탭을 우클릭해 \"새 탭 그룹 만들기\"를 선택하세요.",
     "settings.openTabs": "열린 탭 {count}개",
-    "settings.delete": "삭제",
+    "settings.delete": "그룹 삭제",
     "settings.deleteTip": "그룹을 삭제합니다. 탭은 일반 탭으로 남습니다.",
     "group.unnamed": "이름 없는 그룹"
 }

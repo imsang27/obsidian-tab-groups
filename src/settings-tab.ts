@@ -28,12 +28,12 @@ export class TabGroupsSettingTab extends PluginSettingTab {
                 items: groups.map(([groupId, group]) => ({
                     name: group.name || t('group.unnamed'),
                     desc: t('settings.openTabs', { count: String(this.plugin.groupLeaves(groupId).length) }),
-                    render: (setting: Setting) => this.addSwatch(setting, group.color),
+                    // 💡 목록 기본 삭제 버튼(×)은 무엇을 지우는지 알기 어려워, 예전처럼 "그룹 삭제" 버튼을 직접 붙입니다.
+                    render: (setting: Setting) => {
+                        this.addSwatch(setting, group.color);
+                        this.addDeleteButton(setting, groupId);
+                    },
                 })),
-                onDelete: index => {
-                    const groupId = groups[index]?.[0];
-                    if (groupId) void this.deleteGroup(groupId);
-                },
             },
         ];
     }
@@ -75,13 +75,9 @@ export class TabGroupsSettingTab extends PluginSettingTab {
         groups.forEach(([groupId, group]) => {
             const setting = new Setting(containerEl)
                 .setName(group.name || t('group.unnamed'))
-                .setDesc(t('settings.openTabs', { count: String(this.plugin.groupLeaves(groupId).length) }))
-                .addButton(btn => btn
-                    .setButtonText(t('settings.delete'))
-                    .setTooltip(t('settings.deleteTip'))
-                    .setWarning()
-                    .onClick(() => { void this.deleteGroup(groupId); }));
+                .setDesc(t('settings.openTabs', { count: String(this.plugin.groupLeaves(groupId).length) }));
             this.addSwatch(setting, group.color);
+            this.addDeleteButton(setting, groupId);
         });
     }
 
@@ -95,6 +91,14 @@ export class TabGroupsSettingTab extends PluginSettingTab {
         const swatch = createSpan({ cls: 'tab-group-settings-swatch' });
         swatch.style.setProperty('--tab-group-color', color);
         setting.nameEl.prepend(swatch);
+    }
+
+    addDeleteButton(setting: Setting, groupId: string) {
+        setting.addButton(btn => btn
+            .setButtonText(t('settings.delete'))
+            .setTooltip(t('settings.deleteTip'))
+            .setWarning()
+            .onClick(() => { void this.deleteGroup(groupId); }));
     }
 
     async deleteGroup(groupId: string) {
