@@ -50,13 +50,19 @@ npm run check-translations
 ### 코드 구조
 | 파일 | 역할 |
 | --- | --- |
-| `src/main.ts` | 플러그인 수명 주기, 탭 메뉴, 그룹 라벨 UI |
+| `src/main.ts` | 플러그인 수명 주기, 그룹 데이터, 저장·불러오기 |
+| `src/group-layout.ts` | 그룹 탭을 한데 모아 정렬, 탭 바 감시 |
+| `src/group-labels.ts` | 그룹 라벨: 접기·펼치기, 관리 창, 그룹 끌기 시작 |
+| `src/group-drag.ts` | 그룹을 끄는 동안의 자리 표시와 분할 미리보기 |
+| `src/group-drop.ts` | 그룹 놓기: 재배치, 다른 창으로 이동, 창 분할 |
 | `src/tab-group-rules.ts` | 그룹 편입·이탈 공통 규칙 |
 | `src/tab-drag.ts` | 탭 하나를 끌어 그룹에 넣거나 빼기 |
 | `src/tab-move.ts` | 단축키(Pane Relief 등)로 탭을 옮길 때 그룹 편입·이탈 |
-| `src/group-drag.ts` | 라벨을 잡고 그룹 통째로 끌기 |
-| `src/hidden-tab-skip.ts` | 탭 전환 시 접힌 탭 건너뛰기 |
+| `src/tab-menu.ts` | 탭 우클릭 메뉴의 그룹 항목 |
+| `src/hidden-tab-skip.ts`, `src/hidden-tab-activate.ts` | 탭 전환 시 접힌 탭 건너뛰기, 숨은 탭을 직접 열면 그룹 펼치기 |
 | `src/explorer-open.ts` | 접힌 그룹에 숨은 노트를 파일 탐색기에서 열 때 그 탭으로 이동 |
+| `src/ui/` | 그룹 만들기·관리 창과 색 팔레트 |
+| `src/group-style.ts`, `src/internal.ts` | 공용 도우미: 탭 헤더의 그룹 색, 옵시디언 내부 API 타입 |
 | `src/settings.ts`, `src/settings-tab.ts` | 설정과 설정 화면 |
 | `src/i18n/` | 번역 |
 

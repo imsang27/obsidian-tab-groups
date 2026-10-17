@@ -50,13 +50,19 @@ npm run check-translations
 ### Code structure
 | File | Responsibility |
 | --- | --- |
-| `src/main.ts` | Plugin lifecycle, tab menu, group header UI |
+| `src/main.ts` | Plugin lifecycle, group data, saving and loading |
+| `src/group-layout.ts` | Keeping each group's tabs together, tab bar observers |
+| `src/group-labels.ts` | Group labels: collapse and expand, the edit window, starting a group drag |
+| `src/group-drag.ts` | Placeholder and split preview while dragging a group |
+| `src/group-drop.ts` | Dropping a group: reorder, move to another pane, split |
 | `src/tab-group-rules.ts` | The shared rule for joining and leaving groups |
 | `src/tab-drag.ts` | Dragging a single tab into or out of a group |
 | `src/tab-move.ts` | Joining and leaving groups when tabs move by keyboard (e.g. Pane Relief) |
-| `src/group-drag.ts` | Dragging a whole group by its label |
-| `src/hidden-tab-skip.ts` | Skipping collapsed tabs when switching tabs |
+| `src/tab-menu.ts` | Group items in the tab right-click menu |
+| `src/hidden-tab-skip.ts`, `src/hidden-tab-activate.ts` | Skipping collapsed tabs when switching tabs, expanding a group when one of its tabs is opened directly |
 | `src/explorer-open.ts` | Opening a note from the file explorer that is hidden in a collapsed group |
+| `src/ui/` | The create/edit group windows and the color palette |
+| `src/group-style.ts`, `src/internal.ts` | Shared helpers: group colors on tab headers, types for Obsidian's internal API |
 | `src/settings.ts`, `src/settings-tab.ts` | Settings and the settings tab |
 | `src/i18n/` | Translations |
 
