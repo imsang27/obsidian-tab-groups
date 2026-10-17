@@ -73,3 +73,24 @@ html body .tab-group-drop-indicator {
 body.is-dragging-tab-group .workspace-tab-header-spacer {
     -webkit-app-region: no-drag !important;
 }
+/* ✨ 탭 하나를 끌 때 들어갈 자리를 밀어내며 보여 주는 플레이스홀더 */
+html body .tab-group-drag-placeholder {
+    flex-shrink: 0;
+    align-self: stretch;
+    margin: 4px 2px;
+    border-radius: var(--tab-radius, var(--radius-s, 4px));
+    background-color: var(--interactive-accent);
+    opacity: 0.35;
+    pointer-events: all;
+    -webkit-app-region: no-drag;
+}
+
+/* 같은 탭 바 안에서 끄는 동안 원래 탭 자리는 접어서 빈칸이 하나만 보이게 함 */
+html body .workspace-tab-header.tab-group-drag-source {
+    display: none !important;
+}
+
+/* 탭 바 안에서는 옵시디언 기본 드롭 선 대신 플레이스홀더만 표시 */
+body.is-dragging-tab-in-tab-bar .workspace-drop-overlay {
+    display: none !important;
+}

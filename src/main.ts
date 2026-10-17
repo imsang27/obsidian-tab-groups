@@ -1,5 +1,6 @@
 import { Plugin, Modal, App, Setting, Menu, TAbstractFile, WorkspaceLeaf } from 'obsidian';
 import { TabGroupsSettings, DEFAULT_SETTINGS } from './settings';
+import { TabDragController } from './tab-drag';
 
 interface TabGroupData {
     name: string;
@@ -24,12 +25,8 @@ export default class TabGroupsPlugin extends Plugin {
     currentDropTarget: { node: Node | null, insertAfter: boolean } = { node: null, insertAfter: false };
     draggingGroupId: string | null = null;
     
-    // ✨ 자리를 확보하며 밀어내는 더미 탭 플레이스홀더 박스
-    placeholderEl: HTMLElement = document.createElement('div');
-    
-    // ✨ 드래그 중인 단일 탭 추적 변수
-    isDraggingTab: boolean = false;
-    draggedTabHeader: HTMLElement | null = null;
+    // ✨ 탭 하나 드래그(플레이스홀더·드롭) 담당
+    tabDrag: TabDragController = new TabDragController(this);
 
     async onload() {
         console.log('🚀 Tab Groups 로드됨 (옵시디언 드래그 간섭 차단 캡처 이벤트 적용)');
@@ -72,76 +69,7 @@ export default class TabGroupsPlugin extends Plugin {
         // ✨ 인디케이터 세팅 및 마우스가 밖으로 나가면 가이드라인 숨기기
         this.dropIndicatorEl.className = 'tab-group-drop-indicator';
         
-        // ✨ 수정: 깜빡임과 좌표 떨림의 원인인 transition 제거
-        this.placeholderEl.className = 'tab-group-drag-placeholder';
-        this.placeholderEl.style.display = 'none';
-        this.placeholderEl.style.border = 'none'; // 테두리 제거
-        this.placeholderEl.style.backgroundColor = 'var(--interactive-accent)';
-        this.placeholderEl.style.opacity = '0.35'; // 다른 탭과 구분되도록 은은한 반투명 처리
-        this.placeholderEl.style.borderRadius = 'var(--tab-radius, var(--radius-s, 4px))';
-        this.placeholderEl.style.boxSizing = 'border-box';
-        this.placeholderEl.style.pointerEvents = 'all';
-        (this.placeholderEl.style as any).webkitAppRegion = 'no-drag';
-        this.placeholderEl.style.flexShrink = '0';
-        this.placeholderEl.style.margin = '0 2px';
-        
-        // ✨ 드래그 시작 시 잡고 있는 탭을 기억
-        this.registerDomEvent(window, 'dragstart', (e: DragEvent) => {
-            const target = e.target as HTMLElement;
-            const header = target.closest('.workspace-tab-header') as HTMLElement;
-
-            if (header) {
-                this.isDraggingTab = true;
-                this.draggedTabHeader = header;
-                // 💡 탭 바 내부 드롭 및 분할 드롭 영역 인식을 위해 body 클래스 추가 제거
-            }
-        }, { capture: true });
-
-        // ✨ 수정: dragover 이벤트
-        this.registerDomEvent(window, 'dragover', (e: DragEvent) => {
-            // 그룹 드래그 중이거나 탭 드래그가 아니면 통과
-            if (this.draggingGroupId || !this.isDraggingTab) return;
-
-            const target = e.target as HTMLElement;
-            const wrapper = target.closest('.workspace-tab-header-container');
-            
-            // 💡 [핵심] 마우스가 탭 바를 벗어나 본문 에디터/분할 영역으로 나갔을 때:
-            // preventDefault를 하지 않고 순정 옵시디언 분할 엔진에 이벤트를 그대로 통과시킵니다!
-            if (!wrapper) {
-                this.hidePlaceholder();
-                this.cleanupNativeOverlay();
-                return;
-            }
-            
-            const container = wrapper.querySelector('.workspace-tab-header-container-inner') as HTMLElement;
-            if (!container) {
-                this.hidePlaceholder();
-                return;
-            }
-            
-            // 탭 헤더 바 내부일 때만 플레이스홀더를 띄우고 드롭 허용
-            e.preventDefault();
-            if (e.dataTransfer) {
-                e.dataTransfer.dropEffect = 'move';
-            }
-            this.updatePlaceholderPosition(container, e.clientX);
-        }, { capture: true });
-        
-        // ✨ 수정: 옵시디언이 드롭을 온전히 처리한 후 dragend 시점에 안전하게 정리
-        this.registerDomEvent(window, 'dragend', (e: DragEvent) => {
-            this.isDraggingTab = false;
-            this.draggedTabHeader = null;
-            document.body.classList.remove('is-dragging-tab-group');
-            document.body.classList.remove('is-grabbing');
-            document.body.style.removeProperty('cursor');
-
-            setTimeout(() => {
-                this.hidePlaceholder();
-                this.cleanupNativeOverlay();
-                this.cleanupEmptyTabContainers(); // ✨ 추가: 드래그 종료 시 유령 창 청소
-                this.enforcePhysicalSorting();
-            }, 50);
-        }, { capture: true });
+        this.tabDrag.register();
         
         this.registerDomEvent(window, 'dragleave', (e: DragEvent) => {
             if (!e.relatedTarget) this.dropIndicatorEl.style.display = 'none';
@@ -313,13 +241,6 @@ export default class TabGroupsPlugin extends Plugin {
             e.stopPropagation();
             e.stopImmediatePropagation(); 
             if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-        } else if (this.isDraggingTab) {
-            // ✨ 타겟이 상단 탭 바 내부일 때만 가로채고, 본문 분할 영역 진입 시에는 통과!
-            const target = e.target as HTMLElement;
-            if (target.closest('.workspace-tab-header-container')) {
-                e.preventDefault();
-                if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-            }
         }
     }
     
@@ -456,89 +377,8 @@ export default class TabGroupsPlugin extends Plugin {
         const draggedGroupId = this.draggingGroupId;
         this.dropIndicatorEl.style.display = 'none'; // 드롭 시 인디케이터 숨김
         
-        // 1. 그룹 드래그 드롭 처리
-        if (draggedGroupId) {
-            this.onGroupDrop(e, draggedGroupId);
-            return;
-        }
-        
-        // 2. ✨ 단일 탭 드롭 처리
-        if (this.isDraggingTab && this.draggedTabHeader) {
-            const target = e.target as HTMLElement;
-            const wrapper = target.closest('.workspace-tab-header-container');
-            const droppedHeader = this.draggedTabHeader;
-            const leaf = this.findLeafFromHeader(droppedHeader);
-
-            // 탭 바 내부로 정상 드롭된 경우
-            if (wrapper) {
-                const container = wrapper.querySelector('.workspace-tab-header-container-inner') as HTMLElement;
-                
-                // 탭 바 내부로 정상 드롭된 경우
-                if (container && this.placeholderEl.parentElement === container) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.stopImmediatePropagation();
-                    
-                    // 플레이스홀더 위치 기준으로 인덱스 계산
-                    const visibleTabHeaders = Array.from(container.children).filter(el => 
-                        el.classList.contains('workspace-tab-header') && el !== droppedHeader
-                    );
-                    
-                    let targetIndex = 0;
-                    for (const tabEl of visibleTabHeaders) {
-                        if (tabEl.compareDocumentPosition(this.placeholderEl) & Node.DOCUMENT_POSITION_FOLLOWING) {
-                            targetIndex++;
-                        }
-                    }
-
-                    this.hidePlaceholder();
-                    this.cleanupNativeOverlay();
-                    
-                    document.body.classList.remove('is-dragging-tab-group');
-                    document.body.classList.remove('is-grabbing');
-                    document.body.style.removeProperty('cursor');
-                    
-                    this.isDraggingTab = false;
-                    this.draggedTabHeader = null;
-
-                    if (leaf) {
-                        const oldParent = (leaf as any).parent;
-                        const neighborHeader = visibleTabHeaders[0] as HTMLElement | undefined;
-                        const neighborLeaf = neighborHeader ? this.findLeafFromHeader(neighborHeader) : null;
-                        const targetParent = neighborLeaf ? (neighborLeaf as any).parent : oldParent;
-
-                        const workspace = this.app.workspace as any;
-
-                        if (targetParent && oldParent !== targetParent) {
-                            if (typeof workspace.moveLeafToTabGroup === 'function') {
-                                workspace.moveLeafToTabGroup(leaf, targetParent, targetIndex);
-                            } else if (typeof targetParent.insertChild === 'function') {
-                                targetParent.insertChild(targetIndex, leaf);
-                            }
-                        } else {
-                            container.insertBefore(droppedHeader, container.children[targetIndex] || null);
-                        }
-
-                        setTimeout(() => {
-                            this.enforcePhysicalSorting();
-                            this.cleanupEmptyTabContainers(); // ✨ 추가: 드롭 직후 유령 창 정리
-                            this.app.workspace.setActiveLeaf(leaf, { focus: true });
-                        }, 20);
-                    }
-                    return;
-                }
-            }
-            
-            // 💡 탭 바 내부가 아닌 곳(새 창 분리, 분할 영역)으로 끌고 나간 경우:
-            // 옵시디언 기본 드래그 앤 드롭 시스템이 정상 분할할 수 있도록 우리 리소스만 깔끔히 치우고 손뗍니다.
-            this.hidePlaceholder();
-            this.cleanupNativeOverlay();
-            document.body.classList.remove('is-dragging-tab-group');
-            document.body.classList.remove('is-grabbing');
-            document.body.style.removeProperty('cursor');
-            this.isDraggingTab = false;
-            this.draggedTabHeader = null;
-        }
+        // 💡 단일 탭 드롭은 TabDragController가 처리
+        if (draggedGroupId) this.onGroupDrop(e, draggedGroupId);
     }
     
     // ✨ 그룹(라벨) 드롭 처리: 창 분할, 다른 창으로 병합, 같은 탭 바 안 재배치
@@ -716,7 +556,7 @@ export default class TabGroupsPlugin extends Plugin {
             if (!this.globalObservers.has(container)) {
                 const observer = new MutationObserver(async (mutations) => {
                     // ✨ 탭을 손으로 잡고 드래그 중이거나 그룹 드래그 중일 때는 절대 간섭하지 않음
-                    if (this.draggingGroupId || this.isDraggingTab) return;
+                    if (this.draggingGroupId || this.tabDrag.isDragging) return;
                     
                     // ✨ 플레이스홀더 자체의 삽입/제거로 발생한 DOM 변경은 감시 대상에서 제외
                     const isOnlyPlaceholderMutation = mutations.every(m => {
@@ -888,7 +728,6 @@ export default class TabGroupsPlugin extends Plugin {
             });
             
             this.renderGroupUI();
-            this.cleanupEmptyTabContainers(); // ✨ 추가: 물리 정렬 시 빈 껍데기 정리
         } finally {
             // ✨ 우리 작업이 완벽히 끝나면 감시자를 다시 가동합니다.
             this.globalObservers.forEach((obs, container) => {
@@ -1053,115 +892,6 @@ export default class TabGroupsPlugin extends Plugin {
         container.insertBefore(labelEl, leaderEl);
     }
 
-    // ✨ 플레이스홀더 제거 함수
-    hidePlaceholder() {
-        this.placeholderEl.style.display = 'none';
-        if (this.placeholderEl.parentElement) {
-            this.placeholderEl.remove();
-        }
-    }
-
-    // ✨ 옵시디언 순정 드롭 오버레이(보라색 선) 강제 청소
-    cleanupNativeOverlay() {
-        document.querySelectorAll('.workspace-drop-overlay').forEach(el => el.remove());
-    }
-    
-    // ✨ 탭이 모두 빠져나가 텅 비어버린 유령 껍데기(WorkspaceTabs) 자동 청소
-    cleanupEmptyTabContainers() {
-        const tabContainers = document.querySelectorAll('.workspace-tab-header-container-inner');
-        tabContainers.forEach(container => {
-            const headers = container.querySelectorAll('.workspace-tab-header');
-            // 탭 헤더가 단 하나도 없고, 플레이스홀더도 없는 완전히 빈 컨테이너인 경우
-            if (headers.length === 0 && !container.contains(this.placeholderEl)) {
-                const tabsParent = container.closest('.workspace-tabs');
-                if (tabsParent) {
-                    // 메인 루트가 아닌 분할/사이드바 등의 빈 껍데기라면 DOM에서 안전하게 제거
-                    const leafContainer = tabsParent.closest('.workspace-leaf');
-                    if (leafContainer && !leafContainer.classList.contains('mod-root')) {
-                        tabsParent.remove();
-                    }
-                }
-            }
-        });
-    }
-    
-    // ✨ 수정: 중복 DOM 재배치를 차단하여 깜빡임 제거
-    updatePlaceholderPosition(container: HTMLElement, clientX: number) {
-        // ✨ 핵심: 플레이스홀더뿐만 아니라 '현재 마우스로 잡고 있는 탭'도 슬롯 계산 대상에서 제외
-        const visibleTabs = Array.from(container.children).filter(el => 
-            el !== this.placeholderEl &&
-            el !== this.draggedTabHeader &&
-            (el.classList.contains('workspace-tab-header') || el.classList.contains('tab-group-label')) &&
-            window.getComputedStyle(el).display !== 'none'
-        ) as HTMLElement[];
-        
-        // 🎯 핵심: 화면에 보이는 실제 탭 중 하나를 골라 크기와 곡률을 그대로 복제
-        const sampleTab = visibleTabs.find(el => el.classList.contains('workspace-tab-header')) || this.draggedTabHeader;
-        if (sampleTab) {
-            const tabRect = sampleTab.getBoundingClientRect();
-            const computed = window.getComputedStyle(sampleTab);
-            
-            this.placeholderEl.style.height = `${tabRect.height}px`;
-            this.placeholderEl.style.width = `${tabRect.width}px`; // 실제 탭 너비와 동일하게 확장
-            this.placeholderEl.style.borderRadius = computed.borderRadius;
-            this.placeholderEl.style.alignSelf = computed.alignSelf;
-        } else {
-            // 탭이 하나도 없을 때를 위한 최소 기본값
-            this.placeholderEl.style.height = '30px';
-            this.placeholderEl.style.width = '120px';
-        }
-        
-        const insertSafely = (targetNode: Node | null) => {
-            // ✨ 플레이스홀더 자기 자신 앞에 자기를 삽입하려는 경우 방어
-            if (targetNode === this.placeholderEl) {
-                targetNode = this.placeholderEl.nextSibling;
-            }
-            
-            if (this.placeholderEl.nextSibling !== targetNode || this.placeholderEl.parentElement !== container) {
-                container.insertBefore(this.placeholderEl, targetNode);
-            }
-            this.placeholderEl.style.display = 'block';
-        };
-        
-        const firstTab = visibleTabs[0];
-        const lastTab = visibleTabs[visibleTabs.length - 1];
-        if (!firstTab || !lastTab) {
-            insertSafely(null);
-            return;
-        }
-        
-        // 1. 맨 앞(첫 탭보다 왼쪽)인 경우
-        const firstRect = firstTab.getBoundingClientRect();
-        if (clientX < firstRect.left + firstRect.width / 2) {
-            insertSafely(firstTab);
-            return;
-        }
-        
-        // 2. 맨 뒤(마지막 탭보다 오른쪽)인 경우
-        const lastRect = lastTab.getBoundingClientRect();
-        if (clientX > lastRect.right - lastRect.width / 2) {
-            insertSafely(null);
-            return;
-        }
-        
-        // 3. 탭과 탭 사이인 경우
-        for (const tab of visibleTabs) {
-            const rect = tab.getBoundingClientRect();
-            if (clientX <= rect.right) {
-                const isAfter = clientX > rect.left + rect.width / 2;
-                let targetNode: Node | null = isAfter ? tab.nextSibling : tab;
-                
-                // ✨ 타겟 노드가 이미 플레이스홀더라면 다음 요소로 넘겨 위치 유지
-                if (targetNode === this.placeholderEl) {
-                    targetNode = this.placeholderEl.nextSibling;
-                }
-                
-                insertSafely(targetNode);
-                return;
-            }
-        }
-    }
-    
     onunload() {
         console.log('🛑 Tab Groups 플러그인 종료됨');
         
@@ -1170,10 +900,10 @@ export default class TabGroupsPlugin extends Plugin {
         window.removeEventListener('dragover', this.onDragOver, { capture: true });
         window.removeEventListener('drop', this.onDrop, { capture: true });
         
-        this.placeholderEl.remove(); // ✨ 플레이스홀더 엘리먼트 메모리 해제
+        this.tabDrag.unload();
+        this.dropIndicatorEl.remove();
         this.globalObservers.forEach(obs => obs.disconnect());
         document.querySelectorAll('.tab-group-label').forEach(el => el.remove());
-        this.cleanupNativeOverlay(); // ✨ 추가: 네이티브 드롭 오버레이 정리
     }
 }
 
