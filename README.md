@@ -1,43 +1,53 @@
-# Obsidian Tab Groups (Chrome-Style)
+# Tab Groups
 
 English | [한국어](./README_ko.md)
 
-Bring Chrome-like intuitive tab grouping, color-coding, and collapsible tab management into your Obsidian workspace. 
+Bring Chrome-like tab grouping, color-coding, and collapsible tab management into your Obsidian workspace.
 
 Organize your messy tab bar by clustering related notes under labeled, color-mapped groups that can be expanded or collapsed with a single click.
 
-## ✨ Features (WIP)
+## ✨ Features
 ---
-* **Visual Identity (Color Mapping & Labels):** Assign distinct colors and custom text labels to groups of tabs. A colored bar aligns horizontally across matching leaves to signal cohesion.
-* **Collapsible Interaction (Accordion Tabs):** Click on a group label to collapse its member tabs out of sight, freeing up horizontal real estate. Click again to expand them right back to their original slots.
-* **State Persistence:** Your established tab groups and their toggle states (expanded/collapsed) are automatically saved and restored when Obsidian reopens.
-* **Workspace Synchronization:** Fully syncs with your layouts without clashing with standard community themes.
+* **Colored groups with labels:** Give a group of tabs a name and a color. A label sits in front of the group, and every tab in it shares the same color line.
+* **Collapse and expand:** Click a group label to hide its tabs and free up space. Click again to bring them back in their original order. Switching tabs skips over collapsed groups.
+* **Drag and drop:** Drag a single tab or a whole group (by its label). A placeholder shows exactly where it will land. Drop a group onto the edge of a pane to split it, or onto another pane's tab bar to move it there.
+* **Join and leave groups as you move tabs:** Like Chrome, a tab joins an expanded group when you move it into the group, and leaves when you move it out. This works for drag and drop and for keyboard moves such as [Pane Relief](https://github.com/pjeby/pane-relief)'s "swap tab" commands. Collapsed groups are skipped as one block.
+* **Open from the file explorer:** Clicking a note that is already open inside a collapsed group expands the group and switches to that tab instead of opening a new one.
+* **Saved across restarts:** Groups, their colors, the tabs they contain, and their collapsed state are restored when Obsidian reopens.
+
+## 🚀 Usage
+---
+1. Right-click a tab and select **새 탭 그룹 만들기** (create a new tab group). Enter a name (optional) and pick a color.
+2. To add another tab, right-click it and select **[group name] 그룹에 넣기**, or drag it into the group.
+3. Click the group label to collapse or expand it. Right-click the label to rename it, change its color, ungroup or delete it, or close all of its tabs.
+
+> The interface is currently in Korean.
 
 ## 🛠️ Installation
 ---
-### Manual Installation
-Since this plugin is currently under active development and not yet submitted to the official Community Plugins catalog, you can install it manually:
+### Manual installation
+Until the plugin is listed in the Community Plugins catalog, you can install it manually:
 
-1.  Download the latest release files (`main.js`, `manifest.json`, `styles.css`).
-2.  Navigate to your Obsidian vault's plugin directory: `.obsidian/plugins/`.
-3.  Create a folder named `obsidian-tab-groups` and place the downloaded files inside.
-4.  Open Obsidian, go to **Settings > Community Plugins**, and toggle on **Tab Groups (Chrome-Style)**.
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/imsang27/obsidian-tab-groups/releases/latest).
+2. In your vault, create the folder `.obsidian/plugins/tab-groups/` and put the files in it.
+3. Restart Obsidian, go to **Settings → Community plugins**, and turn on **Tab Groups**.
+
+The plugin is desktop-only.
 
 ## 💻 Development
 ---
-This project is built using the Obsidian Sample Plugin boilerplate.
+This project is built on the Obsidian sample plugin template.
 
-### Getting Started
-1. Clone this repository into your test vault's plugin folder.
+1. Clone this repository into your test vault's `.obsidian/plugins/` folder.
 2. Install dependencies:
     ```bash
     npm install
     ```
-3. Run the development build with hot-reloading:
+3. Build in watch mode:
     ```bash
     npm run dev
     ```
 
 ## 📄 License
 ---
-This project is licensed under the MIT License.
+This project is licensed under the [MIT License](./LICENSE).
