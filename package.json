@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-tab-groups",
-	"version": "1.1.0",
+	"version": "1.2.0",
 	"description": "Chrome-style tab groups for Obsidian",
 	"main": "main.js",
 	"type": "module",
@@ -10,7 +10,17 @@
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
 		"lint": "eslint ."
 	},
-	"keywords": [],
+	"keywords": [
+		"obsidian",
+		"obsidian-plugin",
+		"tabs",
+		"tab-groups"
+	],
+	"author": "imsang27",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/imsang27/obsidian-tab-groups.git"
+	},
 	"license": "MIT",
 	"devDependencies": {
 		"@eslint/js": "^9.39.4",

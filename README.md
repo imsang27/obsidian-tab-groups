@@ -14,13 +14,27 @@ Organize your messy tab bar by clustering related notes under labeled, color-map
 * **Join and leave groups as you move tabs:** Like Chrome, a tab joins an expanded group when you move it into the group, and leaves when you move it out. This works for drag and drop and for keyboard moves such as [Pane Relief](https://github.com/pjeby/pane-relief)'s "swap tab" commands. Collapsed groups are skipped as one block.
 * **Open from the file explorer:** Clicking a note that is already open inside a collapsed group expands the group and switches to that tab instead of opening a new one.
 * **Saved across restarts:** Groups, their colors, the tabs they contain, and their collapsed state are restored when Obsidian reopens.
-* **English and Korean:** The tab menu and group windows follow the Obsidian language by default. You can pick a language in **Settings → Community plugins → Tab Groups → Language**.
+* **English and Korean:** The tab menu and group windows follow the Obsidian language by default. You can pick a language in the plugin settings.
+* **Pop-out windows:** Groups are shown and kept in pop-out windows too.
 
 ## 🚀 Usage
 ---
 1. Right-click a tab and select **Create tab group**. Enter a name (optional) and pick a color.
 2. To add another tab, right-click it and select **Add to "group name"**, or drag it into the group. To take a tab out, select **Remove from group** or drag it out.
 3. Click the group label to collapse or expand it. Right-click the label to rename it, change its color, ungroup or delete it, or close all of its tabs.
+
+## ⚙️ Settings
+---
+Open **Settings → Community plugins → Tab Groups**.
+
+* **Language:** Auto (follows Obsidian), English, or 한국어.
+* **Tab groups:** Lists every group with the number of open tabs. Groups stay even when none of their tabs are open, so you can reuse them from the tab menu. Select **Delete** to remove the ones you no longer need.
+
+## 📝 Notes
+---
+* A tab that you move to another pane leaves its group, like in Chrome. The group stays in its original pane.
+* The tab menu only appears for tabs that show a file. Other tabs, such as an empty tab or the graph view, can be added to a group by dragging them into it.
+* Stacked tabs mode hasn't been tested.
 
 ## 🛠️ Installation
 ---
