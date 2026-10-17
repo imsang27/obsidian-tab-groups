@@ -145,6 +145,17 @@ html body .tab-group-color-custom:hover {
     transform: scale(1.15);
 }
 
+/* 설정 화면 그룹 목록의 색 점 */
+.tab-group-settings-swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-inline-end: 8px;
+    border-radius: 50%;
+    background-color: var(--tab-group-color);
+    vertical-align: middle;
+}
+
 /* 선택된 색상 테두리 */
 html body .tab-group-color-swatch.is-selected,
 html body .tab-group-color-custom.is-selected {
