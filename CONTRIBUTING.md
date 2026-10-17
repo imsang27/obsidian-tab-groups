@@ -12,7 +12,7 @@ Thank you for helping improve Tab Groups! This guide explains how to contribute 
 | 💡 Feature ideas | [Suggest a feature](https://github.com/imsang27/obsidian-tab-groups/issues/new?template=feature_request.yml) | — |
 | 🌐 Translations | See the [translation guide](./docs/translating.md) | Keys, `{placeholders}` and JSON format, with a coverage report |
 | 📝 Documentation | Edit the Markdown files and open a pull request | Relative links |
-| 💻 Code | See [Code contributions](#-code-contributions) below | Type check, build and lint on Node.js 20, 22 and 24 |
+| 💻 Code | See [Code contributions](#-code-contributions) below | Type check, build and lint |
 
 Pull requests are labeled by area automatically, and only the checks for the files you changed run.
 

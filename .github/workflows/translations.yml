@@ -2,21 +2,29 @@ name: Translations
 
 # 🌐 Translations: checks keys, {placeholders} and JSON format against en.json,
 # marks problems on the changed lines and writes a coverage table to the run summary.
+# Runs on pull requests, and on push only for main (so a pull request's commits aren't checked twice).
 on:
     push:
-        branches: ['**']
+        branches: [main]
         paths:
             - 'src/i18n/**'
             - 'scripts/check-translations.mjs'
     pull_request:
-        branches: ['**']
         paths:
             - 'src/i18n/**'
             - 'scripts/check-translations.mjs'
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
 jobs:
     check:
         runs-on: ubuntu-latest
+        timeout-minutes: 5
         steps:
             - uses: actions/checkout@v6
             - uses: actions/setup-node@v6

@@ -1,21 +1,29 @@
 name: Docs
 
 # 📝 Documentation: checks that links between files in this repository (README, guides, images) are not broken.
+# Runs on pull requests, and on push only for main (so a pull request's commits aren't checked twice).
 on:
     push:
-        branches: ['**']
+        branches: [main]
         paths:
             - '**.md'
             - 'docs/**'
     pull_request:
-        branches: ['**']
         paths:
             - '**.md'
             - 'docs/**'
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
 jobs:
     links:
         runs-on: ubuntu-latest
+        timeout-minutes: 5
         steps:
             - uses: actions/checkout@v6
             - name: Check relative links
