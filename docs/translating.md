@@ -48,7 +48,10 @@ If editing `index.ts` feels like too much, just add the JSON file and open the p
 
 ## Update an existing translation
 ---
-The translations other than English and Korean were first written by the maintainer with the help of AI. If something sounds unnatural in your language, please fix it. Reviews by native speakers are very welcome.
+> [!NOTE]
+> The translations other than English and Korean were first written with the help of AI and may not be accurate. If something sounds wrong or unnatural in your language, please fix it. Reviews by native speakers are very welcome.
+
+The quickest way is to open your language's file on GitHub, select the pencil icon (**Edit this file**), fix the text, and propose the change.
 
 When new strings are added to `en.json`, other languages show them in English until someone translates them. Edit the language's file, add or fix the strings, and open a pull request.
 

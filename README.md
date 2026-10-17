@@ -63,7 +63,21 @@ This project is built on the Obsidian sample plugin template.
 
 ## 🌐 Translations
 ---
-Translations are welcome! Each language is a small JSON file, and you can add one right on GitHub. See the [translation guide](./docs/translating.md).
+| Language | Status |
+| --- | --- |
+| English, 한국어 | Written and checked by the maintainer |
+| Deutsch, Español, Français, Português (Brasil), Русский, 日本語, 简体中文, 繁體中文 | AI-assisted, not yet reviewed by native speakers |
+
+> [!NOTE]
+> Translations other than English and Korean were made with the help of AI and **may not be accurate**. If a string sounds wrong or unnatural, please help fix it.
+
+Translations are welcome! Each language is a small JSON file in [`src/i18n/locales/`](./src/i18n/locales/), and you can edit it right on GitHub without installing anything.
+
+* **Fix a translation:** Open your language's file, select the pencil icon (**Edit this file**), fix the text, and propose the change. GitHub opens a pull request for you.
+* **Add a new language:** Copy `en.json` to a new file named with your language code and translate it.
+* **Not comfortable with pull requests?** [Open a translation issue](https://github.com/imsang27/obsidian-tab-groups/issues/new?template=translation.yml) and describe the fix or paste your translation.
+
+Missing strings are shown in English, so partial translations are fine. See the [translation guide](./docs/translating.md) for details.
 
 ## 📄 License
 ---
