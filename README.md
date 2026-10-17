@@ -2,9 +2,14 @@
 
 English | [한국어](./docs/readme-ko.md)
 
-Bring Chrome-like tab grouping, color-coding, and collapsible tab management into your Obsidian workspace.
+Chrome-style tab groups for Obsidian. Name and color related tabs, and collapse them when you need the space.
 
-Organize your messy tab bar by clustering related notes under labeled, color-mapped groups that can be expanded or collapsed with a single click.
+![Tab Groups demo: grouping tabs, then collapsing and expanding groups by clicking their labels](./docs/images/tab-groups-demo.gif)
+
+- 🏷️ **Group** · Right-click a tab → **Create tab group**. Pick a name and a color.
+- 📁 **Collapse** · Click the label to hide the group's tabs. Click again to bring them back.
+- ✋ **Move** · Drag the label to move the whole group, even to another pane.
+- 💾 **Keep** · Groups and their state come back when Obsidian restarts.
 
 ## ✨ Features
 ---
