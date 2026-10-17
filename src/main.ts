@@ -64,6 +64,8 @@ export default class TabGroupsPlugin extends Plugin {
     // ✨ 드래그 피드백용 변수
     currentDropTarget: { node: Node | null, insertAfter: boolean } = { node: null, insertAfter: false };
     draggingGroupId: string | null = null;
+    // 💡 라벨 드래그 직후의 클릭 한 번은 무시 (Esc로 취소하고 버튼을 떼면 클릭으로 처리돼 접힘/펼침이 바뀌던 문제)
+    ignoreNextLabelClick = false;
     
     // ✨ 탭 하나 드래그(플레이스홀더·드롭) 담당
     tabDrag: TabDragController = new TabDragController(this);
@@ -123,6 +125,9 @@ export default class TabGroupsPlugin extends Plugin {
                 this.groupDrag.hideSplitPreview();
             }
         }, { capture: true });
+
+        // 💡 새로 누르기 시작하면 드래그 뒤 클릭 무시 표시를 지웁니다. (드롭으로 끝나 클릭이 오지 않은 경우)
+        this.registerDomEvent(window, 'mousedown', () => { this.ignoreNextLabelClick = false; }, { capture: true });
         
         // ✨ Ctrl+Tab 등으로 탭을 순환할 때 접힌 그룹의 탭은 번쩍임 없이 건너뜀
         registerHiddenTabSkip(this);
@@ -766,6 +771,10 @@ export default class TabGroupsPlugin extends Plugin {
         labelEl.addEventListener('click', (e) => {
             e.stopPropagation();
             e.preventDefault();
+            if (this.ignoreNextLabelClick) {
+                this.ignoreNextLabelClick = false;
+                return;
+            }
             void this.toggleCollapsed(groupId, groupData);
         });
         
@@ -836,6 +845,7 @@ export default class TabGroupsPlugin extends Plugin {
         });
         labelEl.addEventListener('dragend', () => {
             this.draggingGroupId = null; // 💡 마우스 놓으면 까먹기 (초기화)
+            this.ignoreNextLabelClick = true; // Esc 취소 뒤 버튼을 뗄 때 오는 클릭으로 접힘 상태가 바뀌지 않게
             this.groupDrag.finish(); // 혹시 남은 플레이스홀더를 치우고 숨겼던 그룹을 되돌림
             document.body.classList.remove('is-dragging-tab-group'); // 드래그 종료 시 body 신호 제거
         });
