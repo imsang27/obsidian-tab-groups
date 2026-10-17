@@ -1,7 +1,7 @@
 {
 	"id": "tab-groups",
 	"name": "Tab Groups",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"minAppVersion": "1.1.0",
 	"description": "Group tabs Chrome-style with colored labels. Collapse, reorder, and drag whole groups, and tabs join or leave groups as you move them.",
 	"author": "imsang27",
