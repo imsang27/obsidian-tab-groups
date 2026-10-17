@@ -1041,8 +1041,8 @@ class EditGroupModal extends Modal {
         new Setting(contentEl)
             .setName(t('modal.actions'))
             .addButton((btn) => btn
-                .setButtonText(t('modal.closeTabs'))
-                .setTooltip(t('modal.closeTabsTip'))
+                .setButtonText(t('modal.closeGroup'))
+                .setTooltip(t('modal.closeGroupTip'))
                 .setWarning() // 노란색/빨간색 경고
                 .onClick(() => { this.close(); void this.onAction('close'); })
             )

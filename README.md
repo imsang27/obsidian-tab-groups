@@ -21,7 +21,7 @@ Organize your messy tab bar by clustering related notes under labeled, color-map
 ---
 1. Right-click a tab and select **Create tab group**. Enter a name (optional) and pick a color.
 2. To add another tab, right-click it and select **Add to "group name"**, or drag it into the group. To take a tab out, select **Remove from group** or drag it out.
-3. Click the group label to collapse or expand it. Right-click the label to rename it, change its color, ungroup or delete it, or close all of its tabs.
+3. Click the group label to collapse or expand it. Right-click the label to rename it, change its color, ungroup or delete it, or close the group (this closes all of its tabs).
 
 ## ⚙️ Settings
 ---
