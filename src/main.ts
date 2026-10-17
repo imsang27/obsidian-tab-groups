@@ -838,13 +838,8 @@ export default class TabGroupsPlugin extends Plugin {
             
             this.draggingGroupId = groupId; // 💡 드래그 시작! 무슨 그룹인지 내장 메모리에 꽉 저장!
             document.body.classList.add('is-dragging-tab-group'); // 드래그 시작 시 body에 신호 보내기
-            this.groupDrag.start(groupId, labelEl); // 플레이스홀더 너비로 쓸 그룹 너비를 재 둠
-
-            // 반투명 잔상(Ghost)을 라벨이 아닌 '리더 탭' 모습으로 바꿔치기
-            const leaderTab = labelEl.nextElementSibling as HTMLElement;
-            if (leaderTab && leaderTab.classList.contains('workspace-tab-header')) {
-                e.dataTransfer!.setDragImage(leaderTab, 20, 15);
-            }
+            // 크롬처럼 그룹의 탭은 접고 라벨만 끕니다. (반투명 잔상도 라벨 모습 그대로)
+            this.groupDrag.start(groupId, labelEl);
         });
         labelEl.addEventListener('dragend', () => {
             this.draggingGroupId = null; // 💡 마우스 놓으면 까먹기 (초기화)
