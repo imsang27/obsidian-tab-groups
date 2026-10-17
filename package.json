@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-tab-groups",
-	"version": "1.0.3",
+	"version": "1.1.0",
 	"description": "Chrome-style tab groups for Obsidian",
 	"main": "main.js",
 	"type": "module",
