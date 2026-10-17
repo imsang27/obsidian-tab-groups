@@ -93,6 +93,13 @@ html body .tab-group-label.tab-group-drag-source {
     display: none !important;
 }
 
+/* ✨ 그룹을 편집 화면 위로 끌 때 분할될 영역 미리보기 (모양은 옵시디언 기본 .workspace-drop-overlay를 따름) */
+html body .tab-group-split-preview {
+    transform: translate(var(--tab-group-preview-left), var(--tab-group-preview-top));
+    width: var(--tab-group-preview-width);
+    height: var(--tab-group-preview-height);
+}
+
 /* 탭 바 안에서는 옵시디언 기본 드롭 선 대신 플레이스홀더만 표시 */
 body.is-dragging-tab-in-tab-bar .workspace-drop-overlay {
     display: none !important;

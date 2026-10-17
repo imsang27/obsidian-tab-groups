@@ -1,7 +1,7 @@
 import { Plugin, Modal, App, Setting, Menu, TAbstractFile, WorkspaceLeaf } from 'obsidian';
 import { TabGroupsSettings, DEFAULT_SETTINGS } from './settings';
 import { TabDragController } from './tab-drag';
-import { GroupDragController } from './group-drag';
+import { GroupDragController, splitDirectionAt } from './group-drag';
 import { TabMoveTracker } from './tab-move';
 import { registerHiddenTabSkip } from './hidden-tab-skip';
 import { registerExplorerOpen } from './explorer-open';
@@ -118,7 +118,10 @@ export default class TabGroupsPlugin extends Plugin {
 
         // ✨ 그룹을 끌다가 창 밖으로 나가면 자리 표시 숨기기
         this.registerDomEvent(window, 'dragleave', (e: DragEvent) => {
-            if (!e.relatedTarget) this.groupDrag.hide();
+            if (!e.relatedTarget) {
+                this.groupDrag.hide();
+                this.groupDrag.hideSplitPreview();
+            }
         }, { capture: true });
         
         // ✨ Ctrl+Tab 등으로 탭을 순환할 때 접힌 그룹의 탭은 번쩍임 없이 건너뜀
@@ -311,12 +314,16 @@ export default class TabGroupsPlugin extends Plugin {
 
         const container = this.findTabBarInner(e.target as HTMLElement);
         if (!container) {
-            // 💡 탭 바 밖(에디터 본문 등): 자리 표시만 치우고 드롭은 허용 (onGroupDrop에서 창 분할·병합)
+            // 💡 탭 바 밖(에디터 본문 등): 자리 표시는 치우고, 편집 화면 위면 분할 미리보기를 보여 줌 (드롭은 onGroupDrop에서 처리)
             this.groupDrag.hide();
             this.currentDropTarget.node = null;
+            const leafEl = (e.target as HTMLElement).closest?.<HTMLElement>('.workspace-leaf');
+            if (leafEl) this.groupDrag.showSplitPreview(leafEl, splitDirectionAt(leafEl, e.clientX, e.clientY));
+            else this.groupDrag.hideSplitPreview();
             return;
         }
 
+        this.groupDrag.hideSplitPreview();
         const target = this.groupDrag.update(container, e.clientX);
         this.currentDropTarget = target ?? { node: null, insertAfter: false };
     };
@@ -354,22 +361,8 @@ export default class TabGroupsPlugin extends Plugin {
         if (!wrapper) {
             const dropLeafEl = target.closest<HTMLElement>('.workspace-leaf');
             if (dropLeafEl) {
-                // 1. 드롭된 에디터 화면의 크기와 현재 마우스 좌표 계산
-                const rect = dropLeafEl.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                
-                // 2. 옵시디언처럼 화면을 가장자리 25% 영역으로 나눔 (판정 박스)
-                const edgeX = rect.width * 0.25;
-                const edgeY = rect.height * 0.25;
-                
-                let splitDirection = 'center';                               // 기본값: 현재 창에 합치기 
-                
-                // 3. 마우스 위치에 따른 상하좌우 분할 판정
-                if (x < edgeX) splitDirection = 'left';                      // 수직 분할 (왼쪽)
-                else if (x > rect.width - edgeX) splitDirection = 'right';   // 수직 분할 (오른쪽)
-                else if (y < edgeY) splitDirection = 'top';                  // 수평 분할 (위)
-                else if (y > rect.height - edgeY) splitDirection = 'bottom'; // 수평 분할 (아래)
+                // 옵시디언처럼 가장자리 25%는 그쪽으로 분할, 가운데는 그 창에 합치기 (끄는 동안 보인 미리보기와 같은 판정)
+                const splitDirection = splitDirectionAt(dropLeafEl, e.clientX, e.clientY);
                 
                 // 🔥 3. 진짜 창 분할 및 탭 덩어리 이동 API 시작!
                 let targetLeaf: WorkspaceLeaf | null = null;
