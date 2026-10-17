@@ -3,6 +3,7 @@ import { TabGroupsSettings, DEFAULT_SETTINGS } from './settings';
 import { TabDragController } from './tab-drag';
 import { GroupDragController } from './group-drag';
 import { TabMoveTracker } from './tab-move';
+import { registerHiddenTabSkip } from './hidden-tab-skip';
 import { registerExplorerOpen } from './explorer-open';
 
 interface TabGroupData {
@@ -79,6 +80,9 @@ export default class TabGroupsPlugin extends Plugin {
         this.registerDomEvent(window, 'dragleave', (e: DragEvent) => {
             if (!e.relatedTarget) this.groupDrag.hide();
         }, { capture: true });
+        
+        // ✨ Ctrl+Tab 등으로 탭을 순환할 때 접힌 그룹의 탭은 번쩍임 없이 건너뜀
+        registerHiddenTabSkip(this);
         
         // ✨ 탐색기에서 연 노트가 접힌 그룹에 이미 열려 있으면 그 탭으로 이동
         registerExplorerOpen(this);
