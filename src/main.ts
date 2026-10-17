@@ -9,8 +9,23 @@ interface TabGroupData {
     name: string;
     color: string;
     leafIds: Set<string>;
-    isCollapsed: boolean; 
+    isCollapsed: boolean;
 }
+
+// 💡 옵시디언 비공개 API 중 이 파일이 쓰는 부분만 타입으로 정의
+interface InternalTabs {
+    children: WorkspaceLeaf[];
+    currentTab?: number;
+    removeChild(leaf: WorkspaceLeaf): void;
+    insertChild(index: number, leaf: WorkspaceLeaf): void;
+}
+interface InternalLeaf {
+    id: string;
+    parent: InternalTabs | null;
+    tabHeaderEl?: HTMLElement;
+    containerEl: HTMLElement;
+}
+const internal = (leaf: WorkspaceLeaf) => leaf as unknown as InternalLeaf;
 
 export default class TabGroupsPlugin extends Plugin {
     settings: TabGroupsSettings = { ...DEFAULT_SETTINGS }; // ✨ 셋팅 변수 추가
@@ -36,8 +51,6 @@ export default class TabGroupsPlugin extends Plugin {
     tabMoves: TabMoveTracker = new TabMoveTracker(this);
 
     async onload() {
-        console.log('🚀 Tab Groups 로드됨 (옵시디언 드래그 간섭 차단 캡처 이벤트 적용)');
-
         // ✨ 1. 플러그인이 켜질 때 가장 먼저 데이터를 불러옵니다.
         await this.loadSettings();
 
@@ -50,7 +63,7 @@ export default class TabGroupsPlugin extends Plugin {
         
         this.registerDomEvent(window, 'contextmenu', (e: MouseEvent) => {
             const target = e.target as HTMLElement;
-            const header = target.closest('.workspace-tab-header') as HTMLElement | null;
+            const header = target.closest<HTMLElement>('.workspace-tab-header');
             if (header) {
                 this.lastClickedLeaf = this.findLeafFromHeader(header);
             } else {
@@ -66,9 +79,6 @@ export default class TabGroupsPlugin extends Plugin {
         );
         
         // ✨ 옵시디언이 이벤트를 씹어먹기 전에 우리가 먼저(capture: true) 낚아챕니다!
-        this.onDragEnter = this.onDragEnter.bind(this);
-        this.onDragOver = this.onDragOver.bind(this);
-        this.onDrop = this.onDrop.bind(this);
         window.addEventListener('dragenter', this.onDragEnter, { capture: true });
         window.addEventListener('dragover', this.onDragOver, { capture: true });
         window.addEventListener('drop', this.onDrop, { capture: true });
@@ -88,11 +98,10 @@ export default class TabGroupsPlugin extends Plugin {
             this.app.workspace.on('active-leaf-change', (leaf: WorkspaceLeaf | null) => {
                 if (!leaf) return;
                 
-                const headerEl = (leaf as any).tabHeaderEl as HTMLElement;
+                const headerEl = internal(leaf).tabHeaderEl;
                 if (!headerEl) return;
-                
-                const parent = (leaf as any).parent;
-                const children = parent?.children as WorkspaceLeaf[] || [];
+
+                const children = internal(leaf).parent?.children ?? [];
                 const currentIndex = children.indexOf(leaf);
                 const prevIndex = this.previousActiveLeaf ? children.indexOf(this.previousActiveLeaf) : -1;
                 
@@ -113,7 +122,6 @@ export default class TabGroupsPlugin extends Plugin {
                     if (groupData && groupData.isCollapsed) {
                         if (isSequential) {
                             headerEl.classList.add('tab-group-hidden');
-                            headerEl.style.setProperty('display', 'none', 'important');
                             this.skipHiddenTab(leaf, direction);
                         } else {
                             groupData.isCollapsed = false;
@@ -191,7 +199,7 @@ export default class TabGroupsPlugin extends Plugin {
     
     // ✨ 2. 데이터 불러오기 함수
     async loadSettings() {
-        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<TabGroupsSettings>);
         
         // 불러온 데이터를 바탕으로 this.groups 메모리에 세팅
         this.settings.savedGroups.forEach(g => {
@@ -211,7 +219,7 @@ export default class TabGroupsPlugin extends Plugin {
             
             this.app.workspace.iterateAllLeaves(leaf => {
                 // 💡 켜진 탭의 ID가 저장소에 기록되어 있다면 그 그룹으로 쏙!
-                if (tabs.includes((leaf as any).id)) {
+                if (tabs.includes(internal(leaf).id)) {
                     this.leafGroupMap.set(leaf, savedGroup.id);
                 }
             });
@@ -227,7 +235,7 @@ export default class TabGroupsPlugin extends Plugin {
             const tabsInGroup: string[] = [];
             this.app.workspace.iterateAllLeaves(leaf => {
                 if (this.leafGroupMap.get(leaf) === groupId) {
-                    tabsInGroup.push((leaf as any).id);
+                    tabsInGroup.push(internal(leaf).id);
                 }
             });
 
@@ -243,17 +251,18 @@ export default class TabGroupsPlugin extends Plugin {
     }
 
     // ✨ 1. 진입 단계 처리
-    onDragEnter(e: DragEvent) {
+    // 💡 window 리스너로 넘기므로 this가 고정되는 화살표 함수로 정의
+    onDragEnter = (e: DragEvent) => {
         if (this.draggingGroupId) {
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation(); 
             if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
         }
-    }
+    };
     
     // ✨ 2. 그룹을 끄는 동안: 탭 바 안이면 탭 드래그와 같은 플레이스홀더로 들어갈 자리를 보여 줌
-    onDragOver(e: DragEvent) {
+    onDragOver = (e: DragEvent) => {
         // 💡 보안 정책에 막히는 getData 대신, 아까 저장해둔 내장 메모리 변수 사용!
         if (!this.draggingGroupId) return; // 💡 단일 탭일 때는 즉시 패스하여 TabDragController로 넘김!
 
@@ -274,7 +283,7 @@ export default class TabGroupsPlugin extends Plugin {
 
         const target = this.groupDrag.update(container, e.clientX);
         this.currentDropTarget = target ?? { node: null, insertAfter: false };
-    }
+    };
 
     findTabBarInner(target: HTMLElement): HTMLElement | null {
         const wrapper = target.closest?.('.workspace-tab-header-container');
@@ -282,7 +291,7 @@ export default class TabGroupsPlugin extends Plugin {
     }
 
     // ✨ 빈 공간 및 탭 드롭 허용 로직
-    onDrop(e: DragEvent) {
+    onDrop = (e: DragEvent) => {
         // 💡 Drop에서도 getData 대신 확실한 내장 메모리를 사용합니다.
         const draggedGroupId = this.draggingGroupId;
         if (!draggedGroupId) return; // 💡 단일 탭 드롭은 TabDragController가 처리
@@ -294,7 +303,7 @@ export default class TabGroupsPlugin extends Plugin {
         const dropTarget = container ?? e.target as HTMLElement;
         this.groupDrag.finish(); // 플레이스홀더를 치우고 숨겼던 그룹을 되돌린 뒤 옮깁니다.
         this.onGroupDrop(e, draggedGroupId, dropTarget);
-    }
+    };
 
     // ✨ 그룹(라벨) 드롭 처리: 창 분할, 다른 창으로 병합, 같은 탭 바 안 재배치
     onGroupDrop(e: DragEvent, draggedGroupId: string, target: HTMLElement) {
@@ -307,7 +316,7 @@ export default class TabGroupsPlugin extends Plugin {
         const wrapper = target.closest('.workspace-tab-header-container');
         // 💡 핵심 추가: 탭 바 밖(에디터 영역)에 떨어뜨렸을 때 새 창 분할 발동!
         if (!wrapper) {
-            const dropLeafEl = target.closest('.workspace-leaf') as HTMLElement;
+            const dropLeafEl = target.closest<HTMLElement>('.workspace-leaf');
             if (dropLeafEl) {
                 // 1. 드롭된 에디터 화면의 크기와 현재 마우스 좌표 계산
                 const rect = dropLeafEl.getBoundingClientRect();
@@ -330,7 +339,7 @@ export default class TabGroupsPlugin extends Plugin {
                 let targetLeaf: WorkspaceLeaf | null = null;
                 this.app.workspace.iterateAllLeaves(leaf => {
                     // 방금 마우스가 떨어진 에디터(.workspace-leaf)의 실제 객체를 찾습니다.
-                    if ((leaf as any).containerEl === dropLeafEl) {
+                    if (internal(leaf).containerEl === dropLeafEl) {
                         targetLeaf = leaf;
                     }
                 });
@@ -351,11 +360,11 @@ export default class TabGroupsPlugin extends Plugin {
                             
                             // 💡 마법의 트릭: 더미(가짜) 탭을 하나 만들어서 옵시디언이 화면을 쪼개게 만듭니다.
                             const dummyLeaf = this.app.workspace.createLeafBySplit(targetLeaf, direction, before);
-                            const newParent = (dummyLeaf as any).parent; // 새로 쪼개진 공간(부모) 확보!
+                            const newParent = internal(dummyLeaf).parent!; // 새로 쪼개진 공간(부모) 확보!
 
                             // 💡 우리가 묶어둔 탭들을 새로 쪼개진 방으로 전부 이사시킵니다.
                             draggedLeaves.forEach(leaf => {
-                                const oldParent = (leaf as any).parent;
+                                const oldParent = internal(leaf).parent;
                                 if (oldParent) oldParent.removeChild(leaf); // 원래 방에서 빼고
                                 // ✨ 핵심 수정: 옵시디언 내부 API에 맞춰 맨 뒤(children.length)에 탭을 밀어 넣습니다.
                                 newParent.insertChild(newParent.children.length, leaf); 
@@ -365,9 +374,9 @@ export default class TabGroupsPlugin extends Plugin {
                             dummyLeaf.detach();
                         } else {
                             // Center(가운데) 드롭 시: 해당 탭 그룹으로 모두 병합
-                            const targetParent = (targetLeaf as any).parent;
+                            const targetParent = internal(targetLeaf).parent!;
                             draggedLeaves.forEach(leaf => {
-                                const oldParent = (leaf as any).parent;
+                                const oldParent = internal(leaf).parent;
                                 if (oldParent !== targetParent) {
                                     if (oldParent) oldParent.removeChild(leaf);
                                     // ✨ 여기도 동일하게 insertChild 사용!
@@ -385,27 +394,28 @@ export default class TabGroupsPlugin extends Plugin {
         }
         
         // 💡 1. 현재 드롭된 탭 바(wrapper)가 속한 부모 창(targetParent) 찾기
-        let targetParent: any = null;
+        // (콜백 안에서 채우므로 null로 좁혀지지 않게 선언 타입을 단언으로 지정)
+        let targetParent = null as InternalTabs | null;
         this.app.workspace.iterateAllLeaves(leaf => {
             // 이 탭 바 안에 존재하는 탭을 찾으면, 그 탭의 부모가 곧 타겟 창!
-            if (wrapper.contains((leaf as any).tabHeaderEl)) {
-                targetParent = (leaf as any).parent;
+            if (wrapper.contains(internal(leaf).tabHeaderEl ?? null)) {
+                targetParent = internal(leaf).parent;
             }
         });
-        
+
         // 💡 2. 내가 드래그하고 있는 탭들의 원래 부모 창(sourceParent) 찾기
         const draggedLeaves: WorkspaceLeaf[] = [];
-        let sourceParent: any = null;
+        let sourceParent = null as InternalTabs | null;
         this.app.workspace.iterateAllLeaves(leaf => {
             if (this.leafGroupMap.get(leaf) === draggedGroupId) {
                 draggedLeaves.push(leaf);
-                if (!sourceParent) sourceParent = (leaf as any).parent;
+                if (!sourceParent) sourceParent = internal(leaf).parent;
             }
         });
-        
+
         if (!this.currentDropTarget.node) return; // 탭 바 내부 드롭인데 타겟이 없으면 취소
-        
-        const container = wrapper.querySelector('.workspace-tab-header-container-inner') as HTMLElement;
+
+        const container = wrapper.querySelector<HTMLElement>('.workspace-tab-header-container-inner');
         if (!container) return;
         
         const targetNode = this.currentDropTarget.node as HTMLElement;
@@ -415,8 +425,7 @@ export default class TabGroupsPlugin extends Plugin {
         let isCrossWindow = false;
         if (targetParent && sourceParent && targetParent !== sourceParent) {
             isCrossWindow = true;
-            console.log(`🔥 [${draggedGroupId}] 그룹 -> 다른 창의 탭 바로 병합 이사합니다!`);
-            
+
             // ✨ 타겟 위치 정확히 계산 (라벨 위에 떨궜으면 그 다음 요소인 탭을 기준으로 위치 탐색)
             let actualTargetHeader = targetNode;
             if (targetNode.classList.contains('tab-group-label')) {
@@ -430,22 +439,22 @@ export default class TabGroupsPlugin extends Plugin {
                 if (idx !== -1) targetLeafIndex = isAfter ? idx + 1 : idx;
             }
             
-            draggedLeaves.forEach((leaf, idx) => {
-                const oldParent = (leaf as any).parent;
+            for (const [idx, leaf] of draggedLeaves.entries()) {
+                const oldParent = internal(leaf).parent;
                 if (oldParent) oldParent.removeChild(leaf);
-                
+
                 // 새 창의 맨 끝이 아닌, 우리가 계산한 위치(targetLeafIndex)에 추가
                 targetParent.insertChild(targetLeafIndex + idx, leaf);
-            });
+            }
         }
         
         // 드래그된 탭들(HTML 요소) 찾기
         // ✨ 수정: 다른 창에서 넘어올 수도 있으니 container 내부가 아닌 전체 문서(document)에서 찾습니다.
-        const draggedHeaders = Array.from(document.querySelectorAll(`.workspace-tab-header[data-tab-group-id="${draggedGroupId}"]`)) as HTMLElement[];
+        const draggedHeaders = Array.from(document.querySelectorAll<HTMLElement>(`.workspace-tab-header[data-tab-group-id="${draggedGroupId}"]`));
         if (draggedHeaders.length === 0) return;
-        
+
         // 💡 1. 꼬임 방지를 위해 드래그된 요소들을 화면에서 잠깐 뽑아냄
-        const fragment = document.createDocumentFragment();
+        const fragment = createFragment();
         draggedHeaders.forEach(h => fragment.appendChild(h));
         
         // 💡 2. Hitbox 판정 결과(앞/뒤)에 따라 정확한 위치에 꽂아 넣음
@@ -468,7 +477,7 @@ export default class TabGroupsPlugin extends Plugin {
         const containers = document.querySelectorAll('.workspace-tab-header-container-inner');
         containers.forEach(container => {
             if (!this.globalObservers.has(container)) {
-                const observer = new MutationObserver(async (mutations) => {
+                const observer = new MutationObserver((mutations) => {
                     // ✨ 탭을 손으로 잡고 드래그 중이거나 그룹 드래그 중일 때는 절대 간섭하지 않음
                     if (this.draggingGroupId || this.tabDrag.isDragging) return;
                     
@@ -490,26 +499,26 @@ export default class TabGroupsPlugin extends Plugin {
     }
     
     async shiftFocusOut(groupId: string) {
-        let activeHeader = document.querySelector('.workspace-tab-header.is-active') as HTMLElement;
+        const activeHeader = document.querySelector<HTMLElement>('.workspace-tab-header.is-active');
         if (activeHeader && activeHeader.getAttribute('data-tab-group-id') === groupId) {
-            const allHeaders = Array.from(document.querySelectorAll('.workspace-tab-header')) as HTMLElement[];
+            const allHeaders = Array.from(document.querySelectorAll<HTMLElement>('.workspace-tab-header'));
             const targetHeader = allHeaders.find(h => h.getAttribute('data-tab-group-id') !== groupId && !h.classList.contains('tab-group-hidden'));
             
             if (targetHeader) {
                 const targetLeaf = this.findLeafFromHeader(targetHeader);
                 if (targetLeaf) {
-                    await this.app.workspace.setActiveLeaf(targetLeaf, { focus: true });
-                    await new Promise(resolve => setTimeout(resolve, 20)); 
+                    this.app.workspace.setActiveLeaf(targetLeaf, { focus: true });
+                    await new Promise(resolve => window.setTimeout(resolve, 20));
                 }
             }
         }
     }
     
     skipHiddenTab(currentLeaf: WorkspaceLeaf, direction: number) {
-        const parent = (currentLeaf as any).parent;
+        const parent = internal(currentLeaf).parent;
         if (!parent || !Array.isArray(parent.children)) return;
-        
-        const children = parent.children as WorkspaceLeaf[];
+
+        const children = parent.children;
         const currentIndex = children.indexOf(currentLeaf);
         if (currentIndex === -1) return;
         
@@ -540,8 +549,8 @@ export default class TabGroupsPlugin extends Plugin {
         }
         
         if (targetLeaf && targetLeaf !== currentLeaf) {
-            setTimeout(() => {
-                this.app.workspace.setActiveLeaf(targetLeaf!, { focus: true });
+            window.setTimeout(() => {
+                this.app.workspace.setActiveLeaf(targetLeaf, { focus: true });
             }, 0);
         }
     }
@@ -549,7 +558,7 @@ export default class TabGroupsPlugin extends Plugin {
     findLeafFromHeader(headerEl: Element): WorkspaceLeaf | null {
         let targetLeaf: WorkspaceLeaf | null = null;
         this.app.workspace.iterateAllLeaves((leaf) => {
-            if ((leaf as any).tabHeaderEl === headerEl) {
+            if (internal(leaf).tabHeaderEl === headerEl) {
                 targetLeaf = leaf;
             }
         });
@@ -558,7 +567,7 @@ export default class TabGroupsPlugin extends Plugin {
     
     restoreDomAttributes() {
         this.app.workspace.iterateAllLeaves(leaf => {
-            const header = (leaf as any).tabHeaderEl as HTMLElement;
+            const header = internal(leaf).tabHeaderEl;
             if (header) {
                 const savedGroupId = this.leafGroupMap.get(leaf);
                 if (savedGroupId) {
@@ -570,8 +579,8 @@ export default class TabGroupsPlugin extends Plugin {
                     }
                 } else {
                     header.removeAttribute('data-tab-group-id');
-                    header.style.borderTop = '';
-                    header.style.backgroundColor = '';
+                    header.style.removeProperty('border-top');
+                    header.style.removeProperty('background-color');
                 }
             }
         });
@@ -605,12 +614,12 @@ export default class TabGroupsPlugin extends Plugin {
             this.restoreDomAttributes();
             
             tabContainers.forEach(container => {
-                const headers = Array.from(container.querySelectorAll('.workspace-tab-header')) as HTMLElement[];
+                const headers = Array.from(container.querySelectorAll<HTMLElement>('.workspace-tab-header'));
                 const newOrder: { type: string, id?: string, el?: HTMLElement }[] = [];
                 const groupBlocks = new Map<string, HTMLElement[]>();
                 
                 headers.forEach(header => {
-                    header.style.order = ''; 
+                    header.style.removeProperty('order');
                     const groupId = header.getAttribute('data-tab-group-id');
                     
                     if (groupId) {
@@ -640,7 +649,7 @@ export default class TabGroupsPlugin extends Plugin {
                 
                 const sortedLeaves = sortedHeaders.map(h => this.findLeafFromHeader(h)).filter(l => l !== null);
                 if (sortedLeaves.length > 0) {
-                    const parentGroup = (sortedLeaves[0] as any).parent;
+                    const parentGroup = internal(sortedLeaves[0]!).parent;
                     
                     if (parentGroup && Array.isArray(parentGroup.children)) {
                         if (parentGroup.children.length === sortedLeaves.length) {
@@ -677,7 +686,7 @@ export default class TabGroupsPlugin extends Plugin {
             // 🚨 가장 안정적인 과거 방식: 라벨 무조건 전체 삭제
             container.querySelectorAll('.tab-group-label').forEach(el => el.remove());
             
-            const headers = Array.from(container.querySelectorAll('.workspace-tab-header')) as HTMLElement[];
+            const headers = Array.from(container.querySelectorAll<HTMLElement>('.workspace-tab-header'));
             const groupMap = new Map<string, HTMLElement[]>();
             
             headers.forEach(header => {
@@ -687,7 +696,6 @@ export default class TabGroupsPlugin extends Plugin {
                     groupMap.get(groupId)!.push(header);
                 } else {
                     header.classList.remove('tab-group-hidden');
-                    header.style.removeProperty('display');
                 }
             });
             
@@ -701,44 +709,33 @@ export default class TabGroupsPlugin extends Plugin {
                 // 🚨 무조건 새로 찍어냄
                 this.insertStandaloneLabel(leader, groupId, groupData);
                 
-                groupHeaders.forEach(header => {
-                    if (groupData.isCollapsed) {
-                        header.classList.add('tab-group-hidden');
-                        header.style.setProperty('display', 'none', 'important');
-                        header.style.setProperty('width', '0', 'important');
-                        header.style.setProperty('padding', '0', 'important');
-                        header.style.setProperty('margin', '0', 'important');
-                    } else {
-                        header.classList.remove('tab-group-hidden');
-                        header.style.removeProperty('display');
-                        header.style.removeProperty('width');
-                        header.style.removeProperty('padding');
-                        header.style.removeProperty('margin');
-                    }
-                });
+                // 💡 숨김 스타일(display: none !important 등)은 styles.css의 .tab-group-hidden이 담당
+                groupHeaders.forEach(header => header.classList.toggle('tab-group-hidden', groupData.isCollapsed));
             });
         });
     }
     
+    async toggleCollapsed(groupId: string, groupData: TabGroupData) {
+        if (!groupData.isCollapsed) {
+            await this.shiftFocusOut(groupId);
+        }
+
+        groupData.isCollapsed = !groupData.isCollapsed; // 1. 접힘 상태 반전 (열림 -> 닫힘 / 닫힘 -> 열림)
+        await this.saveSettings();                      // ✨ 2. 핵심 수정: 상태가 바뀌었으니 data.json에 즉시 덮어쓰기!
+        this.enforcePhysicalSorting();                  // 3. 화면 업데이트
+    }
+
     insertStandaloneLabel(leaderEl: HTMLElement, groupId: string, groupData: TabGroupData) {
         const container = leaderEl.parentElement;
         if (!container) return;
         
-        const labelEl = document.createElement('div');
-        labelEl.className = 'tab-group-label';
+        const labelEl = createDiv({ cls: 'tab-group-label' });
         labelEl.setAttribute('data-group-id', groupId);
-        
-        labelEl.addEventListener('click', async (e) => {
-            e.stopPropagation(); 
+
+        labelEl.addEventListener('click', (e) => {
+            e.stopPropagation();
             e.preventDefault();
-            
-            if (!groupData.isCollapsed) {
-                await this.shiftFocusOut(groupId);
-            }
-            
-            groupData.isCollapsed = !groupData.isCollapsed; // 1. 접힘 상태 반전 (열림 -> 닫힘 / 닫힘 -> 열림)
-            await this.saveSettings();                      // ✨ 2. 핵심 수정: 상태가 바뀌었으니 data.json에 즉시 덮어쓰기!
-            this.enforcePhysicalSorting();                  // 3. 화면 업데이트
+            void this.toggleCollapsed(groupId, groupData);
         });
         
         // ✨ 수정: 3가지 액션(닫기, 삭제, 해제)을 각각 다르게 처리하는 로직 추가
@@ -761,7 +758,7 @@ export default class TabGroupsPlugin extends Plugin {
                     if (action === 'close') {
                         // [그룹 닫기]: 그룹에 속한 탭을 '실제로 모두 닫고', 그룹도 삭제
                         // (주의: 반복문 도중 탭을 닫으면 트리가 꼬이므로 배열에 모아두었다가 한 번에 닫음)
-                        const leavesToClose: any[] = [];
+                        const leavesToClose: WorkspaceLeaf[] = [];
                         this.app.workspace.iterateAllLeaves(leaf => {
                             if (this.leafGroupMap.get(leaf) === groupId) {
                                 leavesToClose.push(leaf);
@@ -825,8 +822,6 @@ export default class TabGroupsPlugin extends Plugin {
     }
 
     onunload() {
-        console.log('🛑 Tab Groups 플러그인 종료됨');
-        
         // ✨ 플러그인 꺼질 때 가로채기 이벤트 확실하게 제거
         window.removeEventListener('dragenter', this.onDragEnter, { capture: true });
         window.removeEventListener('dragover', this.onDragOver, { capture: true });
@@ -842,9 +837,9 @@ export default class TabGroupsPlugin extends Plugin {
 class CreateGroupModal extends Modal {
     groupName: string = '';
     groupColor: string = '#ff5c5c'; 
-    onSubmit: (groupName: string, color: string) => void;
+    onSubmit: (groupName: string, color: string) => void | Promise<void>;
     
-    constructor(app: App, onSubmit: (groupName: string, color: string) => void) {
+    constructor(app: App, onSubmit: (groupName: string, color: string) => void | Promise<void>) {
         super(app);
         this.onSubmit = onSubmit;
     }
@@ -870,7 +865,7 @@ class CreateGroupModal extends Modal {
         new Setting(contentEl)
             .addButton((btn) => btn.setButtonText('그룹 생성').setCta().onClick(() => {
                 this.close();
-                this.onSubmit(this.groupName, this.groupColor);
+                void this.onSubmit(this.groupName, this.groupColor);
             }));
     }
     
@@ -884,15 +879,15 @@ class CreateGroupModal extends Modal {
 class EditGroupModal extends Modal {
     groupName: string;
     groupColor: string; 
-    onSubmit: (groupName: string, color: string) => void;
-    onAction: (action: 'close' | 'delete' | 'ungroup') => void;
+    onSubmit: (groupName: string, color: string) => void | Promise<void>;
+    onAction: (action: 'close' | 'delete' | 'ungroup') => void | Promise<void>;
     
     constructor(
         app: App, 
         initialName: string, 
         initialColor: string, 
-        onSubmit: (groupName: string, color: string) => void, 
-        onAction: (action: 'close' | 'delete' | 'ungroup') => void
+        onSubmit: (groupName: string, color: string) => void | Promise<void>, 
+        onAction: (action: 'close' | 'delete' | 'ungroup') => void | Promise<void>
         ) {
         super(app);
         this.groupName = initialName;
@@ -927,18 +922,18 @@ class EditGroupModal extends Modal {
                 .setButtonText('닫기')
                 .setTooltip('속한 모든 탭을 닫고 그룹도 삭제합니다.')
                 .setWarning() // 노란색/빨간색 경고
-                .onClick(() => { this.close(); this.onAction('close'); })
+                .onClick(() => { this.close(); void this.onAction('close'); })
             )
             .addButton((btn) => btn
                 .setButtonText('삭제')
                 .setTooltip('탭들은 일반 탭으로 변하고, 그룹을 완전히 삭제합니다.')
                 .setWarning() // 노란색/빨간색 경고
-                .onClick(() => { this.close(); this.onAction('delete'); })
+                .onClick(() => { this.close(); void this.onAction('delete'); })
             )
             .addButton((btn) => btn
                 .setButtonText('해제')
                 .setTooltip('탭들은 일반 탭으로 변하고, 그룹 데이터는 남깁니다.')
-                .onClick(() => { this.close(); this.onAction('ungroup'); })
+                .onClick(() => { this.close(); void this.onAction('ungroup'); })
             );
             
         // ✨ 맨 하단 저장 버튼
@@ -948,7 +943,7 @@ class EditGroupModal extends Modal {
                 .setCta() // 파란색 강조 스타일 적용
                 .onClick(() => {
                     this.close();
-                    this.onSubmit(this.groupName, this.groupColor);
+                    void this.onSubmit(this.groupName, this.groupColor);
                 }));
     }
     
@@ -973,36 +968,22 @@ const PRESET_COLORS = [
 
 // ✨ UX 개선: 스포이드 시작 색상이 항상 현재 선택된 색상과 동기화되도록 개선된 함수
 function renderColorPalette(containerEl: HTMLElement, currentColor: string, onChange: (newColor: string) => void) {
+    // 💡 팔레트 모양(크기·테두리·호버 확대 등)은 styles.css의 .tab-group-color-* 클래스가 담당
     const paletteContainer = containerEl.createDiv({ cls: 'tab-group-color-palette' });
-    paletteContainer.style.display = 'flex';
-    paletteContainer.style.gap = '8px';
-    paletteContainer.style.flexWrap = 'wrap';
-    paletteContainer.style.justifyContent = 'flex-end';
         
     let activeCircle: HTMLElement | null = null;
     let customInput: HTMLInputElement; // ✨ 아래에서 생성할 input을 미리 선언해둠 (스코프 공유)
     
     function updateActive(circle: HTMLElement) {
-        if (activeCircle) activeCircle.style.border = '2px solid transparent';
-        circle.style.border = '2px solid var(--text-normal)';
+        activeCircle?.removeClass('is-selected');
+        circle.addClass('is-selected');
         activeCircle = circle;
     }
     
     // 1. 프리셋 컬러 버튼들 생성
     PRESET_COLORS.forEach(color => {
-        const circle = paletteContainer.createDiv();
-        circle.style.width = '24px';
-        circle.style.height = '24px';
-        circle.style.borderRadius = '50%';
+        const circle = paletteContainer.createDiv({ cls: 'tab-group-color-swatch' });
         circle.style.backgroundColor = color;
-        circle.style.cursor = 'pointer';
-        circle.style.border = '2px solid transparent';
-        circle.style.boxSizing = 'border-box';
-        circle.style.transition = 'transform 0.1s ease-in-out';
-        
-        // 호버 시 살짝 커지는 애니메이션
-        circle.addEventListener('mouseenter', () => circle.style.transform = 'scale(1.15)');
-        circle.addEventListener('mouseleave', () => circle.style.transform = 'scale(1)');
         
         // 현재 색상과 일치하면 활성화 테두리 표시
         if (color.toLowerCase() === currentColor.toLowerCase()) {
@@ -1017,38 +998,13 @@ function renderColorPalette(containerEl: HTMLElement, currentColor: string, onCh
     });
     
     // 2. 커스텀 스포이드 버튼 생성
-    const customWrapper = paletteContainer.createDiv();
-    customWrapper.style.width = '24px';
-    customWrapper.style.height = '24px';
-    customWrapper.style.borderRadius = '50%';
-    customWrapper.style.cursor = 'pointer';
-    customWrapper.style.background = 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)'; // 무지개색 커스텀 아이콘 효과
-    
-    // ✨ 추가된 속성: 바둑판(반복) 현상 방지 및 무지개 1.2배 확대, 중앙 정렬
-    customWrapper.style.backgroundSize = '120% 120%';
-    customWrapper.style.backgroundPosition = 'center';
-    customWrapper.style.backgroundRepeat = 'no-repeat';
-    
-    customWrapper.style.position = 'relative';
-    customWrapper.style.border = '2px solid transparent';
-    customWrapper.style.boxSizing = 'border-box';
-    customWrapper.style.overflow = 'hidden';
-    
-    customWrapper.addEventListener('mouseenter', () => customWrapper.style.transform = 'scale(1.15)');
-    customWrapper.addEventListener('mouseleave', () => customWrapper.style.transform = 'scale(1)');
+    const customWrapper = paletteContainer.createDiv({ cls: 'tab-group-color-custom' }); // 무지개색 커스텀 아이콘
     
     customInput = customWrapper.createEl('input', { type: 'color' });
     
     // ✨ 모달을 처음 열었을 때, 기존 그룹의 색상으로 스포이드(input) 시작 색상 세팅
     // (네이티브 input type="color"는 7자리 HEX 폼을 요구하므로 유효성 검사 추가)
     customInput.value = (currentColor && currentColor.length === 7) ? currentColor : '#000000';
-    customInput.style.opacity = '0';
-    customInput.style.width = '200%';
-    customInput.style.height = '200%';
-    customInput.style.position = 'absolute';
-    customInput.style.top = '-50%';
-    customInput.style.left = '-50%';
-    customInput.style.cursor = 'pointer';
     
     // 프리셋에 없는 색상일 경우 무지개 버튼에 활성화 테두리 표시
     const isPreset = PRESET_COLORS.some(c => c.toLowerCase() === currentColor.toLowerCase());

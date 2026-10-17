@@ -31,9 +31,10 @@ html body .tab-group-label:hover {
     opacity: 0.8;
 }
 
-/* 최상위 강제 숨김 클래스 */
+/* 최상위 강제 숨김 클래스 (접힌 그룹의 탭) */
 html body div.app-container .workspace .workspace-tab-header.tab-group-hidden,
-html body div.app-container .workspace .workspace-tab-header.tab-group-hidden.is-active {
+html body div.app-container .workspace .workspace-tab-header.tab-group-hidden.is-active,
+html body .workspace-tab-header.tab-group-hidden {
     display: none !important;
     width: 0 !important;
     min-width: 0 !important;
@@ -83,4 +84,60 @@ html body .tab-group-label.tab-group-drag-source {
 /* 탭 바 안에서는 옵시디언 기본 드롭 선 대신 플레이스홀더만 표시 */
 body.is-dragging-tab-in-tab-bar .workspace-drop-overlay {
     display: none !important;
+}
+
+/* ✨ 그룹 만들기·관리 창의 색상 팔레트 */
+html body .tab-group-color-palette {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+html body .tab-group-color-swatch,
+html body .tab-group-color-custom {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    box-sizing: border-box;
+}
+
+/* 프리셋 색상: 배경색은 코드에서 색마다 지정 */
+html body .tab-group-color-swatch {
+    transition: transform 0.1s ease-in-out;
+}
+
+/* 커스텀 스포이드 버튼: 바둑판(반복) 현상 방지 및 무지개 1.2배 확대, 중앙 정렬 */
+html body .tab-group-color-custom {
+    position: relative;
+    overflow: hidden;
+    background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
+    background-size: 120% 120%;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* 호버 시 살짝 커지는 애니메이션 */
+html body .tab-group-color-swatch:hover,
+html body .tab-group-color-custom:hover {
+    transform: scale(1.15);
+}
+
+/* 선택된 색상 테두리 */
+html body .tab-group-color-swatch.is-selected,
+html body .tab-group-color-custom.is-selected {
+    border-color: var(--text-normal);
+}
+
+/* 투명한 네이티브 색 선택기를 버튼 전체에 덮어 클릭을 받음 */
+html body .tab-group-color-custom input[type='color'] {
+    opacity: 0;
+    width: 200%;
+    height: 200%;
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    cursor: pointer;
 }
