@@ -28,6 +28,28 @@ interface InternalLeaf {
 }
 const internal = (leaf: WorkspaceLeaf) => leaf as unknown as InternalLeaf;
 
+// 💡 그룹 색은 CSS 변수로만 넘깁니다. (색을 쓰는 방식은 styles.css가 정함)
+function setGroupColor(el: HTMLElement, color: string) {
+    el.style.setProperty('--tab-group-color', color);
+    el.style.setProperty('--tab-group-tint', `${color}1A`); // 1A = 약 10% 불투명도
+}
+
+// 💡 탭 헤더에서 이 플러그인이 붙인 그룹 표시를 모두 걷어 냅니다.
+function clearGroupHeader(header: HTMLElement) {
+    header.removeAttribute('data-tab-group-id');
+    header.removeClasses(['tab-group-member', 'tab-group-hidden', 'tab-group-drag-source']);
+    header.style.removeProperty('--tab-group-color');
+    header.style.removeProperty('--tab-group-tint');
+    header.style.removeProperty('order');
+    removeLegacyInlineColor(header);
+}
+
+// 💡 1.0.1 이하 버전이 탭 헤더에 직접 넣었던 색 스타일 (업데이트 뒤에도 남아 있을 수 있음)
+function removeLegacyInlineColor(header: HTMLElement) {
+    header.style.removeProperty('border-top');
+    header.style.removeProperty('background-color');
+}
+
 export default class TabGroupsPlugin extends Plugin {
     settings: TabGroupsSettings = { ...DEFAULT_SETTINGS }; // ✨ 셋팅 변수 추가
     groups: Map<string, TabGroupData> = new Map();
@@ -88,9 +110,9 @@ export default class TabGroupsPlugin extends Plugin {
         );
         
         // ✨ 옵시디언이 이벤트를 씹어먹기 전에 우리가 먼저(capture: true) 낚아챕니다!
-        window.addEventListener('dragenter', this.onDragEnter, { capture: true });
-        window.addEventListener('dragover', this.onDragOver, { capture: true });
-        window.addEventListener('drop', this.onDrop, { capture: true });
+        this.registerDomEvent(window, 'dragenter', this.onDragEnter, { capture: true });
+        this.registerDomEvent(window, 'dragover', this.onDragOver, { capture: true });
+        this.registerDomEvent(window, 'drop', this.onDrop, { capture: true });
         
         this.tabDrag.register();
 
@@ -590,13 +612,13 @@ export default class TabGroupsPlugin extends Plugin {
                     header.setAttribute('data-tab-group-id', savedGroupId);
                     const groupData = this.groups.get(savedGroupId);
                     if (groupData) {
-                        header.style.borderTop = `3px solid ${groupData.color}`;
-                        header.style.backgroundColor = `${groupData.color}1A`;
+                        // 💡 색은 CSS 변수로만 넘기고, 실제 스타일은 styles.css의 .tab-group-member가 담당
+                        header.addClass('tab-group-member');
+                        removeLegacyInlineColor(header);
+                        setGroupColor(header, groupData.color);
                     }
                 } else {
-                    header.removeAttribute('data-tab-group-id');
-                    header.style.removeProperty('border-top');
-                    header.style.removeProperty('background-color');
+                    clearGroupHeader(header);
                 }
             }
         });
@@ -830,8 +852,8 @@ export default class TabGroupsPlugin extends Plugin {
             document.body.classList.remove('is-dragging-tab-group'); // 드래그 종료 시 body 신호 제거
         });
         
-        labelEl.innerText = groupData.name;
-        labelEl.style.backgroundColor = groupData.color;
+        labelEl.setText(groupData.name);
+        setGroupColor(labelEl, groupData.color);
         
         // 리더 탭 앞에 삽입
         container.insertBefore(labelEl, leaderEl);
@@ -840,15 +862,16 @@ export default class TabGroupsPlugin extends Plugin {
     onunload() {
         this.unloaded = true;
 
-        // ✨ 플러그인 꺼질 때 가로채기 이벤트 확실하게 제거
-        window.removeEventListener('dragenter', this.onDragEnter, { capture: true });
-        window.removeEventListener('dragover', this.onDragOver, { capture: true });
-        window.removeEventListener('drop', this.onDrop, { capture: true });
-        
         this.tabDrag.unload();
         this.groupDrag.finish();
         this.globalObservers.forEach(obs => obs.disconnect());
         document.querySelectorAll('.tab-group-label').forEach(el => el.remove());
+        // 🚨 탭 헤더를 원래 모습으로 되돌립니다. (그대로 두면 끈 뒤에도 접힌 그룹의 탭이 숨겨진 채 남음)
+        this.app.workspace.iterateAllLeaves(leaf => {
+            const header = internal(leaf).tabHeaderEl;
+            if (header) clearGroupHeader(header);
+        });
+        document.body.removeClasses(['is-dragging-tab', 'is-dragging-tab-in-tab-bar', 'is-dragging-tab-group']);
     }
 }
 
@@ -1001,7 +1024,7 @@ function renderColorPalette(containerEl: HTMLElement, currentColor: string, onCh
     // 1. 프리셋 컬러 버튼들 생성
     PRESET_COLORS.forEach(color => {
         const circle = paletteContainer.createDiv({ cls: 'tab-group-color-swatch' });
-        circle.style.backgroundColor = color;
+        setGroupColor(circle, color);
         
         // 현재 색상과 일치하면 활성화 테두리 표시
         if (color.toLowerCase() === currentColor.toLowerCase()) {
