@@ -27,8 +27,19 @@ html body .tab-group-label {
     -webkit-user-drag: element !important;  /* 드래그는 가능 */
 }
 
+/* 라벨 배경색은 그룹 색 (코드에서 --tab-group-color로 넘김) */
+html body .tab-group-label {
+    background-color: var(--tab-group-color);
+}
+
 html body .tab-group-label:hover {
     opacity: 0.8;
+}
+
+/* 그룹에 속한 탭: 위쪽 색 줄과 옅은 배경 (색은 --tab-group-color / --tab-group-tint) */
+html body .workspace-tab-header.tab-group-member {
+    border-top: 3px solid var(--tab-group-color) !important;
+    background-color: var(--tab-group-tint) !important;
 }
 
 /* 최상위 강제 숨김 클래스 (접힌 그룹의 탭) */
@@ -60,6 +71,7 @@ body.is-dragging-tab .workspace-tab-header-spacer {
 }
 /* ✨ 탭 하나를 끌 때 들어갈 자리를 밀어내며 보여 주는 플레이스홀더 */
 html body .tab-group-drag-placeholder {
+    width: var(--tab-group-placeholder-width, 120px);
     flex-shrink: 0;
     align-self: stretch;
     margin: 4px 2px;
@@ -104,8 +116,9 @@ html body .tab-group-color-custom {
     box-sizing: border-box;
 }
 
-/* 프리셋 색상: 배경색은 코드에서 색마다 지정 */
+/* 프리셋 색상: 배경색은 코드에서 --tab-group-color로 넘김 */
 html body .tab-group-color-swatch {
+    background-color: var(--tab-group-color);
     transition: transform 0.1s ease-in-out;
 }
 

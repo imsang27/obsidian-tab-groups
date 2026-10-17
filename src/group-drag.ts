@@ -50,7 +50,7 @@ export class GroupDragController {
         });
         this.placeholderEl.classList.remove('is-measuring');
 
-        this.placeholderEl.style.width = `${this.blockWidth || 120}px`;
+        this.placeholderEl.style.setProperty('--tab-group-placeholder-width', `${this.blockWidth || 120}px`);
         const lastBlock = blocks[blocks.length - 1];
         const next: Node | null = before ? before.first : lastBlock ? lastBlock.last.nextSibling : null;
         if (this.placeholderEl.parentElement !== inner || this.placeholderEl.nextSibling !== next) {

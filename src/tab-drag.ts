@@ -212,7 +212,7 @@ export class TabDragController {
         this.placeholderEl.classList.remove('is-measuring');
 
         // 🎯 놓을 탭 바의 탭과 같은 너비로 자리를 만듭니다.
-        this.placeholderEl.style.width = `${sampleWidth || this.draggedWidth || 120}px`;
+        this.placeholderEl.style.setProperty('--tab-group-placeholder-width', `${sampleWidth || this.draggedWidth || 120}px`);
         const next: Node | null = before ?? this.lastItemNextSibling(inner, items);
 
         if (this.placeholderEl.parentElement !== inner || this.placeholderEl.nextSibling !== next) {
