@@ -5,6 +5,8 @@ import { GroupDragController, splitDirectionAt } from './group-drag';
 import { TabMoveTracker } from './tab-move';
 import { registerHiddenTabSkip } from './hidden-tab-skip';
 import { registerExplorerOpen } from './explorer-open';
+import { setLanguage, t } from './i18n';
+import { TabGroupsSettingTab } from './settings-tab';
 
 interface TabGroupData {
     name: string;
@@ -135,6 +137,8 @@ export default class TabGroupsPlugin extends Plugin {
         // ✨ 탐색기에서 연 노트가 접힌 그룹에 이미 열려 있으면 그 탭으로 이동
         registerExplorerOpen(this);
 
+        this.addSettingTab(new TabGroupsSettingTab(this.app, this));
+
         // 스마트 펼침 유지
         this.registerEvent(
             this.app.workspace.on('active-leaf-change', (leaf: WorkspaceLeaf | null) => {
@@ -189,7 +193,7 @@ export default class TabGroupsPlugin extends Plugin {
                     
                     if (currentGroupId) {
                         menu.addItem((item) => {
-                            item.setTitle('Remove from group')
+                            item.setTitle(t('menu.removeFromGroup'))
                                 .setIcon('folder-minus')
                                 .onClick(async () => { // 💡 async 추가
                                     this.leafGroupMap.delete(targetLeaf);
@@ -204,7 +208,7 @@ export default class TabGroupsPlugin extends Plugin {
                         this.groups.forEach((groupData, groupId) => {
                             if (groupId !== currentGroupId) {
                                 menu.addItem((item) => {
-                                    item.setTitle(groupData.name ? `Add to "${groupData.name}"` : 'Add to unnamed group')
+                                    item.setTitle(groupData.name ? t('menu.addToGroup', { name: groupData.name }) : t('menu.addToUnnamedGroup'))
                                         .setIcon('folder-input')
                                         .onClick(async () => { // 💡 async 추가
                                             this.leafGroupMap.set(targetLeaf, groupId);
@@ -219,7 +223,7 @@ export default class TabGroupsPlugin extends Plugin {
                     }
                     
                     menu.addItem((item) => {
-                        item.setTitle('Create tab group')
+                        item.setTitle(t('menu.createGroup'))
                             .setIcon('folder-plus')
                             // 💡 콜백 함수에 async 추가!
                             .onClick(() => {
@@ -244,6 +248,7 @@ export default class TabGroupsPlugin extends Plugin {
     // ✨ 2. 데이터 불러오기 함수
     async loadSettings() {
         this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<TabGroupsSettings>);
+        setLanguage(this.settings.language);
         
         // 불러온 데이터를 바탕으로 this.groups 메모리에 세팅
         this.settings.savedGroups.forEach(g => {
@@ -885,15 +890,15 @@ class CreateGroupModal extends Modal {
     
     onOpen() {
         const { contentEl } = this;
-        contentEl.createEl('h2', { text: 'Create tab group' });
+        contentEl.createEl('h2', { text: t('modal.createTitle') });
         
         new Setting(contentEl)
-            .setName('Name')
-            .setDesc('Leave empty to show only a colored label.')
+            .setName(t('modal.name'))
+            .setDesc(t('modal.nameDesc'))
             .addText((text) => text.onChange((val) => this.groupName = val));
         
         const colorSetting = new Setting(contentEl)
-            .setName('Color');
+            .setName(t('modal.color'));
         
         // 기존의 투박한 기본 피커를 날려버리고, 우리가 만든 예쁜 팔레트로 대체!
         colorSetting.controlEl.empty();
@@ -902,7 +907,7 @@ class CreateGroupModal extends Modal {
         });
         
         new Setting(contentEl)
-            .addButton((btn) => btn.setButtonText('Create').setCta().onClick(() => {
+            .addButton((btn) => btn.setButtonText(t('modal.create')).setCta().onClick(() => {
                 this.close();
                 void this.onSubmit(this.groupName, this.groupColor);
             }));
@@ -937,17 +942,17 @@ class EditGroupModal extends Modal {
     
     onOpen() {
         const { contentEl } = this;
-        contentEl.createEl('h2', { text: 'Edit tab group' });
+        contentEl.createEl('h2', { text: t('modal.editTitle') });
         
         new Setting(contentEl)
-            .setName('Name')
+            .setName(t('modal.name'))
             .addText((text) => {
                 text.setValue(this.groupName);
                 text.onChange((val) => this.groupName = val);
             });
             
         const colorSetting = new Setting(contentEl)
-            .setName('Color');
+            .setName(t('modal.color'));
         
         colorSetting.controlEl.empty();
         renderColorPalette(colorSetting.controlEl, this.groupColor, (newColor) => {
@@ -956,29 +961,29 @@ class EditGroupModal extends Modal {
         
         // ✨ 3가지 액션 버튼 영역 (닫기, 삭제, 해제를 한 줄에 나란히 배치)
         new Setting(contentEl)
-            .setName('Group actions')
+            .setName(t('modal.actions'))
             .addButton((btn) => btn
-                .setButtonText('Close tabs')
-                .setTooltip('Close all tabs in the group and delete the group.')
+                .setButtonText(t('modal.closeTabs'))
+                .setTooltip(t('modal.closeTabsTip'))
                 .setWarning() // 노란색/빨간색 경고
                 .onClick(() => { this.close(); void this.onAction('close'); })
             )
             .addButton((btn) => btn
-                .setButtonText('Delete group')
-                .setTooltip('Keep the tabs open as regular tabs and delete the group.')
+                .setButtonText(t('modal.deleteGroup'))
+                .setTooltip(t('modal.deleteGroupTip'))
                 .setWarning() // 노란색/빨간색 경고
                 .onClick(() => { this.close(); void this.onAction('delete'); })
             )
             .addButton((btn) => btn
-                .setButtonText('Ungroup')
-                .setTooltip('Keep the tabs open as regular tabs. The empty group stays available in the tab menu.')
+                .setButtonText(t('modal.ungroup'))
+                .setTooltip(t('modal.ungroupTip'))
                 .onClick(() => { this.close(); void this.onAction('ungroup'); })
             );
             
         // ✨ 맨 하단 저장 버튼
         new Setting(contentEl)
             .addButton((btn) => btn
-                .setButtonText('Save')
+                .setButtonText(t('modal.save'))
                 .setCta() // 파란색 강조 스타일 적용
                 .onClick(() => {
                     this.close();
