@@ -3,6 +3,7 @@ import { TabGroupsSettings, DEFAULT_SETTINGS } from './settings';
 import { TabDragController } from './tab-drag';
 import { GroupDragController } from './group-drag';
 import { TabMoveTracker } from './tab-move';
+import { registerHiddenTabSkip } from './hidden-tab-skip';
 
 interface TabGroupData {
     name: string;
@@ -79,6 +80,9 @@ export default class TabGroupsPlugin extends Plugin {
             if (!e.relatedTarget) this.groupDrag.hide();
         }, { capture: true });
         
+        // ✨ Ctrl+Tab 등으로 탭을 순환할 때 접힌 그룹의 탭은 번쩍임 없이 건너뜀
+        registerHiddenTabSkip(this);
+
         // 스마트 펼침 유지
         this.registerEvent(
             this.app.workspace.on('active-leaf-change', (leaf: WorkspaceLeaf | null) => {
@@ -575,6 +579,12 @@ export default class TabGroupsPlugin extends Plugin {
     
     isGroupExpanded(groupId: string): boolean {
         return this.groups.get(groupId)?.isCollapsed === false;
+    }
+
+    // 💡 접힌 그룹에 속해 탭 바에서 숨겨진 탭인지
+    isLeafHidden(leaf: WorkspaceLeaf): boolean {
+        const groupId = this.leafGroupMap.get(leaf);
+        return !!groupId && this.groups.get(groupId)?.isCollapsed === true;
     }
     
     // 💡 trackMoves: 지난 정렬 뒤 탭 하나가 옮겨졌으면(단축키·Pane Relief 등) 그룹 편입·이탈을 먼저 반영
