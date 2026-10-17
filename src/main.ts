@@ -1,21 +1,5 @@
 import { Plugin, Modal, App, Setting, Menu, TAbstractFile, WorkspaceLeaf } from 'obsidian';
-
-// ✨ 플러그인이 data.json에 저장할 데이터의 형태를 정의
-interface SavedGroupData {
-    id: string;
-    name: string;
-    color: string;
-    isCollapsed: boolean;
-    // 💡 나중에 탭(Leaf) 매핑 데이터를 저장할 배열
-    savedTabs: string[]; 
-}
-interface TabGroupsSettings {
-    savedGroups: SavedGroupData[];
-}
-
-const DEFAULT_SETTINGS: TabGroupsSettings = {
-    savedGroups: []
-}
+import { TabGroupsSettings, DEFAULT_SETTINGS } from './settings';
 
 interface TabGroupData {
     name: string;
@@ -25,7 +9,7 @@ interface TabGroupData {
 }
 
 export default class TabGroupsPlugin extends Plugin {
-    settings: TabGroupsSettings; // ✨ 셋팅 변수 추가
+    settings: TabGroupsSettings = { ...DEFAULT_SETTINGS }; // ✨ 셋팅 변수 추가
     groups: Map<string, TabGroupData> = new Map();
     leafGroupMap: WeakMap<WorkspaceLeaf, string> = new WeakMap(); 
 
@@ -46,21 +30,9 @@ export default class TabGroupsPlugin extends Plugin {
     // ✨ 드래그 중인 단일 탭 추적 변수
     isDraggingTab: boolean = false;
     draggedTabHeader: HTMLElement | null = null;
-    
-    // ✨ 신규 추가: 탭 드롭 직후 옵시디언의 새 창 분리(Popout) 강제 차단용 플래그
-    preventPopoutUntil: number = 0;
-    originalOpenPopout: any = null;
 
     async onload() {
         console.log('🚀 Tab Groups 로드됨 (옵시디언 드래그 간섭 차단 캡처 이벤트 적용)');
-
-        // ✨ 더미 프록시 생성 함수 (옵시디언의 popoutWindow.insertChild 등 후속 호출 방어용)
-        const createDummyProxy = () => {
-            const dummy: any = new Proxy({}, {
-                get: () => (...args: any[]) => dummy
-            });
-            return dummy;
-        };
 
         // ✨ 1. 플러그인이 켜질 때 가장 먼저 데이터를 불러옵니다.
         await this.loadSettings();
@@ -171,7 +143,7 @@ export default class TabGroupsPlugin extends Plugin {
             }, 50);
         }, { capture: true });
         
-        window.addEventListener('dragleave', (e: DragEvent) => {
+        this.registerDomEvent(window, 'dragleave', (e: DragEvent) => {
             if (!e.relatedTarget) this.dropIndicatorEl.style.display = 'none';
         }, { capture: true });
         
@@ -410,9 +382,9 @@ export default class TabGroupsPlugin extends Plugin {
                 return true;
             }) as HTMLElement[];
 
-            if (visibleChildren.length > 0) {
+            const lastEl = visibleChildren[visibleChildren.length - 1];
+            if (lastEl) {
                 this.dropIndicatorEl.style.display = 'block';
-                const lastEl = visibleChildren[visibleChildren.length - 1];
                 
                 // 마지막 요소 뒤에 가짜 탭 삽입
                 container.insertBefore(this.dropIndicatorEl, lastEl.nextSibling);
@@ -651,7 +623,7 @@ export default class TabGroupsPlugin extends Plugin {
                         }
                         
                         // 이사가 끝난 후 첫 번째 탭에 포커스를 줘서 화면 렌더링을 갱신시킵니다!
-                        this.app.workspace.setActiveLeaf(draggedLeaves[0], { focus: true });
+                        this.app.workspace.setActiveLeaf(draggedLeaves[0]!, { focus: true });
                     }
                 }
             }
@@ -733,7 +705,7 @@ export default class TabGroupsPlugin extends Plugin {
         this.enforcePhysicalSorting();
         
         // 타 창으로 이사했다면 첫 번째 탭에 포커스를 줘서 렌더링 강제 갱신
-        if (isCrossWindow && draggedLeaves.length > 0) {
+        if (isCrossWindow && draggedLeaves[0]) {
             this.app.workspace.setActiveLeaf(draggedLeaves[0], { focus: true });
         }
     }
@@ -796,7 +768,7 @@ export default class TabGroupsPlugin extends Plugin {
             if (nextIndex >= children.length) nextIndex = 0;
             if (nextIndex < 0) nextIndex = children.length - 1;
             
-            const candidate = children[nextIndex];
+            const candidate = children[nextIndex]!;
             const candidateGroupId = this.leafGroupMap.get(candidate);
             
             let isHidden = false;
@@ -951,6 +923,7 @@ export default class TabGroupsPlugin extends Plugin {
                 if (!groupData) return;
                 
                 const leader = groupHeaders[0];
+                if (!leader) return;
                 
                 // 🚨 무조건 새로 찍어냄
                 this.insertStandaloneLabel(leader, groupId, groupData);
@@ -1150,31 +1123,33 @@ export default class TabGroupsPlugin extends Plugin {
             this.placeholderEl.style.display = 'block';
         };
         
-        if (visibleTabs.length === 0) {
+        const firstTab = visibleTabs[0];
+        const lastTab = visibleTabs[visibleTabs.length - 1];
+        if (!firstTab || !lastTab) {
             insertSafely(null);
             return;
         }
         
         // 1. 맨 앞(첫 탭보다 왼쪽)인 경우
-        const firstRect = visibleTabs[0].getBoundingClientRect();
+        const firstRect = firstTab.getBoundingClientRect();
         if (clientX < firstRect.left + firstRect.width / 2) {
-            insertSafely(visibleTabs[0]);
+            insertSafely(firstTab);
             return;
         }
         
         // 2. 맨 뒤(마지막 탭보다 오른쪽)인 경우
-        const lastRect = visibleTabs[visibleTabs.length - 1].getBoundingClientRect();
+        const lastRect = lastTab.getBoundingClientRect();
         if (clientX > lastRect.right - lastRect.width / 2) {
             insertSafely(null);
             return;
         }
         
         // 3. 탭과 탭 사이인 경우
-        for (let i = 0; i < visibleTabs.length; i++) {
-            const rect = visibleTabs[i].getBoundingClientRect();
+        for (const tab of visibleTabs) {
+            const rect = tab.getBoundingClientRect();
             if (clientX <= rect.right) {
                 const isAfter = clientX > rect.left + rect.width / 2;
-                let targetNode = isAfter ? visibleTabs[i].nextSibling : visibleTabs[i];
+                let targetNode: Node | null = isAfter ? tab.nextSibling : tab;
                 
                 // ✨ 타겟 노드가 이미 플레이스홀더라면 다음 요소로 넘겨 위치 유지
                 if (targetNode === this.placeholderEl) {
