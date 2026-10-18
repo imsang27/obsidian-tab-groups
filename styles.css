@@ -60,28 +60,22 @@ html body:not(.tab-groups-style-classic) .tab-group-label:hover {
 }
 
 html body:not(.tab-groups-style-classic) .tab-group-label-text {
+    /* 알약 크기·글자는 클래식 라벨과 같게 (이름이 없거나 한 글자면 거의 정사각형) */
     display: inline-flex;
     align-items: center;
-    height: 20px;
-    padding: 0 9px;
+    justify-content: center;
+    box-sizing: border-box;
+    height: 26px;
+    min-width: 24px;
+    padding: 0 10px;
     border-radius: 6px;
     background-color: var(--tab-group-color);
     color: var(--tab-group-on-color, #fff); /* 그룹 색에 맞춰 흰색·검은색 중 잘 보이는 쪽 (코드에서 계산) */
-    font-size: 11.5px;
-    letter-spacing: 0.01em;
     transition: filter 0.15s;
 }
 
 html body:not(.tab-groups-style-classic) .tab-group-label:hover .tab-group-label-text {
     filter: brightness(1.1);
-}
-
-/* 이름 없는 그룹: 크롬처럼 작은 색 점 */
-html body:not(.tab-groups-style-classic) .tab-group-label-text:empty {
-    width: 12px;
-    height: 12px;
-    padding: 0;
-    border-radius: 50%;
 }
 
 /* 라벨 아래 밑줄: 알약 왼쪽 끝에서 시작해 첫 탭으로 이어짐 (접힌 그룹은 알약만) */
