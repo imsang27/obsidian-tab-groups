@@ -106,6 +106,12 @@ html body.tab-groups-style-classic .workspace-tab-header.tab-group-member.is-act
     z-index: 3;
 }
 
+/* 💡 탭 사이 구분선(탭 안쪽 요소의 ::after)은 탭 오른쪽 끝에서 다음 탭으로 반 픽셀 걸쳐 있어,
+   불투명한 다음 그룹 탭에 가려집니다. 그룹 탭에서는 구분선을 자기 탭 안쪽 끝으로 들임 */
+html body.tab-groups-style-classic .workspace-tab-header.tab-group-member:not(#tab-groups) .workspace-tab-header-inner::after {
+    right: 0;
+}
+
 /* 그룹 바깥 모서리(첫 탭 왼쪽 위, 마지막 탭 오른쪽 위)만 옵시디언 탭처럼 둥글게 */
 html body.tab-groups-style-classic .workspace-tab-header.tab-group-member.tab-group-first:not(#tab-groups),
 html body.tab-groups-style-classic .workspace-tab-header.tab-group-member.tab-group-first:not(#tab-groups) .workspace-tab-header-inner::before {
