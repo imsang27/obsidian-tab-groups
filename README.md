@@ -35,18 +35,9 @@ Open **Settings → Community plugins → Tab Groups**.
 * **Language:** Auto (follows Obsidian), English, Deutsch, Español, Français, Português (Brasil), Русский, 日本語, 한국어, 简体中文, 繁體中文.
 * **Group style:** **Underline** (default) shows a small label and a colored line under the group's tabs. **Classic** shows a colored line on top of each tab with a light tint.
 
-  **Underline**
-
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./docs/images/group-style-underline-dark.png">
-    <img alt="Underline style: each group has a label and a colored line under its tabs. The selected tab is outlined in the group color. Bottom row: the first group collapsed." src="./docs/images/group-style-underline-light.png">
-  </picture>
-
-  **Classic**
-
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./docs/images/group-style-classic-dark.png">
-    <img alt="Classic style: each group tab has a colored line on top and a light tint. Bottom row: the first group collapsed." src="./docs/images/group-style-classic-light.png">
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/images/group-styles-dark.png">
+    <img alt="Underline (top) and Classic (bottom) group styles. In each style, the second row shows the first group collapsed." src="./docs/images/group-styles-light.png">
   </picture>
 
 * **Tab groups:** Lists every group with the number of open tabs. Groups stay even when none of their tabs are open, so you can reuse them from the tab menu. Select **Delete group** to remove the ones you no longer need.
