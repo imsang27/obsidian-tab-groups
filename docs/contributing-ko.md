@@ -78,6 +78,13 @@ npm run check-translations
 
 영어나 한국어 모두 괜찮습니다. 잘 모르겠다면 병합할 때 관리자가 맞춰 드립니다.
 
+## 🔖 릴리스 (관리자용)
+풀 리퀘스트는 버전을 바꾸지 않고 병합하고, 사용자에게 전달할 변경이 있을 때만 릴리스합니다.
+
+1. GitHub에서 **Actions → Release Obsidian plugin → Run workflow**를 누르고 새 버전(예: `1.3.7`)을 입력합니다.
+2. 워크플로가 `main`의 버전을 올리고, 태그를 달고, 빌드해서 릴리스를 Latest로 게시합니다. 릴리스 노트에는 지난 릴리스 뒤에 병합된 풀 리퀘스트가 정리됩니다.
+3. [community.obsidian.md](https://community.obsidian.md/account/plugins/tab-groups)에서 **Check for new releases**를 눌러 새 버전 검토를 시작합니다.
+
 ## 📄 라이선스
 ---
 기여한 내용은 [MIT 라이선스](../LICENSE)를 따르는 데 동의한 것으로 봅니다.

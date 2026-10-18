@@ -78,6 +78,13 @@ Pull requests are squash-merged, and the title becomes the commit message. Use t
 
 English or Korean is fine. If you're not sure, the maintainer will adjust the title when merging.
 
+## 🔖 Releasing (maintainer)
+Merge pull requests without changing the version, and release only when there's something users should get.
+
+1. On GitHub, go to **Actions → Release Obsidian plugin → Run workflow** and enter the new version (e.g. `1.3.7`).
+2. The workflow bumps the version on `main`, tags it, builds, and publishes the release as Latest. The release notes list the pull requests merged since the last release.
+3. On [community.obsidian.md](https://community.obsidian.md/account/plugins/tab-groups), select **Check for new releases** so the new version is reviewed.
+
 ## 📄 License
 ---
 By contributing, you agree that your contributions are licensed under the [MIT License](./LICENSE).

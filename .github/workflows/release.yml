@@ -1,9 +1,24 @@
 name: Release Obsidian plugin
 
+# 🚀 Two ways to release:
+# - Actions → "Release Obsidian plugin" → Run workflow, then enter a version (e.g. 1.3.7).
+#   Bumps manifest.json, versions.json and package.json on main, tags it, builds, and publishes
+#   the release with notes generated from the merged PRs.
+# - Push a tag yourself (after bumping the version in a PR): builds and creates a draft release.
 on:
+    workflow_dispatch:
+        inputs:
+            version:
+                description: 'New version (x.y.z, no leading v)'
+                required: true
+                type: string
     push:
         tags:
             - '*'
+
+concurrency:
+    group: release
+    cancel-in-progress: false
 
 jobs:
     build:
@@ -13,8 +28,12 @@ jobs:
             contents: write
             id-token: write
             attestations: write
+        env:
+            DISPATCH: ${{ github.event_name == 'workflow_dispatch' }}
         steps:
             - uses: actions/checkout@v6
+              with:
+                  ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
 
             - name: Use Node.js
               uses: actions/setup-node@v6
@@ -22,18 +41,52 @@ jobs:
                   node-version: 24
                   cache: 'npm'
 
+            # 💡 Run workflow only. The tag pushed here doesn't start this workflow again
+            # (pushes made with GITHUB_TOKEN don't trigger workflows), so building happens in this same run.
+            - name: Bump version and tag
+              if: env.DISPATCH == 'true'
+              env:
+                  VERSION: ${{ inputs.version }}
+              run: |
+                  if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                    echo "::error::Version must look like 1.2.3 (no leading v): $VERSION"
+                    exit 1
+                  fi
+                  current=$(node -p "require('./manifest.json').version")
+                  newest=$(printf '%s\n%s\n' "$current" "$VERSION" | sort -V | tail -1)
+                  if [ "$current" = "$VERSION" ] || [ "$newest" != "$VERSION" ]; then
+                    echo "::error::$VERSION must be newer than the current version $current"
+                    exit 1
+                  fi
+                  if git ls-remote --exit-code --tags origin "refs/tags/$VERSION" >/dev/null; then
+                    echo "::error::Tag $VERSION already exists"
+                    exit 1
+                  fi
+
+                  npm version "$VERSION" --no-git-tag-version
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git add manifest.json versions.json package.json package-lock.json
+                  git commit -m "🔖 release: $VERSION"
+                  git tag "$VERSION"
+                  git push origin HEAD:main "refs/tags/$VERSION"
+                  echo "TAG=$VERSION" >> "$GITHUB_ENV"
+
+            - name: Use pushed tag
+              if: env.DISPATCH != 'true'
+              run: echo "TAG=${GITHUB_REF#refs/tags/}" >> "$GITHUB_ENV"
+
             # 🚀 The tag must match the version in manifest.json and be listed in versions.json,
             # or Obsidian won't offer the update.
             - name: Check version
               run: |
-                  tag="${GITHUB_REF#refs/tags/}"
                   version=$(node -p "require('./manifest.json').version")
-                  if [ "$tag" != "$version" ]; then
-                    echo "::error file=manifest.json::Tag $tag doesn't match manifest.json version $version"
+                  if [ "$TAG" != "$version" ]; then
+                    echo "::error file=manifest.json::Tag $TAG doesn't match manifest.json version $version"
                     exit 1
                   fi
-                  if ! node -e "process.exit(require('./versions.json')['$tag'] ? 0 : 1)"; then
-                    echo "::error file=versions.json::versions.json has no entry for $tag"
+                  if ! node -e "process.exit(require('./versions.json')['$TAG'] ? 0 : 1)"; then
+                    echo "::error file=versions.json::versions.json has no entry for $TAG"
                     exit 1
                   fi
 
@@ -54,13 +107,23 @@ jobs:
                       main.js
                       ${{ steps.styles.outputs.exists == 'true' && 'styles.css' || '' }}
 
+            # 💡 Run workflow: published right away as Latest, with notes from the merged PRs.
+            # Tag push: draft, as before.
             - name: Create release
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
-                  tag="${GITHUB_REF#refs/tags/}"
-
-                  gh release create "$tag" \
-                    --title="$tag" \
-                    --draft \
+                  if [ "$DISPATCH" = "true" ]; then mode="--generate-notes --latest"; else mode="--draft"; fi
+                  gh release create "$TAG" \
+                    --title="$TAG" \
+                    $mode \
                     main.js manifest.json ${{ steps.styles.outputs.exists == 'true' && 'styles.css' || '' }}
+
+            - name: Next step
+              if: env.DISPATCH == 'true'
+              run: |
+                  {
+                    echo "Released [$TAG](https://github.com/${{ github.repository }}/releases/tag/$TAG)."
+                    echo ""
+                    echo "Next: open https://community.obsidian.md/account/plugins/tab-groups and select **Check for new releases**."
+                  } >> "$GITHUB_STEP_SUMMARY"
