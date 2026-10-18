@@ -27,6 +27,8 @@ export class TabDragController {
     draggedLeaf: WorkspaceLeaf | null = null;
     draggedHeader: HTMLElement | null = null;
     draggedWidth = 0;
+    // 💡 그룹 맨 끝 자리에서 커서가 그 그룹 마지막 탭 위에 있는지 (크롬처럼 그룹 안쪽에 놓으면 편입)
+    insideGroupEnd = false;
 
     constructor(plugin: TabGroupsPlugin) {
         this.plugin = plugin;
@@ -108,12 +110,17 @@ export class TabDragController {
             isLabel: el.classList.contains('tab-group-label'),
         };
         const current = this.plugin.leafGroupMap.get(leaf) ?? null;
-        const newGroup = resolveGroupAt(
-            slot(this.neighbor('previousElementSibling')),
-            slot(this.neighbor('nextElementSibling')),
-            current,
-            (groupId) => this.plugin.isGroupExpanded(groupId),
-        );
+        const prev = slot(this.neighbor('previousElementSibling'));
+        const next = slot(this.neighbor('nextElementSibling'));
+        const isExpanded = (groupId: string) => this.plugin.isGroupExpanded(groupId);
+
+        // 🎯 펼쳐진 그룹의 맨 끝 자리(앞은 그 그룹 탭, 뒤는 다른 것): 크롬처럼 커서가 그룹 마지막 탭 위면
+        // 그룹 맨 끝으로 편입(또는 유지), 그 오른쪽이면 그룹 밖으로 놓습니다.
+        const prevGroup = prev && !prev.isLabel ? prev.groupId : null;
+        const atGroupEnd = !!prevGroup && isExpanded(prevGroup) && (next?.isLabel || next?.groupId !== prevGroup);
+        const newGroup = atGroupEnd
+            ? (this.insideGroupEnd ? prevGroup : null)
+            : resolveGroupAt(prev, next, current, isExpanded);
 
         if (newGroup === current) return false;
         if (newGroup) this.plugin.leafGroupMap.set(leaf, newGroup);
@@ -209,6 +216,10 @@ export class TabDragController {
             const rect = el.getBoundingClientRect();
             return clientX < rect.left + rect.width / 2;
         }) ?? null;
+
+        // 💡 플레이스홀더 바로 앞 요소의 오른쪽 끝보다 왼쪽이면 "그 요소 안쪽"에 놓는 것으로 봅니다. (그룹 맨 끝 판단용)
+        const prevItem = before ? items[items.indexOf(before) - 1] : items[items.length - 1];
+        this.insideGroupEnd = !!prevItem && clientX < prevItem.getBoundingClientRect().right;
         this.placeholderEl.classList.remove('is-measuring');
 
         // 🎯 놓을 탭 바의 탭과 같은 너비로 자리를 만듭니다.
