@@ -188,15 +188,26 @@ html body.tab-groups-style-classic .workspace-tab-header.tab-group-member:not(#t
     right: 0;
 }
 
-/* 그룹 바깥 모서리(첫 탭 왼쪽 위, 마지막 탭 오른쪽 위)만 옵시디언 탭처럼 둥글게 */
+/* 그룹 바깥 모서리(첫 탭 왼쪽, 마지막 탭 오른쪽)만 옵시디언 탭처럼 둥글게.
+   💡 옵시디언 탭 모서리 값(--tab-radius-active, 기본 10px 10px 0 0)을 그대로 쓰고 안쪽 모서리만 0으로 바꿔,
+   테마가 탭 곡률을 바꿔도 같은 곡률을 따라감 (탭이 하나뿐인 그룹은 양쪽 모두 둥글게) */
 html body.tab-groups-style-classic .workspace-tab-header.tab-group-member.tab-group-first:not(#tab-groups),
-html body.tab-groups-style-classic .workspace-tab-header.tab-group-member.tab-group-first:not(#tab-groups) .workspace-tab-header-inner::before {
-    border-top-left-radius: var(--tab-curve, 10px);
-}
-
+html body.tab-groups-style-classic .workspace-tab-header.tab-group-member.tab-group-first:not(#tab-groups) .workspace-tab-header-inner::before,
 html body.tab-groups-style-classic .workspace-tab-header.tab-group-member.tab-group-last:not(#tab-groups),
 html body.tab-groups-style-classic .workspace-tab-header.tab-group-member.tab-group-last:not(#tab-groups) .workspace-tab-header-inner::before {
-    border-top-right-radius: var(--tab-curve, 10px);
+    border-radius: var(--tab-radius-active, 10px 10px 0 0);
+}
+
+html body.tab-groups-style-classic .workspace-tab-header.tab-group-member.tab-group-first:not(.tab-group-last):not(#tab-groups),
+html body.tab-groups-style-classic .workspace-tab-header.tab-group-member.tab-group-first:not(.tab-group-last):not(#tab-groups) .workspace-tab-header-inner::before {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+html body.tab-groups-style-classic .workspace-tab-header.tab-group-member.tab-group-last:not(.tab-group-first):not(#tab-groups),
+html body.tab-groups-style-classic .workspace-tab-header.tab-group-member.tab-group-last:not(.tab-group-first):not(#tab-groups) .workspace-tab-header-inner::before {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
 }
 
 /* 접힌 그룹의 탭 숨김 (선택된 탭이어도 숨김) */
