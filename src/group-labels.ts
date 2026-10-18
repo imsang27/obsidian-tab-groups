@@ -169,7 +169,9 @@ export class GroupLabels {
             document.body.classList.remove('is-dragging-tab-group'); // 드래그 종료 시 body 신호 제거
         });
 
-        labelEl.setText(groupData.name);
+        // 💡 이름은 안쪽 span에 둡니다. (밑줄 모양에서는 바깥 라벨이 탭 바 높이를 채워 밑줄을 그리고, span이 알약 모양)
+        labelEl.createSpan({ cls: 'tab-group-label-text', text: groupData.name });
+        labelEl.toggleClass('is-collapsed', groupData.isCollapsed);
         setGroupColor(labelEl, groupData.color);
 
         // 리더 탭 앞에 삽입

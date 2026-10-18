@@ -40,16 +40,61 @@ html body .tab-group-label:hover {
     opacity: 0.8;
 }
 
-/* ✨ 그룹 표시 모양: 밑줄 (기본) — 크롬처럼 라벨은 작은 알약, 그룹 탭 아래로 색 밑줄이 이어짐
-   (설정에서 클래식을 고르면 body에 .tab-groups-style-classic이 붙고, 그때는 아래 클래식 규칙을 씀) */
+/* ✨ 그룹 표시 모양: 밑줄 (기본) — 크롬처럼 라벨은 작은 알약, 라벨 아래부터 그룹 탭 끝까지 색 밑줄이 이어짐
+   (설정에서 클래식을 고르면 body에 .tab-groups-style-classic이 붙고, 그때는 아래 클래식 규칙을 씀)
+   라벨(바깥)은 탭 바 높이를 채워 밑줄을 그리고, 안쪽 .tab-group-label-text가 알약 모양입니다. */
 html body:not(.tab-groups-style-classic) .tab-group-label {
-    align-self: center;
-    min-height: 20px;
+    position: relative;
+    align-self: stretch;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    /* 위·아래 여백은 탭 헤더와 같게 해서 알약이 탭 글자와 같은 높이에 오게 함.
+       오른쪽은 탭 곡선 너비만큼 비워, 첫 탭이 선택돼도 곡선이 알약을 덮지 않게 함 */
+    padding: 1px var(--tab-curve, 10px) 4px 6px;
+    background-color: transparent;
+}
+
+html body:not(.tab-groups-style-classic) .tab-group-label:hover {
+    opacity: 1;
+}
+
+html body:not(.tab-groups-style-classic) .tab-group-label-text {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
     padding: 0 9px;
-    margin: 0 4px 0 6px;
+    border-radius: 6px;
+    background-color: var(--tab-group-color);
+    color: var(--tab-group-on-color, #fff); /* 그룹 색에 맞춰 흰색·검은색 중 잘 보이는 쪽 (코드에서 계산) */
     font-size: 11.5px;
     letter-spacing: 0.01em;
-    color: var(--tab-group-on-color, #fff); /* 그룹 색에 맞춰 흰색·검은색 중 잘 보이는 쪽 (코드에서 계산) */
+    transition: filter 0.15s;
+}
+
+html body:not(.tab-groups-style-classic) .tab-group-label:hover .tab-group-label-text {
+    filter: brightness(1.1);
+}
+
+/* 이름 없는 그룹: 크롬처럼 작은 색 점 */
+html body:not(.tab-groups-style-classic) .tab-group-label-text:empty {
+    width: 12px;
+    height: 12px;
+    padding: 0;
+    border-radius: 50%;
+}
+
+/* 라벨 아래 밑줄: 알약 왼쪽 끝에서 시작해 첫 탭으로 이어짐 (접힌 그룹은 알약만) */
+html body:not(.tab-groups-style-classic) .tab-group-label:not(.is-collapsed)::after {
+    content: '';
+    position: absolute;
+    left: 6px;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    border-radius: 1px 0 0 1px;
+    background-color: var(--tab-group-color);
+    pointer-events: none;
 }
 
 /* 💡 그룹 색 줄은 탭 안쪽 요소의 ::before로 그려 탭 헤더(position: relative) 기준으로 붙입니다.
@@ -67,6 +112,22 @@ html body .workspace-tab-header.tab-group-member:not(#tab-groups) .workspace-tab
 html body:not(.tab-groups-style-classic) .workspace-tab-header.tab-group-member:not(#tab-groups) .workspace-tab-header-inner::before {
     bottom: 0;
     height: 2px;
+}
+
+/* 그룹 끝은 둥글게 */
+html body:not(.tab-groups-style-classic) .workspace-tab-header.tab-group-member.tab-group-last:not(#tab-groups) .workspace-tab-header-inner::before {
+    border-radius: 0 1px 1px 0;
+}
+
+/* 💡 선택된 탭(그룹 안이든 밖이든) 바로 옆에서는 밑줄을 탭 곡선 너비만큼 줄여,
+   선택된 탭 아래 곡선과 겹치지 않고 곡선 끝에서 자연스럽게 이어지게 함 */
+html body:not(.tab-groups-style-classic) .workspace-tab-header.tab-group-member:has(+ .workspace-tab-header.is-active):not(#tab-groups) .workspace-tab-header-inner::before,
+html body:not(.tab-groups-style-classic) .tab-group-label:has(+ .workspace-tab-header.is-active)::after {
+    right: var(--tab-curve, 10px);
+}
+
+html body:not(.tab-groups-style-classic) .workspace-tab-header.is-active + .workspace-tab-header.tab-group-member:not(#tab-groups) .workspace-tab-header-inner::before {
+    left: var(--tab-curve, 10px);
 }
 
 /* 🎯 밑줄 모양에서 선택된 그룹 탭: 크롬처럼 그룹 색 테두리가 탭 모양(위·양옆·아래 곡선)을 감싸고,
