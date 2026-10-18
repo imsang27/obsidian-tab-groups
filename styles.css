@@ -132,6 +132,13 @@ html body:not(.tab-groups-style-classic) .workspace-tab-header.is-active + .work
 html body:not(.tab-groups-style-classic) .workspace-tab-header.tab-group-member.is-active:not(#tab-groups) {
     --tab-outline-color: var(--tab-group-color);
     --tab-outline-width: 2px;
+    /* 💡 탭 바는 넘치는 부분을 잘라 내고 탭 위쪽 여유는 1px뿐이라, 2px 테두리를 바깥으로만 그리면 위쪽이 잘립니다.
+       바깥 1px + 안쪽 1px(위·양옆)로 나눠 그려 두께는 2px 그대로 두고 잘리지 않게 함 (아래는 편집 화면과 이어지므로 비움) */
+    box-shadow:
+        0 0 0 1px var(--tab-group-color),
+        inset 0 1px 0 var(--tab-group-color),
+        inset 1px 0 0 var(--tab-group-color),
+        inset -1px 0 0 var(--tab-group-color);
 }
 
 html body:not(.tab-groups-style-classic) .workspace-tab-header.tab-group-member.is-active:not(#tab-groups) .workspace-tab-header-inner::before {
