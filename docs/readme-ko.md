@@ -34,6 +34,21 @@
 
 * **언어:** 자동(옵시디언 언어), English, Deutsch, Español, Français, Português (Brasil), Русский, 日本語, 한국어, 简体中文, 繁體中文 중에서 고릅니다.
 * **그룹 표시 모양:** **밑줄**(기본)은 작은 라벨과 그룹 탭 아래 색 밑줄로 보여 줍니다. **클래식**은 탭 위쪽 색 줄과 옅은 배경으로 보여 줍니다.
+
+  **밑줄**
+
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./images/group-style-underline-dark.png">
+    <img alt="밑줄 모양: 그룹마다 라벨과 그룹 탭 아래 색 밑줄. 선택된 탭은 그룹 색 테두리. 아랫줄은 첫 그룹을 접은 모습" src="./images/group-style-underline-light.png">
+  </picture>
+
+  **클래식**
+
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./images/group-style-classic-dark.png">
+    <img alt="클래식 모양: 그룹 탭 위쪽 색 줄과 옅은 배경. 아랫줄은 첫 그룹을 접은 모습" src="./images/group-style-classic-light.png">
+  </picture>
+
 * **탭 그룹:** 모든 그룹과 열린 탭 수를 보여 줍니다. 열린 탭이 없어도 그룹은 남아 있어서 탭 메뉴에서 다시 쓸 수 있습니다. 더 쓰지 않는 그룹은 **그룹 삭제**를 눌러 지우세요.
 
 ## 📝 알아 둘 점
