@@ -11,11 +11,14 @@ html body .tab-group-label {
     align-items: center;
     justify-content: center;
     padding: 2px 10px;
-    margin: 4px 2px;
+    /* 왼쪽은 탭 곡선 너비만큼 띄워, 바로 앞 탭이 선택돼도 그 탭의 아래 곡선이 라벨 뒤로 가려지지 않게 함
+       (오른쪽은 좁게 두어 라벨이 자기 그룹 쪽에 붙어 보임) */
+    margin: 4px 2px 4px var(--tab-curve, 10px);
     border-radius: 6px;
     font-size: 11px;
     font-weight: 600;
-    color: var(--text-normal);
+    /* 글자색: 그룹 색에 맞춰 흰색·검은색 중 대비가 큰 쪽 (코드에서 계산) */
+    color: var(--tab-group-on-color, var(--text-normal));
     cursor: pointer;
     transition: all 0.2s;
     user-select: none;
