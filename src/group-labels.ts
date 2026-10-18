@@ -34,7 +34,7 @@ export class GroupLabels {
                     if (!groupMap.has(groupId)) groupMap.set(groupId, []);
                     groupMap.get(groupId)!.push(header);
                 } else {
-                    header.classList.remove('tab-group-hidden');
+                    header.removeClasses(['tab-group-hidden', 'tab-group-first', 'tab-group-last']);
                 }
             });
 
@@ -48,8 +48,13 @@ export class GroupLabels {
                 // 🚨 무조건 새로 찍어냄
                 this.insertStandaloneLabel(leader, groupId, groupData);
 
-                // 💡 숨김 스타일(display: none !important 등)은 styles.css의 .tab-group-hidden이 담당
-                groupHeaders.forEach(header => header.classList.toggle('tab-group-hidden', groupData.isCollapsed));
+                // 💡 숨김 스타일(display: none 등)은 styles.css의 .tab-group-hidden이 담당
+                // 그룹 양 끝 탭 표시 (클래식 모양에서 그룹 바깥 모서리만 둥글게)
+                groupHeaders.forEach((header, i) => {
+                    header.classList.toggle('tab-group-hidden', groupData.isCollapsed);
+                    header.classList.toggle('tab-group-first', i === 0);
+                    header.classList.toggle('tab-group-last', i === groupHeaders.length - 1);
+                });
             });
         });
     }

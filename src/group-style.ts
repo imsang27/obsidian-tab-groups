@@ -29,7 +29,7 @@ function readableTextColor(color: string): string {
 // 💡 탭 헤더에서 이 플러그인이 붙인 그룹 표시를 모두 걷어 냅니다.
 export function clearGroupHeader(header: HTMLElement) {
     header.removeAttribute('data-tab-group-id');
-    header.removeClasses(['tab-group-member', 'tab-group-hidden', 'tab-group-drag-source']);
+    header.removeClasses(['tab-group-member', 'tab-group-hidden', 'tab-group-drag-source', 'tab-group-first', 'tab-group-last']);
     header.style.removeProperty('--tab-group-color');
     header.style.removeProperty('--tab-group-tint');
     header.style.removeProperty('--tab-group-on-color');
