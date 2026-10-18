@@ -69,6 +69,19 @@ html body:not(.tab-groups-style-classic) .workspace-tab-header.tab-group-member:
     height: 2px;
 }
 
+/* 🎯 밑줄 모양에서 선택된 그룹 탭: 크롬처럼 그룹 색 테두리가 탭 모양(위·양옆·아래 곡선)을 감싸고,
+   양옆 그룹 탭의 밑줄과 이어집니다. 옵시디언은 선택된 탭 테두리와 아래 곡선을
+   --tab-outline-color / --tab-outline-width로 그리므로 그 탭에서만 바꿔 줍니다.
+   (선택된 탭 아래는 편집 화면과 이어지므로 밑줄은 그리지 않음) */
+html body:not(.tab-groups-style-classic) .workspace-tab-header.tab-group-member.is-active:not(#tab-groups) {
+    --tab-outline-color: var(--tab-group-color);
+    --tab-outline-width: 2px;
+}
+
+html body:not(.tab-groups-style-classic) .workspace-tab-header.tab-group-member.is-active:not(#tab-groups) .workspace-tab-header-inner::before {
+    display: none;
+}
+
 /* ✨ 그룹 표시 모양: 클래식 — 그룹 탭 위쪽 색 줄과 옅은 배경 (색은 --tab-group-color / --tab-group-tint) */
 /* (선택·호버된 탭의 옵시디언 배경보다 우선) */
 /* 💡 배경은 탭 바 색에 그룹 색을 10% 섞은 불투명한 색. (반투명이면 옆 선택된 탭의 아래 곡선이 비쳐 그룹 끝이 덮여 보임) */
