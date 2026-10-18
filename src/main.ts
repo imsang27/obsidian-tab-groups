@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf } from 'obsidian';
+import { Plugin, WorkspaceLeaf, WorkspaceWindow } from 'obsidian';
 import { TabGroupsSettings, DEFAULT_SETTINGS } from './settings';
 import { TabDragController } from './tab-drag';
 import { GroupDragController } from './group-drag';
@@ -14,6 +14,7 @@ import { setLanguage } from './i18n';
 import { internal } from './internal';
 import { TabGroupsSettingTab } from './settings-tab';
 import { PRESET_COLORS } from './ui/color-palette';
+import { GroupStyle, applyGroupStyle } from './group-style';
 
 export interface TabGroupData {
     name: string;
@@ -60,6 +61,7 @@ export default class TabGroupsPlugin extends Plugin {
         // 👇 옵시디언 화면이 다 켜진 직후에 실행되는 곳
         this.app.workspace.onLayoutReady(() => {
             if (this.unloaded) return;
+            this.applyGroupStyle();
             this.restoreTabsFromSettings(); // ✨ 탭 매핑 먼저 완벽하게 복구하고!
             this.layout.setupObservers();   // 감시자 달고
             this.enforcePhysicalSorting();  // 화면 정렬!
@@ -70,6 +72,11 @@ export default class TabGroupsPlugin extends Plugin {
                 this.layout.setupObservers();
                 this.enforcePhysicalSorting();
             })
+        );
+
+        // ✨ 새로 연 창(팝업)에도 그룹 표시 모양을 적용
+        this.registerEvent(
+            this.app.workspace.on('window-open', (win: WorkspaceWindow) => applyGroupStyle(win.doc, this.settings.groupStyle))
         );
 
         this.groupDrop.register();
@@ -144,6 +151,13 @@ export default class TabGroupsPlugin extends Plugin {
         this.layout.enforcePhysicalSorting(options);
     }
 
+    // 💡 그룹 표시 모양을 메인 창과 열린 팝업 창 모두에 적용합니다. (style이 null이면 걷어 냄)
+    applyGroupStyle(style: GroupStyle | null = this.settings.groupStyle) {
+        const docs = new Set<Document>([document]);
+        this.tabContainers().forEach(container => docs.add(container.doc));
+        docs.forEach(doc => applyGroupStyle(doc, style));
+    }
+
     // 💡 모든 탭 바(메인 창 + 팝업 창). document만 뒤지면 팝업 창의 탭 바를 놓치므로 탭에서 거꾸로 찾습니다.
     tabContainers(): HTMLElement[] {
         const containers = new Set<HTMLElement>();
@@ -206,6 +220,7 @@ export default class TabGroupsPlugin extends Plugin {
         this.labels.removeAll();
         // 🚨탭 헤더를 원래 모습으로 되돌립니다. (그대로 두면 끈 뒤에도 접힌 그룹의 탭이 숨겨진 채 남음)
         this.layout.clearAllHeaders();
+        this.applyGroupStyle(null);
         document.body.removeClasses(['is-dragging-tab', 'is-dragging-tab-in-tab-bar', 'is-dragging-tab-group']);
     }
 }

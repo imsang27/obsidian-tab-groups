@@ -1,4 +1,5 @@
 import type { LanguageSetting } from './i18n';
+import type { GroupStyle } from './group-style';
 
 // ✨ 플러그인이 data.json에 저장할 데이터의 형태를 정의
 export interface SavedGroupData {
@@ -14,9 +15,12 @@ export interface TabGroupsSettings {
 	savedGroups: SavedGroupData[];
 	// 💡 화면 문구 언어 (auto: 옵시디언 언어를 따라감)
 	language: LanguageSetting;
+	// 💡 그룹 표시 모양 (underline: 그룹 탭 아래 색 밑줄, classic: 위쪽 색 줄과 옅은 배경)
+	groupStyle: GroupStyle;
 }
 
 export const DEFAULT_SETTINGS: TabGroupsSettings = {
 	savedGroups: [],
 	language: 'auto',
+	groupStyle: 'underline',
 };

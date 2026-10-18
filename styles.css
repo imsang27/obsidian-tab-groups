@@ -40,9 +40,25 @@ html body .tab-group-label:hover {
     opacity: 0.8;
 }
 
-/* 그룹에 속한 탭: 위쪽 색 줄과 옅은 배경 (색은 --tab-group-color / --tab-group-tint) */
+/* ✨ 그룹 표시 모양: 밑줄 (기본) — 크롬처럼 라벨은 작은 알약, 그룹 탭 아래로 색 밑줄이 이어짐
+   (설정에서 클래식을 고르면 body에 .tab-groups-style-classic이 붙고, 그때는 아래 클래식 규칙을 씀) */
+html body:not(.tab-groups-style-classic) .tab-group-label {
+    align-self: center;
+    min-height: 20px;
+    padding: 0 9px;
+    margin: 0 4px 0 6px;
+    font-size: 11.5px;
+    letter-spacing: 0.01em;
+    color: var(--tab-group-on-color, #fff); /* 그룹 색에 맞춰 흰색·검은색 중 잘 보이는 쪽 (코드에서 계산) */
+}
+
+html body:not(.tab-groups-style-classic) .workspace-tab-header.tab-group-member:not(#tab-groups) {
+    box-shadow: inset 0 -2px 0 var(--tab-group-color);
+}
+
+/* ✨ 그룹 표시 모양: 클래식 — 그룹 탭 위쪽 색 줄과 옅은 배경 (색은 --tab-group-color / --tab-group-tint) */
 /* (선택·호버된 탭의 옵시디언 배경보다 우선) */
-html body .workspace-tab-header.tab-group-member:not(#tab-groups) {
+html body.tab-groups-style-classic .workspace-tab-header.tab-group-member:not(#tab-groups) {
     border-top: 3px solid var(--tab-group-color);
     background-color: var(--tab-group-tint);
 }

@@ -33,7 +33,8 @@ Chrome-style tab groups for Obsidian. Name and color related tabs, and collapse 
 Open **Settings → Community plugins → Tab Groups**.
 
 * **Language:** Auto (follows Obsidian), English, Deutsch, Español, Français, Português (Brasil), Русский, 日本語, 한국어, 简体中文, 繁體中文.
-* **Tab groups:** Lists every group with the number of open tabs. Groups stay even when none of their tabs are open, so you can reuse them from the tab menu. Select **Delete** to remove the ones you no longer need.
+* **Group style:** **Underline** (default) shows a small label and a colored line under the group's tabs. **Classic** shows a colored line on top of each tab with a light tint.
+* **Tab groups:** Lists every group with the number of open tabs. Groups stay even when none of their tabs are open, so you can reuse them from the tab menu. Select **Delete group** to remove the ones you no longer need.
 
 ## 📝 Notes
 ---

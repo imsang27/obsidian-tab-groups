@@ -1,6 +1,7 @@
 import { App, PluginSettingTab, Setting, SettingDefinitionItem, requireApiVersion } from 'obsidian';
 import type TabGroupsPlugin from './main';
 import { LANGUAGE_NAMES, Language, LanguageSetting, setLanguage, t } from './i18n';
+import { GroupStyle } from './group-style';
 
 // ✨ 설정 → 커뮤니티 플러그인 → Tab Groups 화면
 // 💡 옵시디언 1.13부터는 getSettingDefinitions()로 그려서 설정 검색에도 나옵니다.
@@ -22,6 +23,11 @@ export class TabGroupsSettingTab extends PluginSettingTab {
                 control: { type: 'dropdown', key: 'language', options: this.languageOptions() },
             },
             {
+                name: t('settings.groupStyle'),
+                desc: t('settings.groupStyleDesc'),
+                control: { type: 'dropdown', key: 'groupStyle', options: this.groupStyleOptions() },
+            },
+            {
                 type: 'list',
                 heading: t('settings.groups'),
                 emptyState: t('settings.noGroups'),
@@ -41,6 +47,7 @@ export class TabGroupsSettingTab extends PluginSettingTab {
     // 💡 언어는 저장하고 끝이 아니라 바로 적용하고 화면 문구도 바꿔야 해서 직접 처리합니다. (설정 항목은 언어 하나뿐)
     async setControlValue(key: string, value: unknown) {
         if (key === 'language') await this.changeLanguage(value as LanguageSetting);
+        if (key === 'groupStyle') await this.changeGroupStyle(value as GroupStyle);
     }
 
     // 💡 옵시디언 1.13 미만용
@@ -55,6 +62,14 @@ export class TabGroupsSettingTab extends PluginSettingTab {
                 .addOptions(this.languageOptions())
                 .setValue(this.plugin.settings.language)
                 .onChange(value => { void this.changeLanguage(value as LanguageSetting); }));
+
+        new Setting(containerEl)
+            .setName(t('settings.groupStyle'))
+            .setDesc(t('settings.groupStyleDesc'))
+            .addDropdown(dropdown => dropdown
+                .addOptions(this.groupStyleOptions())
+                .setValue(this.plugin.settings.groupStyle)
+                .onChange(value => { void this.changeGroupStyle(value as GroupStyle); }));
 
         this.displayGroups(containerEl);
     }
@@ -87,6 +102,10 @@ export class TabGroupsSettingTab extends PluginSettingTab {
         return options;
     }
 
+    groupStyleOptions(): Record<GroupStyle, string> {
+        return { underline: t('settings.groupStyleUnderline'), classic: t('settings.groupStyleClassic') };
+    }
+
     addSwatch(setting: Setting, color: string) {
         const swatch = createSpan({ cls: 'tab-group-settings-swatch' });
         swatch.style.setProperty('--tab-group-color', color);
@@ -111,6 +130,12 @@ export class TabGroupsSettingTab extends PluginSettingTab {
         setLanguage(language);
         await this.plugin.saveSettings();
         this.refresh(); // 💡 설정 화면 문구도 바로 새 언어로
+    }
+
+    async changeGroupStyle(style: GroupStyle) {
+        this.plugin.settings.groupStyle = style;
+        this.plugin.applyGroupStyle();
+        await this.plugin.saveSettings();
     }
 
     refresh() {
