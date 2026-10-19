@@ -2,6 +2,7 @@ import { App, PluginSettingTab, Setting, SettingDefinitionItem, requireApiVersio
 import type TabGroupsPlugin from './main';
 import { LANGUAGE_NAMES, Language, LanguageSetting, setLanguage, t } from './i18n';
 import { GroupStyle } from './group-style';
+import { confirmDeleteGroup, reopenGroup } from './group-actions';
 
 // ✨ 설정 → 커뮤니티 플러그인 → Tab Groups 화면
 // 💡 옵시디언 1.13부터는 getSettingDefinitions()로 그려서 설정 검색에도 나옵니다.
@@ -38,10 +39,11 @@ export class TabGroupsSettingTab extends PluginSettingTab {
                 emptyState: t('settings.noGroups'),
                 items: groups.map(([groupId, group]) => ({
                     name: group.name || t('group.unnamed'),
-                    desc: t('settings.openTabs', { count: String(this.plugin.groupLeaves(groupId).length) }),
+                    desc: this.groupDesc(groupId),
                     // 💡 목록 기본 삭제 버튼(×)은 무엇을 지우는지 알기 어려워, 예전처럼 "그룹 삭제" 버튼을 직접 붙입니다.
                     render: (setting: Setting) => {
                         this.addSwatch(setting, group.color);
+                        this.addReopenButton(setting, groupId);
                         this.addDeleteButton(setting, groupId);
                     },
                 })),
@@ -103,8 +105,9 @@ export class TabGroupsSettingTab extends PluginSettingTab {
         groups.forEach(([groupId, group]) => {
             const setting = new Setting(containerEl)
                 .setName(group.name || t('group.unnamed'))
-                .setDesc(t('settings.openTabs', { count: String(this.plugin.groupLeaves(groupId).length) }));
+                .setDesc(this.groupDesc(groupId));
             this.addSwatch(setting, group.color);
+            this.addReopenButton(setting, groupId);
             this.addDeleteButton(setting, groupId);
         });
     }
@@ -125,17 +128,38 @@ export class TabGroupsSettingTab extends PluginSettingTab {
         setting.nameEl.prepend(swatch);
     }
 
+    // 💡 숨은 그룹은 "숨김 · 저장된 탭 n개", 그 밖에는 열린 탭 수
+    groupDesc(groupId: string): string {
+        if (this.plugin.isGroupHidden(groupId)) {
+            return t('settings.hiddenTabs', { count: String(this.plugin.groups.get(groupId)?.tabs.length ?? 0) });
+        }
+        return t('settings.openTabs', { count: String(this.plugin.groupLeaves(groupId).length) });
+    }
+
+    addReopenButton(setting: Setting, groupId: string) {
+        if (!this.plugin.isGroupHidden(groupId)) return;
+        setting.addButton(btn => btn
+            .setButtonText(t('settings.reopen'))
+            .setTooltip(t('settings.reopenTip'))
+            .onClick(() => { void this.reopen(groupId); }));
+    }
+
+    async reopen(groupId: string) {
+        await reopenGroup(this.plugin, groupId);
+        this.refresh();
+    }
+
     addDeleteButton(setting: Setting, groupId: string) {
         setting.addButton(btn => btn
             .setButtonText(t('settings.delete'))
             .setTooltip(t('settings.deleteTip'))
             .setWarning()
-            .onClick(() => { void this.deleteGroup(groupId); }));
+            .onClick(() => this.deleteGroup(groupId)));
     }
 
-    async deleteGroup(groupId: string) {
-        await this.plugin.deleteGroup(groupId);
-        this.refresh();
+    // 💡 열린 탭이 있으면 확인 뒤 탭도 닫음 (크롬과 같음). 목록은 그룹이 바뀌면 다시 그림
+    deleteGroup(groupId: string) {
+        confirmDeleteGroup(this.plugin, groupId, () => this.refresh());
     }
 
     async changeLanguage(language: LanguageSetting) {

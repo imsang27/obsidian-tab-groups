@@ -60,7 +60,8 @@ npm run check-translations
 | `src/tab-move.ts` | 단축키(Pane Relief 등)로 탭을 옮길 때 그룹 편입·이탈 |
 | `src/tab-menu.ts` | 탭 우클릭 메뉴의 그룹 항목 |
 | `src/commands.ts` | 명령어 팔레트·단축키용 명령어 |
-| `src/group-actions.ts` | 탭 메뉴·명령어·라벨이 함께 쓰는 그룹 동작 |
+| `src/group-actions.ts` | 탭 메뉴·명령어·라벨이 함께 쓰는 그룹 동작 (다시 열기·삭제 포함) |
+| `src/saved-tabs.ts` | 숨긴 그룹을 다시 열 수 있게 그룹이 기억하는 탭 목록 |
 | `src/hidden-tab-skip.ts`, `src/hidden-tab-activate.ts` | 탭 전환 시 접힌 탭 건너뛰기, 숨은 탭을 직접 열면 그룹 펼치기 |
 | `src/explorer-open.ts` | 접힌 그룹에 숨은 노트를 파일 탐색기에서 열 때 그 탭으로 이동 |
 | `src/ui/` | 그룹 만들기·관리 창과 색 팔레트 |

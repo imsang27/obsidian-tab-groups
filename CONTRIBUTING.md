@@ -60,7 +60,8 @@ npm run check-translations
 | `src/tab-move.ts` | Joining and leaving groups when tabs move by keyboard (e.g. Pane Relief) |
 | `src/tab-menu.ts` | Group items in the tab right-click menu |
 | `src/commands.ts` | Commands for the command palette and hotkeys |
-| `src/group-actions.ts` | Group actions shared by the tab menu, commands, and labels |
+| `src/group-actions.ts` | Group actions shared by the tab menu, commands, and labels (including reopen and delete) |
+| `src/saved-tabs.ts` | Tabs a group remembers so a hidden group can be reopened |
 | `src/hidden-tab-skip.ts`, `src/hidden-tab-activate.ts` | Skipping collapsed tabs when switching tabs, expanding a group when one of its tabs is opened directly |
 | `src/explorer-open.ts` | Opening a note from the file explorer that is hidden in a collapsed group |
 | `src/ui/` | The create/edit group windows and the color palette |

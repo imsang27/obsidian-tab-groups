@@ -1,5 +1,6 @@
 import type { LanguageSetting } from './i18n';
 import type { GroupStyle } from './group-style';
+import type { SavedTab } from './saved-tabs';
 
 // ✨ 플러그인이 data.json에 저장할 데이터의 형태를 정의
 export interface SavedGroupData {
@@ -9,6 +10,8 @@ export interface SavedGroupData {
 	isCollapsed: boolean;
 	// 💡 그룹에 속한 탭(Leaf)의 고유 ID 목록
 	savedTabs: string[];
+	// 💡 그룹이 기억하는 탭 목록 (숨긴 그룹을 다시 열 때 씀. 1.4 이하 데이터에는 없음)
+	tabs?: SavedTab[];
 }
 
 export interface TabGroupsSettings {

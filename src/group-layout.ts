@@ -2,6 +2,7 @@ import { WorkspaceLeaf } from 'obsidian';
 import type TabGroupsPlugin from './main';
 import { clearGroupHeader, removeLegacyInlineColor, setGroupColor } from './group-style';
 import { InternalTabs, internal } from './internal';
+import { SavedTab, nextSavedTabs, snapshotLeaf } from './saved-tabs';
 
 // ✨ 탭 바 정리: 같은 그룹의 탭을 한데 모으고(화면과 옵시디언 내부 순서 모두), 그룹 표시와 라벨을 다시 그립니다.
 // 탭 바가 바뀌면 감시자(MutationObserver)가 알려 주어 화면이 그려지기 전에 정리합니다.
@@ -11,6 +12,8 @@ export class GroupLayout {
     globalObservers: Map<Element, MutationObserver> = new Map();
     // 💡 지난 정리 때 그룹마다 속해 있던 탭 (마지막 탭이 닫혔는지 알아보는 데 씀)
     lastMembers: Map<string, WorkspaceLeaf[]> = new Map();
+    // 💡 지난 정리 때 찍어 둔 탭마다의 상태 (탭이 닫힌 뒤에는 상태를 읽을 수 없어서 미리 기억)
+    lastSnapshots: WeakMap<WorkspaceLeaf, SavedTab> = new WeakMap();
 
     constructor(plugin: TabGroupsPlugin) {
         this.plugin = plugin;
@@ -70,6 +73,7 @@ export class GroupLayout {
             }
             if (this.detachStrayTabs()) groupChanged = true;
             if (this.removeClosedGroups()) groupChanged = true;
+            if (this.updateSavedTabs()) groupChanged = true;
 
             this.restoreDomAttributes();
 
@@ -188,6 +192,40 @@ export class GroupLayout {
             }
         });
         return changed;
+    }
+
+    // 💡 그룹마다 기억할 탭 목록을 갱신합니다. (규칙은 saved-tabs.ts의 nextSavedTabs) 바뀌었으면 true.
+    updateSavedTabs(): boolean {
+        const plugin = this.plugin;
+        const openLeaves = new Set<WorkspaceLeaf>();
+        plugin.app.workspace.iterateAllLeaves(leaf => { openLeaves.add(leaf); });
+
+        let changed = false;
+        plugin.groups.forEach((groupData, groupId) => {
+            const current = plugin.groupLeaves(groupId).map(leaf => {
+                const snapshot = snapshotLeaf(leaf);
+                this.lastSnapshots.set(leaf, snapshot);
+                return snapshot;
+            });
+            const previousMembers = this.lastMembers.get(groupId) ?? [];
+            const closed = previousMembers.filter(leaf => !openLeaves.has(leaf));
+            const closedSinceLast = previousMembers.length === 0
+                ? null
+                : closed.map(leaf => this.lastSnapshots.get(leaf)).filter((tab): tab is SavedTab => !!tab);
+            const next = nextSavedTabs(current, groupData.tabs, closedSinceLast);
+            if (JSON.stringify(next) !== JSON.stringify(groupData.tabs)) {
+                groupData.tabs = next;
+                changed = true;
+            }
+        });
+        return changed;
+    }
+
+    // 💡 그룹을 숨길 때: 지금 탭 목록을 기억하고, 곧 닫힐 탭들을 "닫혀서 빈 그룹"으로 보지 않게 합니다.
+    // ("마지막 탭을 닫으면 그룹 삭제"가 켜져 있어도 숨긴 그룹은 지우지 않음)
+    prepareHide(groupId: string) {
+        this.updateSavedTabs();
+        this.lastMembers.set(groupId, []);
     }
 
     rememberMembers() {

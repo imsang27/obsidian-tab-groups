@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, WorkspaceWindow } from 'obsidian';
+import { Plugin, WorkspaceLeaf, WorkspaceWindow, debounce } from 'obsidian';
 import { TabGroupsSettings, DEFAULT_SETTINGS } from './settings';
 import { TabDragController } from './tab-drag';
 import { GroupDragController } from './group-drag';
@@ -16,12 +16,15 @@ import { internal } from './internal';
 import { TabGroupsSettingTab } from './settings-tab';
 import { PRESET_COLORS } from './ui/color-palette';
 import { GroupStyle, applyGroupStyle } from './group-style';
+import { SavedTab, renameSavedTabs } from './saved-tabs';
 
 export interface TabGroupData {
     name: string;
     color: string;
     leafIds: Set<string>;
     isCollapsed: boolean;
+    // 💡 그룹이 기억하는 탭 목록 (탭이 모두 닫혀 숨은 그룹을 다시 열 때 씀)
+    tabs: SavedTab[];
 }
 
 // ✨ 플러그인 본체: 그룹 데이터(그룹 목록, 탭 → 그룹 매핑)와 저장, 수명 주기를 맡고,
@@ -75,6 +78,21 @@ export default class TabGroupsPlugin extends Plugin {
             })
         );
 
+        // ✨ 그룹 탭에서 다른 노트를 열면 그룹이 기억하는 탭 목록도 갱신 (잦은 저장을 막으려고 모아서)
+        const syncSavedTabs = debounce(() => {
+            if (this.layout.updateSavedTabs()) void this.saveSettings();
+        }, 1000, true);
+        this.registerEvent(this.app.workspace.on('file-open', () => syncSavedTabs()));
+
+        // ✨ 노트·폴더 이름이 바뀌면 숨긴 그룹이 기억한 경로도 따라 바꿈
+        this.registerEvent(
+            this.app.vault.on('rename', (file, oldPath) => {
+                let changed = false;
+                this.groups.forEach(group => { if (renameSavedTabs(group.tabs, oldPath, file.path)) changed = true; });
+                if (changed) void this.saveSettings();
+            })
+        );
+
         // ✨ 새로 연 창(팝업)에도 그룹 표시 모양을 적용
         this.registerEvent(
             this.app.workspace.on('window-open', (win: WorkspaceWindow) => applyGroupStyle(win.doc, this.settings.groupStyle))
@@ -112,6 +130,7 @@ export default class TabGroupsPlugin extends Plugin {
                 name: g.name,
                 color: g.color,
                 isCollapsed: g.isCollapsed,
+                tabs: g.tabs ?? [],
                 leafIds: new Set() // 💡 탭 매핑(복구)은 다음 단계에서 구현!
             });
         });
@@ -144,7 +163,8 @@ export default class TabGroupsPlugin extends Plugin {
                 name: groupData.name,
                 color: groupData.color,
                 isCollapsed: groupData.isCollapsed,
-                savedTabs: tabsInGroup // ✨ 수집한 탭 ID들을 저장소에 배열로 기록!
+                savedTabs: tabsInGroup, // ✨ 수집한 탭 ID들을 저장소에 배열로 기록!
+                tabs: groupData.tabs,
             });
         });
         await this.saveData(this.settings);
@@ -197,12 +217,38 @@ export default class TabGroupsPlugin extends Plugin {
         return PRESET_COLORS.find(c => !used.has(c.toLowerCase())) ?? PRESET_COLORS[0]!;
     }
 
-    // 💡 그룹 삭제: 탭은 일반 탭으로 남기고 그룹 정보를 지웁니다. (관리 창·설정 화면에서 사용)
-    async deleteGroup(groupId: string) {
+    // 💡 그룹 해제 (크롬과 같음): 탭은 일반 탭으로 남기고 그룹 정보를 지웁니다.
+    async ungroupGroup(groupId: string) {
         this.groupLeaves(groupId).forEach(leaf => this.leafGroupMap.delete(leaf));
         this.groups.delete(groupId);
         await this.saveSettings();
         this.enforcePhysicalSorting();
+    }
+
+    // 💡 그룹 삭제 (크롬과 같음): 그룹의 탭을 모두 닫고 그룹 정보도 지웁니다. (다시 열 수 없음)
+    async deleteGroup(groupId: string) {
+        const leaves = this.groupLeaves(groupId);
+        leaves.forEach(leaf => this.leafGroupMap.delete(leaf));
+        this.groups.delete(groupId);
+        leaves.forEach(leaf => leaf.detach());
+        await this.saveSettings();
+        this.enforcePhysicalSorting();
+    }
+
+    // 💡 그룹 숨기기 (크롬과 같음): 그룹의 탭을 닫되 그룹과 탭 목록은 남겨, 나중에 다시 열 수 있게 합니다.
+    async hideGroup(groupId: string) {
+        const leaves = this.groupLeaves(groupId);
+        this.layout.prepareHide(groupId);
+        leaves.forEach(leaf => this.leafGroupMap.delete(leaf));
+        leaves.forEach(leaf => leaf.detach());
+        await this.saveSettings();
+        this.enforcePhysicalSorting();
+    }
+
+    // 💡 숨은 그룹: 열린 탭은 없고 다시 열 탭 목록만 남은 그룹
+    isGroupHidden(groupId: string): boolean {
+        const group = this.groups.get(groupId);
+        return !!group && group.tabs.length > 0 && this.groupLeaves(groupId).length === 0;
     }
 
     isGroupExpanded(groupId: string): boolean {

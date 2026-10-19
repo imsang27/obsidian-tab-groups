@@ -58,7 +58,7 @@ function addGroupItems(plugin: TabGroupsPlugin, menu: Menu, targetLeaf: Workspac
 
     if (plugin.groups.size > 0) {
         plugin.groups.forEach((groupData, groupId) => {
-            if (groupId !== currentGroupId) {
+            if (groupId !== currentGroupId && !plugin.isGroupHidden(groupId)) { // 💡 숨은 그룹은 빼고
                 menu.addItem((item) => {
                     item.setTitle(groupData.name ? t('menu.addToGroup', { name: groupData.name }) : t('menu.addToUnnamedGroup'))
                         .setIcon('folder-input')

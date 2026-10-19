@@ -2,7 +2,7 @@ import { App, Modal, Setting } from 'obsidian';
 import { t } from '../i18n';
 import { renderColorPalette } from './color-palette';
 
-export type GroupAction = 'close' | 'delete' | 'ungroup';
+export type GroupAction = 'hide' | 'ungroup' | 'delete';
 
 export class CreateGroupModal extends Modal {
     groupName: string = '';
@@ -93,25 +93,24 @@ export class EditGroupModal extends Modal {
             this.groupColor = newColor;
         });
 
-        // ✨ 3가지 액션 버튼 영역 (닫기, 삭제, 해제를 한 줄에 나란히 배치)
+        // ✨ 3가지 액션 (크롬과 같은 순서·뜻): 숨기기(나중에 다시 열기), 해제(탭은 남김), 삭제(탭도 닫음)
         new Setting(contentEl)
             .setName(t('modal.actions'))
             .addButton((btn) => btn
-                .setButtonText(t('modal.closeGroup'))
-                .setTooltip(t('modal.closeGroupTip'))
-                .setWarning() // 노란색/빨간색 경고
-                .onClick(() => { this.close(); void this.onAction('close'); })
-            )
-            .addButton((btn) => btn
-                .setButtonText(t('modal.deleteGroup'))
-                .setTooltip(t('modal.deleteGroupTip'))
-                .setWarning() // 노란색/빨간색 경고
-                .onClick(() => { this.close(); void this.onAction('delete'); })
+                .setButtonText(t('modal.hideGroup'))
+                .setTooltip(t('modal.hideGroupTip'))
+                .onClick(() => { this.close(); void this.onAction('hide'); })
             )
             .addButton((btn) => btn
                 .setButtonText(t('modal.ungroup'))
                 .setTooltip(t('modal.ungroupTip'))
                 .onClick(() => { this.close(); void this.onAction('ungroup'); })
+            )
+            .addButton((btn) => btn
+                .setButtonText(t('modal.deleteGroup'))
+                .setTooltip(t('modal.deleteGroupTip'))
+                .setWarning()
+                .onClick(() => { this.close(); void this.onAction('delete'); })
             );
 
         // ✨ 맨 하단 저장 버튼
@@ -130,6 +129,30 @@ export class EditGroupModal extends Modal {
     onClose() {
         const { contentEl } = this;
         contentEl.empty();
+    }
+}
+
+// ✨ 되돌릴 수 없는 동작 전 확인 창 (그룹 삭제: 탭도 닫힘)
+export class ConfirmModal extends Modal {
+    constructor(app: App, private title: string, private message: string, private confirmText: string, private onConfirm: () => void | Promise<void>) {
+        super(app);
+    }
+
+    onOpen() {
+        this.titleEl.setText(this.title);
+        this.contentEl.createEl('p', { text: this.message });
+        new Setting(this.contentEl)
+            .addButton(btn => btn
+                .setButtonText(t('confirm.cancel'))
+                .onClick(() => this.close()))
+            .addButton(btn => btn
+                .setButtonText(this.confirmText)
+                .setWarning()
+                .onClick(() => { this.close(); void this.onConfirm(); }));
+    }
+
+    onClose() {
+        this.contentEl.empty();
     }
 }
 

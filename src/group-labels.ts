@@ -4,7 +4,7 @@ import type { TabGroupData } from './main';
 import { setGroupColor } from './group-style';
 import { internal } from './internal';
 import { GroupAction } from './ui/group-modals';
-import { openEditGroup } from './group-actions';
+import { confirmDeleteGroup, openEditGroup } from './group-actions';
 
 // ✨ 그룹 라벨: 그룹 맨 앞 탭 앞에 그리고, 클릭하면 접기·펼치기, 우클릭하면 관리 창, 끌면 그룹 통째로 옮기기.
 export class GroupLabels {
@@ -93,27 +93,15 @@ export class GroupLabels {
         await new Promise(resolve => window.setTimeout(resolve, 20));
     }
 
-    // ✨ 관리 창의 3가지 액션(닫기, 삭제, 해제)
+    // ✨ 관리 창의 3가지 액션 (크롬과 같은 뜻)
+    // - 숨기기: 탭을 닫고 그룹은 남김 → 설정·명령어에서 다시 열기
+    // - 해제: 탭은 일반 탭으로 남기고 그룹을 지움
+    // - 삭제: 확인 뒤 탭을 닫고 그룹도 지움
     async applyAction(groupId: string, action: GroupAction) {
         const plugin = this.plugin;
-        if (action === 'close') {
-            // [그룹 닫기]: 그룹에 속한 탭을 '실제로 모두 닫고', 그룹도 삭제
-            // (주의: 반복문 도중 탭을 닫으면 트리가 꼬이므로 배열에 모아두었다가 한 번에 닫음)
-            plugin.groupLeaves(groupId).forEach(leaf => leaf.detach()); // 네이티브 탭 닫기 명령
-            plugin.groups.delete(groupId);
-        }
-        else if (action === 'delete') {
-            // [그룹 삭제]: 탭을 일반 탭으로 풀고, 그룹 데이터도 완전히 삭제
-            await plugin.deleteGroup(groupId);
-            return;
-        }
-        else if (action === 'ungroup') {
-            // [그룹 해제]: 탭만 일반 탭으로 풀고, 그룹 데이터는 유지
-            plugin.groupLeaves(groupId).forEach(leaf => plugin.leafGroupMap.delete(leaf));
-        }
-
-        await plugin.saveSettings();
-        plugin.enforcePhysicalSorting();
+        if (action === 'hide') await plugin.hideGroup(groupId);
+        else if (action === 'ungroup') await plugin.ungroupGroup(groupId);
+        else confirmDeleteGroup(plugin, groupId);
     }
 
     insertStandaloneLabel(leaderEl: HTMLElement, groupId: string, groupData: TabGroupData) {
