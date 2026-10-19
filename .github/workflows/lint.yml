@@ -1,6 +1,6 @@
 name: Node.js build
 
-# 💻 Code: type check, build and lint. Skipped when only docs or GitHub templates change.
+# 💻 Code: type check, build, lint and unit tests. Skipped when only docs or GitHub templates change.
 # Runs on pull requests, and on push only for main (so a pull request's commits aren't checked twice).
 on:
     push:
@@ -43,3 +43,4 @@ jobs:
             - run: npm ci
             - run: npm run build
             - run: npm run lint
+            - run: npm test

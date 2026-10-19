@@ -15,4 +15,5 @@ core:
     - changed-files:
           - any-glob-to-any-file:
                 - 'src/**/*.ts'
+                - 'tests/**/*.ts'
                 - 'styles.css'

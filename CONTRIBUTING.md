@@ -12,7 +12,7 @@ Thank you for helping improve Tab Groups! This guide explains how to contribute 
 | 💡 Feature ideas | [Suggest a feature](https://github.com/imsang27/obsidian-tab-groups/issues/new?template=feature_request.yml) | — |
 | 🌐 Translations | See the [translation guide](./docs/translating.md) | Keys, `{placeholders}` and JSON format, with a coverage report |
 | 📝 Documentation | Edit the Markdown files and open a pull request | Relative links |
-| 💻 Code | See [Code contributions](#-code-contributions) below | Type check, build and lint |
+| 💻 Code | See [Code contributions](#-code-contributions) below | Type check, build, lint and unit tests |
 
 Pull requests are labeled by area automatically, and only the checks for the files you changed run.
 
@@ -37,11 +37,13 @@ Pull requests are labeled by area automatically, and only the checks for the fil
 ```bash
 npm run build
 npm run lint
+npm test
 npm run check-translations
 ```
 
 * **Discuss bigger changes first** in an issue, so your work fits the plugin's direction.
 * **One topic per pull request.** Keep refactors separate from behavior changes.
+* **Unit tests** live in [`tests/`](./tests) and cover logic that runs without Obsidian (group rules, saved tabs, translations, colors). If you change that logic, add or update a test. They run with [Vitest](https://vitest.dev); `npm test` runs them once.
 * **Test in Obsidian**: dragging tabs and groups, collapsing and expanding, and restarting Obsidian (groups must be restored).
 * **New UI text** goes in [`src/i18n/locales/en.json`](./src/i18n/locales/en.json) and is used with `t('key')`. Add the Korean text to `ko.json` if you can. Other languages fall back to English until they are translated.
 * **Clean up** every listener with the `register*` helpers so that disabling the plugin leaves nothing behind.
@@ -68,6 +70,7 @@ npm run check-translations
 | `src/group-style.ts`, `src/internal.ts` | Shared helpers: group colors on tab headers, types for Obsidian's internal API |
 | `src/settings.ts`, `src/settings-tab.ts` | Settings and the settings tab |
 | `src/i18n/` | Translations |
+| `tests/` | Unit tests (`tests/obsidian-stub.ts` stands in for the `obsidian` package) |
 
 ### Pull request titles
 Pull requests are squash-merged, and the title becomes the commit message. Use the [gitmoji](https://gitmoji.dev/) + type(scope) format:
