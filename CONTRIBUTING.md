@@ -41,6 +41,8 @@ npm test
 npm run check-translations
 ```
 
+`npm install` also sets up a **pre-push hook** ([`.githooks/pre-push`](./.githooks/pre-push)) that runs the type check, lint, unit tests and translation check before every `git push`, the same checks as CI. If one fails, the push stops so you can fix it first. To skip it once, use `git push --no-verify`.
+
 * **Discuss bigger changes first** in an issue, so your work fits the plugin's direction.
 * **One topic per pull request.** Keep refactors separate from behavior changes.
 * **Unit tests** live in [`tests/`](./tests) and cover logic that runs without Obsidian (group rules, saved tabs, translations, colors). If you change that logic, add or update a test. They run with [Vitest](https://vitest.dev); `npm test` runs them once.

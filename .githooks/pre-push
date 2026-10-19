@@ -1,0 +1,25 @@
+#!/bin/sh
+# Runs the same checks as CI before a push, so a failing commit doesn't reach GitHub.
+# Installed by `npm install` (scripts/install-git-hooks.mjs). Skip once with: git push --no-verify
+#
+# Type check only (tsc), without bundling, so main.js isn't rewritten while you push.
+
+if [ ! -d node_modules ]; then
+	echo "pre-push: node_modules is missing. Run npm install first, or skip with git push --no-verify." >&2
+	exit 1
+fi
+
+run() {
+	echo "pre-push: $1"
+	shift
+	if ! "$@"; then
+		echo "pre-push: failed. Fix it and push again, or skip with git push --no-verify." >&2
+		exit 1
+	fi
+}
+
+run "type check" npx --no-install tsc -noEmit -skipLibCheck
+run "lint" npm run --silent lint
+run "unit tests" npm test --silent
+run "translations" npm run --silent check-translations
+echo "pre-push: all checks passed"

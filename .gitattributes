@@ -1,0 +1,2 @@
+# Git hooks run with sh, which needs LF line endings.
+.githooks/* text eol=lf
