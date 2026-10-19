@@ -126,7 +126,7 @@ export class TabMoveTracker {
 
 // 💡 두 순서를 비교해 탭 하나만 자리를 옮겼으면 그 탭과 이전·새 위치를 돌려줍니다.
 // 이웃한 두 탭이 맞바뀐 경우는 어느 쪽이 움직였는지 모호하므로 활성 탭을 기준으로 정합니다.
-function findMovedLeaf(before: WorkspaceLeaf[], now: WorkspaceLeaf[], active: WorkspaceLeaf | null): LeafMove | null {
+export function findMovedLeaf(before: WorkspaceLeaf[], now: WorkspaceLeaf[], active: WorkspaceLeaf | null): LeafMove | null {
     if (before.length !== now.length) return null;
     let a = 0;
     while (a < now.length && before[a] === now[a]) a++;

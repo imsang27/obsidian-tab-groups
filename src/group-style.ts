@@ -14,7 +14,7 @@ export function setGroupColor(el: HTMLElement, color: string) {
 }
 
 // 💡 그룹 색 위에 올릴 글자색: 흰색·검은색 중 대비가 더 큰 쪽 (노란색처럼 밝은 색엔 검은 글자)
-function readableTextColor(color: string): string {
+export function readableTextColor(color: string): string {
     const hex = /^#([0-9a-f]{6})/i.exec(color)?.[1];
     if (!hex) return '#fff';
     const [r, g, b] = [0, 2, 4].map(i => {

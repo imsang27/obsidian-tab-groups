@@ -17,7 +17,7 @@ Closes #
 
 ## Checklist
 <!-- Check what applies. You can leave the rest unchecked. -->
-- [ ] `npm run build` and `npm run lint` pass (code changes)
+- [ ] `npm run build`, `npm run lint` and `npm test` pass (code changes)
 - [ ] Tested in Obsidian. Version and OS: <!-- e.g. 1.12.7, Windows 11 -->
 - [ ] New UI text is in `en.json` and used with `t('key')`
 - [ ] `npm run check-translations` passes (translations)

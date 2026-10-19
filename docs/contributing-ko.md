@@ -12,7 +12,7 @@ Tab Groups를 함께 다듬어 주셔서 고맙습니다! 분야별로 기여하
 | 💡 기능 제안 | [기능 제안 이슈 열기](https://github.com/imsang27/obsidian-tab-groups/issues/new?template=feature_request.yml) | — |
 | 🌐 번역 | [번역 가이드](./translating-ko.md) 참고 | 키, `{자리 표시자}`, JSON 형식 검사와 번역률 보고 |
 | 📝 문서 | Markdown 파일을 고쳐 풀 리퀘스트 올리기 | 상대 링크 검사 |
-| 💻 코드 | 아래 [코드 기여](#-코드-기여) 참고 | 타입 검사, 빌드, 린트 |
+| 💻 코드 | 아래 [코드 기여](#-코드-기여) 참고 | 타입 검사, 빌드, 린트, 단위 테스트 |
 
 풀 리퀘스트에는 분야별 라벨이 자동으로 붙고, 바꾼 파일에 해당하는 검사만 돌아갑니다.
 
@@ -37,11 +37,13 @@ Tab Groups를 함께 다듬어 주셔서 고맙습니다! 분야별로 기여하
 ```bash
 npm run build
 npm run lint
+npm test
 npm run check-translations
 ```
 
 * **큰 변경은 먼저 이슈에서 이야기해 주세요.** 플러그인 방향과 맞는지 미리 맞춰 볼 수 있습니다.
 * **풀 리퀘스트 하나에 주제 하나.** 구조 정리와 동작 변경은 나눠 주세요.
+* **단위 테스트**는 [`tests/`](../tests)에 있고, 옵시디언 없이 돌아가는 로직(그룹 규칙, 기억한 탭, 번역, 색)을 시험합니다. 이 로직을 바꾸면 테스트도 더하거나 고쳐 주세요. [Vitest](https://vitest.dev)로 돌아가며 `npm test`로 한 번 실행합니다.
 * **옵시디언에서 직접 확인해 주세요.** 탭·그룹 끌기, 접기·펼치기, 옵시디언을 다시 켰을 때 그룹이 복원되는지 봐 주세요.
 * **새 화면 문구**는 [`src/i18n/locales/en.json`](../src/i18n/locales/en.json)에 넣고 `t('키')`로 씁니다. 가능하면 `ko.json`에 한국어도 넣어 주세요. 다른 언어는 번역되기 전까지 영어로 보입니다.
 * **정리**: 모든 리스너는 `register*` 도우미로 등록해서, 플러그인을 끄면 남는 게 없어야 합니다.
@@ -68,6 +70,7 @@ npm run check-translations
 | `src/group-style.ts`, `src/internal.ts` | 공용 도우미: 탭 헤더의 그룹 색, 옵시디언 내부 API 타입 |
 | `src/settings.ts`, `src/settings-tab.ts` | 설정과 설정 화면 |
 | `src/i18n/` | 번역 |
+| `tests/` | 단위 테스트 (`tests/obsidian-stub.ts`가 `obsidian` 패키지를 대신함) |
 
 ### 풀 리퀘스트 제목
 풀 리퀘스트는 스쿼시 병합하고, 제목이 그대로 커밋 메시지가 됩니다. [gitmoji](https://gitmoji.dev/) + 타입(스코프) 형식으로 적어 주세요.
