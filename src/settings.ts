@@ -22,6 +22,8 @@ export interface TabGroupsSettings {
 	groupStyle: GroupStyle;
 	// 💡 그룹의 마지막 탭을 닫으면 그룹도 지울지 (끄면 탭이 없어도 그룹을 남겨 다시 쓸 수 있음)
 	removeEmptyGroups: boolean;
+	// 💡 그룹 탭에서 연 노트가 그 탭을 바꾸지 않고 새 탭에 열리게 할지 (탭을 고정하지는 않음)
+	lockGroupedTabs: boolean;
 }
 
 export const DEFAULT_SETTINGS: TabGroupsSettings = {
@@ -29,4 +31,5 @@ export const DEFAULT_SETTINGS: TabGroupsSettings = {
 	language: 'auto',
 	groupStyle: 'underline',
 	removeEmptyGroups: false,
+	lockGroupedTabs: false,
 };

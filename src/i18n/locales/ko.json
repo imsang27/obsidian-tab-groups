@@ -26,6 +26,8 @@
     "settings.groupStyleClassic": "클래식",
     "settings.removeEmptyGroups": "마지막 탭을 닫으면 그룹 삭제",
     "settings.removeEmptyGroupsDesc": "그룹의 마지막 탭을 닫으면 크롬처럼 그룹도 지웁니다. 끄면 그룹이 남아 있어 나중에 다시 탭을 넣을 수 있습니다.",
+    "settings.lockGroupedTabs": "그룹 탭 잠금",
+    "settings.lockGroupedTabsDesc": "그룹에 속한 탭의 노트가 바뀌지 않게 합니다. 링크·탐색기·빠른 전환기로 연 노트는 그룹 밖의 새 탭에 열리고, 탭 메뉴에서 그룹에 넣으면 그 탭도 잠깁니다. 탭을 고정하지 않으므로 탭 위치는 그대로입니다.",
     "settings.groups": "탭 그룹",
     "settings.groupsDesc": "숨긴 그룹은 탭 목록을 기억하고 있어 여기서 다시 열 수 있습니다. 더 쓰지 않는 그룹은 지우세요.",
     "settings.noGroups": "아직 그룹이 없습니다. 탭을 우클릭해 \"새 탭 그룹 만들기\"를 선택하세요.",

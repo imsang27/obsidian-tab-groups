@@ -34,6 +34,11 @@ export class TabGroupsSettingTab extends PluginSettingTab {
                 control: { type: 'toggle', key: 'removeEmptyGroups' },
             },
             {
+                name: t('settings.lockGroupedTabs'),
+                desc: t('settings.lockGroupedTabsDesc'),
+                control: { type: 'toggle', key: 'lockGroupedTabs' },
+            },
+            {
                 type: 'list',
                 heading: t('settings.groups'),
                 emptyState: t('settings.noGroups'),
@@ -56,6 +61,7 @@ export class TabGroupsSettingTab extends PluginSettingTab {
         if (key === 'language') await this.changeLanguage(value as LanguageSetting);
         if (key === 'groupStyle') await this.changeGroupStyle(value as GroupStyle);
         if (key === 'removeEmptyGroups') await this.changeRemoveEmptyGroups(value === true);
+        if (key === 'lockGroupedTabs') await this.changeLockGroupedTabs(value === true);
     }
 
     // 💡 옵시디언 1.13 미만용
@@ -85,6 +91,13 @@ export class TabGroupsSettingTab extends PluginSettingTab {
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.removeEmptyGroups)
                 .onChange(value => { void this.changeRemoveEmptyGroups(value); }));
+
+        new Setting(containerEl)
+            .setName(t('settings.lockGroupedTabs'))
+            .setDesc(t('settings.lockGroupedTabsDesc'))
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.lockGroupedTabs)
+                .onChange(value => { void this.changeLockGroupedTabs(value); }));
 
         this.displayGroups(containerEl);
     }
@@ -177,6 +190,11 @@ export class TabGroupsSettingTab extends PluginSettingTab {
 
     async changeRemoveEmptyGroups(remove: boolean) {
         this.plugin.settings.removeEmptyGroups = remove;
+        await this.plugin.saveSettings();
+    }
+
+    async changeLockGroupedTabs(enabled: boolean) {
+        this.plugin.settings.lockGroupedTabs = enabled;
         await this.plugin.saveSettings();
     }
 

@@ -26,6 +26,8 @@
     "settings.groupStyleClassic": "Clássico",
     "settings.removeEmptyGroups": "Excluir o grupo ao fechar sua última aba",
     "settings.removeEmptyGroupsDesc": "Ao fechar a última aba de um grupo, o grupo também é excluído, como no Chrome. Desativado, o grupo é mantido para ser usado de novo.",
+    "settings.lockGroupedTabs": "Bloquear abas agrupadas",
+    "settings.lockGroupedTabsDesc": "Impede que a nota de uma aba agrupada seja substituída. Uma nota aberta a partir dela (link, explorador de arquivos, alternador rápido) abre em uma nova aba fora do grupo; adicione essa aba ao grupo pelo menu da aba para mantê-la. As abas não são fixadas, então ficam onde estão.",
     "settings.groups": "Grupos de abas",
     "settings.groupsDesc": "Grupos ocultos lembram as suas abas, então você pode reabri-los aqui. Exclua os grupos de que não precisa mais.",
     "settings.noGroups": "Ainda não há grupos. Clique com o botão direito em uma aba e selecione \"Criar grupo de abas\".",

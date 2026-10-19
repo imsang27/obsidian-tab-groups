@@ -26,6 +26,8 @@
     "settings.groupStyleClassic": "Klassisch",
     "settings.removeEmptyGroups": "Gruppe entfernen, wenn ihr letzter Tab geschlossen wird",
     "settings.removeEmptyGroupsDesc": "Wenn der letzte Tab einer Gruppe geschlossen wird, wird auch die Gruppe gelöscht, wie in Chrome. Wenn aus, bleibt die Gruppe erhalten und kann wieder verwendet werden.",
+    "settings.lockGroupedTabs": "Gruppierte Tabs sperren",
+    "settings.lockGroupedTabsDesc": "Verhindert, dass die Notiz in einem gruppierten Tab ersetzt wird. Eine von dort geöffnete Notiz (Link, Dateiexplorer, Schnellwechsler) öffnet sich in einem neuen Tab außerhalb der Gruppe; füge diesen Tab über das Tab-Menü zur Gruppe hinzu, um ihn zu behalten. Tabs werden nicht angeheftet und bleiben an ihrem Platz.",
     "settings.groups": "Tab-Gruppen",
     "settings.groupsDesc": "Ausgeblendete Gruppen merken sich ihre Tabs, damit du sie hier wieder öffnen kannst. Lösche die Gruppen, die du nicht mehr brauchst.",
     "settings.noGroups": "Noch keine Gruppen. Klicke mit der rechten Maustaste auf einen Tab und wähle „Tab-Gruppe erstellen“.",
