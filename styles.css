@@ -119,8 +119,8 @@ html body:not(.tab-groups-style-classic) .workspace-tab-header.tab-group-member.
 
 /* 💡 선택된 탭(그룹 안이든 밖이든) 바로 옆에서는 밑줄을 탭 곡선 너비만큼 줄여,
    선택된 탭 아래 곡선과 겹치지 않고 곡선 끝에서 자연스럽게 이어지게 함 */
-html body:not(.tab-groups-style-classic) .workspace-tab-header.tab-group-member:has(+ .workspace-tab-header.is-active):not(#tab-groups) .workspace-tab-header-inner::before,
-html body:not(.tab-groups-style-classic) .tab-group-label:has(+ .workspace-tab-header.is-active)::after {
+html body:not(.tab-groups-style-classic) .workspace-tab-header.tab-group-member.tab-group-before-active:not(#tab-groups) .workspace-tab-header-inner::before,
+html body:not(.tab-groups-style-classic) .tab-group-label.tab-group-before-active::after {
     right: var(--tab-curve, 10px);
 }
 

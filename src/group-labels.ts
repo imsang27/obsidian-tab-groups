@@ -19,6 +19,10 @@ export class GroupLabels {
     register() {
         // 💡 새로 누르기 시작하면 드래그 뒤 클릭 무시 표시를 지웁니다. (드롭으로 끝나 클릭이 오지 않은 경우)
         this.plugin.registerDomEvent(window, 'mousedown', () => { this.ignoreNextLabelClick = false; }, { capture: true });
+        // 💡 탭을 고르면 선택된 탭 바로 앞 표시도 옮깁니다. (탭을 고르는 것만으로는 탭 바 정리가 돌지 않음)
+        this.plugin.registerEvent(this.plugin.app.workspace.on('active-leaf-change', () => {
+            this.plugin.tabContainers().forEach(container => markBeforeActive(container));
+        }));
     }
 
     render() {
@@ -57,12 +61,17 @@ export class GroupLabels {
                     header.classList.toggle('tab-group-last', i === groupHeaders.length - 1);
                 });
             });
+
+            markBeforeActive(container);
         });
     }
 
     // 💡 플러그인을 끌 때 라벨을 모두 치웁니다.
     removeAll() {
-        this.plugin.tabContainers().forEach(container => container.querySelectorAll('.tab-group-label').forEach(el => el.remove()));
+        this.plugin.tabContainers().forEach(container => {
+            container.querySelectorAll('.tab-group-label').forEach(el => el.remove());
+            container.querySelectorAll('.tab-group-before-active').forEach(el => el.removeClass('tab-group-before-active'));
+        });
     }
 
     async toggleCollapsed(groupId: string, groupData: TabGroupData) {
@@ -153,4 +162,11 @@ export class GroupLabels {
         // 리더 탭 앞에 삽입
         container.insertBefore(labelEl, leaderEl);
     }
+}
+
+// 💡 선택된 탭 바로 앞 요소(탭이나 라벨)에 표시를 붙입니다. 밑줄 모양에서 그 요소의 밑줄을
+// 선택된 탭 곡선 앞에서 끊는 데 씁니다. (CSS :has()는 다시 그리는 범위가 넓어 커뮤니티 검토에서 경고가 나와 대신 씀)
+function markBeforeActive(container: HTMLElement) {
+    const before = container.querySelector<HTMLElement>(':scope > .workspace-tab-header.is-active')?.previousElementSibling ?? null;
+    Array.from(container.children).forEach(el => el.toggleClass('tab-group-before-active', el === before));
 }
