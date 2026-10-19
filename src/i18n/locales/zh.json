@@ -30,5 +30,11 @@
     "settings.openTabs": "{count} 个打开的标签页",
     "settings.delete": "删除组",
     "settings.deleteTip": "删除该组。其中的标签页保留为普通标签页。",
-    "group.unnamed": "未命名组"
+    "group.unnamed": "未命名组",
+    "command.createGroup": "用当前标签页新建标签组",
+    "command.addToGroup": "将当前标签页加入组",
+    "command.removeFromGroup": "将当前标签页移出组",
+    "command.toggleGroup": "折叠或展开当前标签页所在的组",
+    "command.editGroup": "编辑当前标签页所在的组",
+    "command.chooseGroup": "选择组"
 }

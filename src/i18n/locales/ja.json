@@ -30,5 +30,11 @@
     "settings.openTabs": "開いているタブ: {count}",
     "settings.delete": "グループを削除",
     "settings.deleteTip": "グループを削除します。タブは通常のタブとして残ります。",
-    "group.unnamed": "名前のないグループ"
+    "group.unnamed": "名前のないグループ",
+    "command.createGroup": "現在のタブで新しいタブグループを作成",
+    "command.addToGroup": "現在のタブをグループに追加",
+    "command.removeFromGroup": "現在のタブをグループから外す",
+    "command.toggleGroup": "現在のタブのグループを折りたたむ・展開する",
+    "command.editGroup": "現在のタブのグループを編集",
+    "command.chooseGroup": "グループを選択"
 }

@@ -30,5 +30,11 @@
     "settings.openTabs": "{count} 個開啟的分頁",
     "settings.delete": "刪除群組",
     "settings.deleteTip": "刪除群組。其中的分頁會保留為一般分頁。",
-    "group.unnamed": "未命名群組"
+    "group.unnamed": "未命名群組",
+    "command.createGroup": "用目前分頁建立分頁群組",
+    "command.addToGroup": "將目前分頁加入群組",
+    "command.removeFromGroup": "將目前分頁移出群組",
+    "command.toggleGroup": "收合或展開目前分頁所在的群組",
+    "command.editGroup": "編輯目前分頁所在的群組",
+    "command.chooseGroup": "選擇群組"
 }

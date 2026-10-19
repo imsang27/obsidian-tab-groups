@@ -30,5 +30,11 @@
     "settings.openTabs": "Pestañas abiertas: {count}",
     "settings.delete": "Eliminar grupo",
     "settings.deleteTip": "Elimina el grupo. Sus pestañas siguen abiertas como pestañas normales.",
-    "group.unnamed": "Grupo sin nombre"
+    "group.unnamed": "Grupo sin nombre",
+    "command.createGroup": "Crear grupo de pestañas con la pestaña actual",
+    "command.addToGroup": "Añadir la pestaña actual a un grupo",
+    "command.removeFromGroup": "Quitar la pestaña actual de su grupo",
+    "command.toggleGroup": "Contraer o expandir el grupo de la pestaña actual",
+    "command.editGroup": "Editar el grupo de la pestaña actual",
+    "command.chooseGroup": "Elige un grupo"
 }

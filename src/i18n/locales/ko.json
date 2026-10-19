@@ -30,5 +30,11 @@
     "settings.openTabs": "열린 탭 {count}개",
     "settings.delete": "그룹 삭제",
     "settings.deleteTip": "그룹을 삭제합니다. 탭은 일반 탭으로 남습니다.",
-    "group.unnamed": "이름 없는 그룹"
+    "group.unnamed": "이름 없는 그룹",
+    "command.createGroup": "현재 탭으로 새 탭 그룹 만들기",
+    "command.addToGroup": "현재 탭을 그룹에 넣기",
+    "command.removeFromGroup": "현재 탭을 그룹에서 제외",
+    "command.toggleGroup": "현재 탭의 그룹 접기·펼치기",
+    "command.editGroup": "현재 탭의 그룹 편집",
+    "command.chooseGroup": "그룹 선택"
 }

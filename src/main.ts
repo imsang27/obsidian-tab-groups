@@ -10,6 +10,7 @@ import { registerHiddenTabSkip } from './hidden-tab-skip';
 import { registerHiddenTabActivation } from './hidden-tab-activate';
 import { registerExplorerOpen } from './explorer-open';
 import { registerTabMenu } from './tab-menu';
+import { registerCommands } from './commands';
 import { setLanguage } from './i18n';
 import { internal } from './internal';
 import { TabGroupsSettingTab } from './settings-tab';
@@ -93,6 +94,9 @@ export default class TabGroupsPlugin extends Plugin {
 
         // ✨ 탭 우클릭 메뉴의 그룹 항목
         registerTabMenu(this);
+
+        // ✨ 명령 팔레트·단축키용 명령어
+        registerCommands(this);
 
         this.addSettingTab(new TabGroupsSettingTab(this.app, this));
     }

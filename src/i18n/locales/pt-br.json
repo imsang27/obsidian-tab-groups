@@ -30,5 +30,11 @@
     "settings.openTabs": "Abas abertas: {count}",
     "settings.delete": "Excluir grupo",
     "settings.deleteTip": "Exclui o grupo. As abas continuam abertas como abas normais.",
-    "group.unnamed": "Grupo sem nome"
+    "group.unnamed": "Grupo sem nome",
+    "command.createGroup": "Criar grupo de abas com a aba atual",
+    "command.addToGroup": "Adicionar a aba atual a um grupo",
+    "command.removeFromGroup": "Remover a aba atual do grupo",
+    "command.toggleGroup": "Recolher ou expandir o grupo da aba atual",
+    "command.editGroup": "Editar o grupo da aba atual",
+    "command.chooseGroup": "Escolha um grupo"
 }

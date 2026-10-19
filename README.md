@@ -28,6 +28,15 @@ Chrome-style tab groups for Obsidian. Name and color related tabs, and collapse 
 2. To add another tab, right-click it and select **Add to "group name"**, or drag it into the group. To take a tab out, select **Remove from group** or drag it out.
 3. Click the group label to collapse or expand it. Right-click the label to rename it, change its color, ungroup or delete it, or close the group (this closes all of its tabs).
 
+### Commands
+Run these from the command palette, or assign hotkeys in **Settings → Hotkeys**. They work on the current tab.
+
+* **Create tab group from the current tab**
+* **Add the current tab to a group** (pick the group from a list)
+* **Remove the current tab from its group**
+* **Collapse or expand the current tab's group**
+* **Edit the current tab's group**
+
 ## ⚙️ Settings
 ---
 Open **Settings → Community plugins → Tab Groups**.
@@ -42,22 +51,26 @@ Open **Settings → Community plugins → Tab Groups**.
 
 * **Tab groups:** Lists every group with the number of open tabs. Groups stay even when none of their tabs are open, so you can reuse them from the tab menu. Select **Delete group** to remove the ones you no longer need.
 
-## 📝 Notes
+## 📝 Scope
 ---
-* A tab that you move to another pane leaves its group, like in Chrome. The group stays in its original pane.
-* The tab menu only appears for tabs that show a file. Other tabs, such as an empty tab or the graph view, can be added to a group by dragging them into it.
-* Stacked tabs mode hasn't been tested.
+| | Works | Not supported or not tested |
+|---|---|---|
+| **Tabs** | Note tabs, empty tabs, and other views such as the graph | Sidebar tabs (left and right panels) can be grouped but haven't been fully tested |
+| **Windows** | The main window and pop-out windows. Drag a group's label to move the whole group to another pane | |
+| **Moving tabs** | Drag and drop, and keyboard moves such as [Pane Relief](https://github.com/pjeby/pane-relief)'s "swap tab" | |
+| **Layouts** | The normal tab bar | Stacked tabs mode (not tested) |
+| **Platforms** | Desktop | Mobile |
+
+A single tab that you move to another pane leaves its group, like in Chrome. The group stays in its original pane.
 
 ## 🛠️ Installation
 ---
-### Manual installation
-Until the plugin is listed in the Community Plugins catalog, you can install it manually:
+Open **Settings → Community plugins → Browse**, search for **Tab Groups**, then select **Install** and **Enable**.
 
+### Manual installation
 1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/imsang27/obsidian-tab-groups/releases/latest).
 2. In your vault, create the folder `.obsidian/plugins/tab-groups/` and put the files in it.
 3. Restart Obsidian, go to **Settings → Community plugins**, and turn on **Tab Groups**.
-
-The plugin is desktop-only.
 
 ## 💻 Development
 ---

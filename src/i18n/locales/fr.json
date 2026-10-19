@@ -30,5 +30,11 @@
     "settings.openTabs": "Onglets ouverts : {count}",
     "settings.delete": "Supprimer le groupe",
     "settings.deleteTip": "Supprimer le groupe. Ses onglets restent ouverts comme onglets normaux.",
-    "group.unnamed": "Groupe sans nom"
+    "group.unnamed": "Groupe sans nom",
+    "command.createGroup": "Créer un groupe d'onglets avec l'onglet actuel",
+    "command.addToGroup": "Ajouter l'onglet actuel à un groupe",
+    "command.removeFromGroup": "Retirer l'onglet actuel de son groupe",
+    "command.toggleGroup": "Réduire ou développer le groupe de l'onglet actuel",
+    "command.editGroup": "Modifier le groupe de l'onglet actuel",
+    "command.chooseGroup": "Choisir un groupe"
 }

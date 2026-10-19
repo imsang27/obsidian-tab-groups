@@ -30,5 +30,11 @@
     "settings.openTabs": "Открыто вкладок: {count}",
     "settings.delete": "Удалить группу",
     "settings.deleteTip": "Удалить группу. Её вкладки останутся открытыми как обычные.",
-    "group.unnamed": "Группа без названия"
+    "group.unnamed": "Группа без названия",
+    "command.createGroup": "Создать группу вкладок из текущей вкладки",
+    "command.addToGroup": "Добавить текущую вкладку в группу",
+    "command.removeFromGroup": "Убрать текущую вкладку из группы",
+    "command.toggleGroup": "Свернуть или развернуть группу текущей вкладки",
+    "command.editGroup": "Изменить группу текущей вкладки",
+    "command.chooseGroup": "Выберите группу"
 }

@@ -30,5 +30,11 @@
     "settings.openTabs": "Geöffnete Tabs: {count}",
     "settings.delete": "Gruppe löschen",
     "settings.deleteTip": "Die Gruppe löschen. Ihre Tabs bleiben als normale Tabs geöffnet.",
-    "group.unnamed": "Unbenannte Gruppe"
+    "group.unnamed": "Unbenannte Gruppe",
+    "command.createGroup": "Tab-Gruppe aus aktuellem Tab erstellen",
+    "command.addToGroup": "Aktuellen Tab zu einer Gruppe hinzufügen",
+    "command.removeFromGroup": "Aktuellen Tab aus seiner Gruppe entfernen",
+    "command.toggleGroup": "Gruppe des aktuellen Tabs ein- oder ausklappen",
+    "command.editGroup": "Gruppe des aktuellen Tabs bearbeiten",
+    "command.chooseGroup": "Gruppe auswählen"
 }

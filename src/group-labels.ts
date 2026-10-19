@@ -3,7 +3,8 @@ import type TabGroupsPlugin from './main';
 import type { TabGroupData } from './main';
 import { setGroupColor } from './group-style';
 import { internal } from './internal';
-import { EditGroupModal, GroupAction } from './ui/group-modals';
+import { GroupAction } from './ui/group-modals';
+import { openEditGroup } from './group-actions';
 
 // ✨ 그룹 라벨: 그룹 맨 앞 탭 앞에 그리고, 클릭하면 접기·펼치기, 우클릭하면 관리 창, 끌면 그룹 통째로 옮기기.
 export class GroupLabels {
@@ -136,20 +137,7 @@ export class GroupLabels {
         labelEl.addEventListener('contextmenu', (e: MouseEvent) => {
             e.preventDefault(); // 기본 브라우저 우클릭 메뉴 차단
 
-            new EditGroupModal(
-                plugin.app,
-                groupData.name,
-                groupData.color,
-                // 1. 저장(onSubmit) 콜백
-                async (newName, newColor) => {
-                    groupData.name = newName;
-                    groupData.color = newColor;
-                    await plugin.saveSettings();
-                    plugin.enforcePhysicalSorting();
-                },
-                // 2. 액션(onAction) 콜백 - 닫기, 삭제, 해제 통합 처리
-                (action) => this.applyAction(groupId, action)
-            ).open();
+            openEditGroup(plugin, groupId);
         });
 
         labelEl.draggable = true;
