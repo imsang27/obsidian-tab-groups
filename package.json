@@ -10,7 +10,8 @@
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
 		"lint": "eslint .",
 		"test": "vitest run",
-		"check-translations": "node scripts/check-translations.mjs"
+		"check-translations": "node scripts/check-translations.mjs",
+		"prepare": "node scripts/install-git-hooks.mjs"
 	},
 	"keywords": [
 		"obsidian",
