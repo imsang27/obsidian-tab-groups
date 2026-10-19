@@ -24,6 +24,8 @@
     "settings.groupStyleDesc": "Apparence des groupes dans la barre d'onglets.",
     "settings.groupStyleUnderline": "Souligné",
     "settings.groupStyleClassic": "Classique",
+    "settings.removeEmptyGroups": "Supprimer un groupe à la fermeture de son dernier onglet",
+    "settings.removeEmptyGroupsDesc": "Quand le dernier onglet d'un groupe est fermé, le groupe est aussi supprimé, comme dans Chrome. Désactivé, le groupe est conservé pour être réutilisé.",
     "settings.groups": "Groupes d'onglets",
     "settings.groupsDesc": "Les groupes sont conservés même si aucun de leurs onglets n'est ouvert : vous pouvez leur ajouter de nouveau des onglets depuis le menu des onglets. Supprimez ceux dont vous n'avez plus besoin.",
     "settings.noGroups": "Aucun groupe pour l'instant. Faites un clic droit sur un onglet et sélectionnez « Créer un groupe d'onglets ».",

@@ -40,6 +40,7 @@ Open **Settings → Community plugins → Tab Groups**.
     <img alt="Underline (top) and Classic (bottom) group styles. In each style, the second row shows the first group collapsed." src="./docs/images/group-styles-light.png">
   </picture>
 
+* **Remove a group when its last tab closes:** Off by default. When on, closing the last tab of a group deletes the group, like Chrome. When off, the group stays so you can add tabs to it again.
 * **Tab groups:** Lists every group with the number of open tabs. Groups stay even when none of their tabs are open, so you can reuse them from the tab menu. Select **Delete group** to remove the ones you no longer need.
 
 ## 📝 Notes

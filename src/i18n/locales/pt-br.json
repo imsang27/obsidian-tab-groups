@@ -24,6 +24,8 @@
     "settings.groupStyleDesc": "Como os grupos aparecem na barra de abas.",
     "settings.groupStyleUnderline": "Sublinhado",
     "settings.groupStyleClassic": "Clássico",
+    "settings.removeEmptyGroups": "Excluir o grupo ao fechar sua última aba",
+    "settings.removeEmptyGroupsDesc": "Ao fechar a última aba de um grupo, o grupo também é excluído, como no Chrome. Desativado, o grupo é mantido para ser usado de novo.",
     "settings.groups": "Grupos de abas",
     "settings.groupsDesc": "Os grupos são mantidos mesmo quando nenhuma de suas abas está aberta, então você pode adicionar abas a eles novamente pelo menu de abas. Exclua os que você não precisa mais.",
     "settings.noGroups": "Ainda não há grupos. Clique com o botão direito em uma aba e selecione \"Criar grupo de abas\".",

@@ -17,10 +17,13 @@ export interface TabGroupsSettings {
 	language: LanguageSetting;
 	// 💡 그룹 표시 모양 (underline: 그룹 탭 아래 색 밑줄, classic: 위쪽 색 줄과 옅은 배경)
 	groupStyle: GroupStyle;
+	// 💡 그룹의 마지막 탭을 닫으면 그룹도 지울지 (끄면 탭이 없어도 그룹을 남겨 다시 쓸 수 있음)
+	removeEmptyGroups: boolean;
 }
 
 export const DEFAULT_SETTINGS: TabGroupsSettings = {
 	savedGroups: [],
 	language: 'auto',
 	groupStyle: 'underline',
+	removeEmptyGroups: false,
 };

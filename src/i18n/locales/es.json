@@ -24,6 +24,8 @@
     "settings.groupStyleDesc": "Cómo se muestran los grupos en la barra de pestañas.",
     "settings.groupStyleUnderline": "Subrayado",
     "settings.groupStyleClassic": "Clásico",
+    "settings.removeEmptyGroups": "Eliminar un grupo al cerrar su última pestaña",
+    "settings.removeEmptyGroupsDesc": "Al cerrar la última pestaña de un grupo, también se elimina el grupo, como en Chrome. Si está desactivado, el grupo se conserva para volver a usarlo.",
     "settings.groups": "Grupos de pestañas",
     "settings.groupsDesc": "Los grupos se conservan aunque no tengan pestañas abiertas, así que puedes volver a añadirles pestañas desde el menú de pestañas. Elimina los que ya no necesites.",
     "settings.noGroups": "Aún no hay grupos. Haz clic derecho en una pestaña y selecciona «Crear grupo de pestañas».",

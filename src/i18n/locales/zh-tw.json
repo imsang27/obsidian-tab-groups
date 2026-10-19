@@ -24,6 +24,8 @@
     "settings.groupStyleDesc": "分頁列中群組的顯示方式。",
     "settings.groupStyleUnderline": "底線",
     "settings.groupStyleClassic": "經典",
+    "settings.removeEmptyGroups": "關閉最後一個分頁時刪除群組",
+    "settings.removeEmptyGroupsDesc": "關閉群組的最後一個分頁時，像 Chrome 一樣一併刪除群組。關閉此選項時群組會保留，之後可再加入分頁。",
     "settings.groups": "分頁群組",
     "settings.groupsDesc": "即使群組中沒有開啟的分頁，群組也會保留，你可以從分頁選單再次加入分頁。不再需要的群組可以在這裡刪除。",
     "settings.noGroups": "尚無群組。在分頁上按右鍵，選擇「建立分頁群組」。",

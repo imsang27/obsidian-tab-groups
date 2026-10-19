@@ -24,6 +24,8 @@
     "settings.groupStyleDesc": "Wie Gruppen in der Tab-Leiste angezeigt werden.",
     "settings.groupStyleUnderline": "Unterstrichen",
     "settings.groupStyleClassic": "Klassisch",
+    "settings.removeEmptyGroups": "Gruppe entfernen, wenn ihr letzter Tab geschlossen wird",
+    "settings.removeEmptyGroupsDesc": "Wenn der letzte Tab einer Gruppe geschlossen wird, wird auch die Gruppe gelöscht, wie in Chrome. Wenn aus, bleibt die Gruppe erhalten und kann wieder verwendet werden.",
     "settings.groups": "Tab-Gruppen",
     "settings.groupsDesc": "Gruppen bleiben erhalten, auch wenn keiner ihrer Tabs geöffnet ist, sodass du ihnen über das Tab-Menü wieder Tabs hinzufügen kannst. Lösche die Gruppen, die du nicht mehr brauchst.",
     "settings.noGroups": "Noch keine Gruppen. Klicke mit der rechten Maustaste auf einen Tab und wähle „Tab-Gruppe erstellen“.",

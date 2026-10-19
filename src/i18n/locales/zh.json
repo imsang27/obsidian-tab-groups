@@ -24,6 +24,8 @@
     "settings.groupStyleDesc": "标签栏中组的显示方式。",
     "settings.groupStyleUnderline": "下划线",
     "settings.groupStyleClassic": "经典",
+    "settings.removeEmptyGroups": "关闭最后一个标签页时删除组",
+    "settings.removeEmptyGroupsDesc": "关闭组的最后一个标签页时，像 Chrome 一样同时删除该组。关闭此选项时组会保留，之后可以再加入标签页。",
     "settings.groups": "标签页组",
     "settings.groupsDesc": "即使组内没有打开的标签页，组也会保留，你可以从标签页菜单再次添加标签页。不再需要的组可以在这里删除。",
     "settings.noGroups": "还没有组。右键点击标签页，选择“新建标签页组”。",

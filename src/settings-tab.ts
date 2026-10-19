@@ -28,6 +28,11 @@ export class TabGroupsSettingTab extends PluginSettingTab {
                 control: { type: 'dropdown', key: 'groupStyle', options: this.groupStyleOptions() },
             },
             {
+                name: t('settings.removeEmptyGroups'),
+                desc: t('settings.removeEmptyGroupsDesc'),
+                control: { type: 'toggle', key: 'removeEmptyGroups' },
+            },
+            {
                 type: 'list',
                 heading: t('settings.groups'),
                 emptyState: t('settings.noGroups'),
@@ -44,10 +49,11 @@ export class TabGroupsSettingTab extends PluginSettingTab {
         ];
     }
 
-    // 💡 언어는 저장하고 끝이 아니라 바로 적용하고 화면 문구도 바꿔야 해서 직접 처리합니다. (설정 항목은 언어 하나뿐)
+    // 💡 언어는 저장하고 끝이 아니라 바로 적용하고 화면 문구도 바꿔야 해서 직접 처리합니다.
     async setControlValue(key: string, value: unknown) {
         if (key === 'language') await this.changeLanguage(value as LanguageSetting);
         if (key === 'groupStyle') await this.changeGroupStyle(value as GroupStyle);
+        if (key === 'removeEmptyGroups') await this.changeRemoveEmptyGroups(value === true);
     }
 
     // 💡 옵시디언 1.13 미만용
@@ -70,6 +76,13 @@ export class TabGroupsSettingTab extends PluginSettingTab {
                 .addOptions(this.groupStyleOptions())
                 .setValue(this.plugin.settings.groupStyle)
                 .onChange(value => { void this.changeGroupStyle(value as GroupStyle); }));
+
+        new Setting(containerEl)
+            .setName(t('settings.removeEmptyGroups'))
+            .setDesc(t('settings.removeEmptyGroupsDesc'))
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.removeEmptyGroups)
+                .onChange(value => { void this.changeRemoveEmptyGroups(value); }));
 
         this.displayGroups(containerEl);
     }
@@ -135,6 +148,11 @@ export class TabGroupsSettingTab extends PluginSettingTab {
     async changeGroupStyle(style: GroupStyle) {
         this.plugin.settings.groupStyle = style;
         this.plugin.applyGroupStyle();
+        await this.plugin.saveSettings();
+    }
+
+    async changeRemoveEmptyGroups(remove: boolean) {
+        this.plugin.settings.removeEmptyGroups = remove;
         await this.plugin.saveSettings();
     }
 
