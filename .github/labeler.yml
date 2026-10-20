@@ -32,4 +32,5 @@ build:
                 - 'scripts/**'
                 - '.githooks/**'
                 - '.github/workflows/**'
+                - '.github/dependabot.yml'
                 - '.github/labeler.yml'
