@@ -134,6 +134,20 @@ describe('settings tab', function () {
         await expect(settingItem('Work').$('button=Reopen')).not.toBeExisting();
     });
 
+    it('updates the list when a group changes while it is open', async function () {
+        await resetWorkspace(['Alpha', 'Beta']);
+        await createGroup('Alpha', 'Work');
+        await openSettings();
+        await expect(settingItem('Work').$('.setting-item-description')).toHaveText('1 open tabs');
+
+        // 💡 설정을 연 채 그룹의 마지막 탭을 닫음 (1.14 미만은 설정이 창을 덮어 탭을 직접 누를 수 없어서 명령으로 닫음)
+        await browser.executeObsidian(({ app }) => {
+            app.workspace.iterateAllLeaves(leaf => { if (leaf.getDisplayText() === 'Alpha') leaf.detach(); });
+        });
+        await expect(settingItem('Work').$('.setting-item-description')).toHaveText('Hidden · 1 saved tabs');
+        await expect(settingItem('Work').$('button=Reopen')).toBeDisplayed();
+    });
+
     it('reopens a hidden group from the list', async function () {
         await resetWorkspace(['Alpha', 'Beta']);
         await createGroup('Alpha', 'Work');

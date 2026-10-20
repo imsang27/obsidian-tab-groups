@@ -204,12 +204,13 @@ export class TabGroupsSettingTab extends PluginSettingTab {
     }
 
     // 💡 1.13부터는 저장해 둔 정의로 그려서, 그룹이 바뀌면 다시 받아 둬야 설정을 열 때 지금 목록이 보입니다.
-    // 탭 배치가 바뀔 때마다 불리므로 목록에 보이는 내용이 달라졌을 때만 받습니다. (1.13 미만은 열 때마다 display()가 새로 그림)
+    // 1.13 미만은 열 때마다 display()가 새로 그리므로, 설정을 열어 둔 채 바뀐 때만 다시 그립니다.
+    // 탭 배치가 바뀔 때마다 불리므로 목록에 보이는 내용이 달라졌을 때만 합니다.
     updateGroups() {
         const shown = JSON.stringify([...this.plugin.groups.entries()].map(([groupId, group]) => [group.name, group.color, this.groupDesc(groupId)]));
         if (shown === this.shownGroups) return;
         this.shownGroups = shown;
-        if (requireApiVersion('1.13.0')) this.update();
+        if (requireApiVersion('1.13.0') || this.containerEl.isShown()) this.refresh();
     }
 
     refresh() {
