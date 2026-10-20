@@ -16,10 +16,16 @@ Chrome-style tab groups for Obsidian. Name and color related tabs, and collapse 
 * **Colored groups with labels:** Give a group of tabs a name and a color. A label sits in front of the group, and every tab in it shares the same color line.
 * **Collapse and expand:** Click a group label to hide its tabs and free up space. Click again to bring them back in their original order. Switching tabs skips over collapsed groups.
 * **Drag and drop:** Drag a single tab or a whole group (by its label). A placeholder shows exactly where it will land. Drop a group onto the edge of a pane to split it, or onto another pane's tab bar to move it there.
+
+  ![Dragging the Reading group's label to the front of the tab bar, then dragging the Project group's label to the right edge of the pane, which splits the view and moves the group there](./docs/images/demo-drag.gif)
+
 * **Join and leave groups as you move tabs:** Like Chrome, a tab joins an expanded group when you move it into the group, and leaves when you move it out. This works for drag and drop and for keyboard moves such as [Pane Relief](https://github.com/pjeby/pane-relief)'s "swap tab" commands. Collapsed groups are skipped as one block.
 * **Open from the file explorer:** Clicking a note that is already open inside a collapsed group expands the group and switches to that tab instead of opening a new one.
 * **Saved across restarts:** Groups, their colors, the tabs they contain, and their collapsed state are restored when Obsidian reopens.
 * **Hide and reopen groups:** Like Chrome, hide a group to close its tabs while keeping the group. Reopen it later from the settings or the command palette, and its tabs come back in the same order. Renamed notes are followed.
+
+  ![Hiding the Reading group from its label's menu, then reopening it from the command palette with Reopen a hidden group](./docs/images/demo-hide.gif)
+
 * **10 languages:** The tab menu and group windows follow the Obsidian language by default. You can pick a language in the plugin settings. [Help translate](./docs/translating.md) it into your language!
 * **Pop-out windows:** Groups are shown and kept in pop-out windows too.
 
@@ -45,6 +51,8 @@ Run these from the command palette, or assign hotkeys in **Settings → Hotkeys*
 ## ⚙️ Settings
 ---
 Open **Settings → Community plugins → Tab Groups**.
+
+![Switching the group style from Underline to Classic, which changes the tab bar right away, then reopening the hidden Archive group from the group list](./docs/images/demo-settings.gif)
 
 * **Language:** Auto (follows Obsidian), English, Deutsch, Español, Français, Português (Brasil), Русский, 日本語, 한국어, 简体中文, 繁體中文.
 * **Group style:** **Underline** (default) shows a small label and a colored line under the group's tabs. **Classic** shows a colored line on top of each tab with a light tint.
