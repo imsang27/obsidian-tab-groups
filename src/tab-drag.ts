@@ -95,6 +95,10 @@ export class TabDragController {
         if (target) {
             const index = this.getDropIndex(target, leaf);
             this.moveLeaf(leaf, target, index);
+            // 💡 옵시디언은 탭 헤더를 조금 뒤에(비동기로) 옮기는데, 바로 아래 정렬은 지금 DOM 순서로 내부 순서를
+            // 다시 맞추므로 옮긴 자리가 되돌려집니다. 헤더를 플레이스홀더 자리에 먼저 꽂아 둡니다.
+            const header = internal(leaf).tabHeaderEl;
+            if (header && this.placeholderEl.parentElement === inner) inner.insertBefore(header, this.placeholderEl);
         }
         this.finishDrag();
         this.plugin.enforcePhysicalSorting({ trackMoves: false });
