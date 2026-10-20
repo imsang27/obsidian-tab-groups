@@ -22,6 +22,18 @@ updates:
             update-types: ['version-update:semver-major']
           - dependency-name: '@wdio/*'
             update-types: ['version-update:semver-major']
+          # typescript-eslint supports TypeScript below 6.1 only. Remove this when it supports newer versions.
+          - dependency-name: 'typescript'
+            versions: ['>= 6.1']
+          # eslint-plugin-obsidianmd requires @eslint/js 9. Update ESLint and @eslint/js to 10 together once it supports them.
+          - dependency-name: 'eslint'
+            update-types: ['version-update:semver-major']
+          - dependency-name: '@eslint/js'
+            update-types: ['version-update:semver-major']
+          # CI and releases run on Node.js 24 (actions/setup-node), so the Node.js types stay on 24.
+          # Raise both together when moving to a newer Node.js.
+          - dependency-name: '@types/node'
+            versions: ['>= 25']
 
     # Actions used in .github/workflows
     - package-ecosystem: github-actions
