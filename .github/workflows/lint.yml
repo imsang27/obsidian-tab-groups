@@ -1,7 +1,9 @@
 name: Node.js build
 
-# 💻 Code: type check, build, lint and unit tests. Skipped when only docs or GitHub templates change.
+# 💻 Code: type check, build, lint and unit tests.
 # Runs on pull requests, and on push only for main (so a pull request's commits aren't checked twice).
+# "build" is a required check, so it always reports on pull requests: when only docs or GitHub templates
+# change, the job runs but skips its steps.
 on:
     push:
         branches: [main]
@@ -13,13 +15,6 @@ on:
             - '.github/pull_request_template.md'
             - '.github/labeler.yml'
     pull_request:
-        paths-ignore:
-            - '**.md'
-            - 'docs/**'
-            - 'LICENSE'
-            - '.github/ISSUE_TEMPLATE/**'
-            - '.github/pull_request_template.md'
-            - '.github/labeler.yml'
 
 # A new push cancels the check still running for an older commit of the same branch or pull request.
 concurrency:
@@ -35,12 +30,26 @@ jobs:
         timeout-minutes: 10
         steps:
             - uses: actions/checkout@v6
+              with:
+                  fetch-depth: 0
+            # Docs and GitHub templates only (Markdown outside tests/, docs/, LICENSE, issue/PR templates, labeler.yml)?
+            - name: Check for code changes
+              id: changes
+              run: |
+                  if [ "${{ github.event_name }}" != "pull_request" ]; then echo "code=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+                  code=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" HEAD | awk '!/^tests\// && (/\.md$/ || /^docs\// || /^LICENSE$/ || /^\.github\/ISSUE_TEMPLATE\// || /^\.github\/labeler\.yml$/) {next} {print}')
+                  if [ -n "$code" ]; then echo "code=true"; else echo "code=false"; fi >> "$GITHUB_OUTPUT"
             # main.js runs inside Obsidian, so one Node.js version (the one the release uses) is enough.
             - uses: actions/setup-node@v6
+              if: steps.changes.outputs.code == 'true'
               with:
                   node-version: 24
                   cache: 'npm'
-            - run: npm ci
-            - run: npm run build
-            - run: npm run lint
-            - run: npm test
+            - if: steps.changes.outputs.code == 'true'
+              run: npm ci
+            - if: steps.changes.outputs.code == 'true'
+              run: npm run build
+            - if: steps.changes.outputs.code == 'true'
+              run: npm run lint
+            - if: steps.changes.outputs.code == 'true'
+              run: npm test
