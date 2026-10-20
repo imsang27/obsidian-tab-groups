@@ -98,7 +98,7 @@ describe('README demos', function () {
         rec.hold(1800);
         await browser.keys(Key.Escape);
         await rec.frame();
-        rec.endAfter(rec.frames.length - 1, 1000);
+        rec.endAfter(rec.frames.length - 1, 500);
         report('demo-settings.gif', rec.save(`${OUT}/demo-settings.gif`));
     });
 });
