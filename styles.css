@@ -424,3 +424,50 @@ html body .tab-group-color-custom input[type='color'] {
     left: -50%;
     cursor: pointer;
 }
+
+/* ✨ 쌓인 탭(Stacked tabs) 모드: 탭 머리가 화면 왼쪽의 세로 막대가 됨.
+   그룹 막대는 그룹 색으로 옅게 칠하고 위쪽에 색 줄을 이어 긋고, 그룹 첫 막대 아래쪽에 그룹 이름을 세로로 보여 줌
+   (막대 사이에 라벨을 끼우면 옵시디언이 계산한 막대 위치가 어긋나 라벨은 쓰지 않음. 밑줄·클래식 모양 모두 같게) */
+html body .workspace-tabs.mod-stacked .workspace-tab-header.tab-group-member:not(#tab-groups) {
+    background-color: color-mix(in srgb, var(--tab-group-color) 14%, var(--background-primary));
+    border-radius: 0;
+}
+
+html body .workspace-tabs.mod-stacked .workspace-tab-header.tab-group-member:not(#tab-groups) .workspace-tab-header-inner::before {
+    top: 0;
+    bottom: auto;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border: none;
+    border-radius: 0;
+    background-color: var(--tab-group-color);
+}
+
+/* 💡 접은 그룹도 이 모드에서는 막대를 숨기지 않음 (JS에서도 숨김 표시를 붙이지 않지만 한 번 더 막음) */
+html body .workspace-tabs.mod-stacked .workspace-tab-header.tab-group-hidden:not(#tab-groups) {
+    display: flex;
+}
+
+html body .workspace-tabs.mod-stacked .workspace-tab-header.tab-group-first:not(#tab-groups) .workspace-tab-header-inner[data-tab-group-name]:not([data-tab-group-name=""])::after {
+    content: attr(data-tab-group-name);
+    display: block;
+    position: absolute;
+    /* 💡 화면 아래 떠 있는 상태 표시줄에 가리지 않게 조금 띄움 */
+    bottom: 40px;
+    left: 50%;
+    right: auto;
+    top: auto;
+    width: auto;
+    height: auto;
+    transform: translateX(-50%);
+    writing-mode: vertical-rl;
+    padding: 6px 2px;
+    border-radius: 4px;
+    background-color: var(--tab-group-color);
+    color: var(--tab-group-on-color, #fff);
+    font-size: var(--font-ui-smaller);
+    font-weight: var(--font-semibold, 600);
+    white-space: nowrap;
+    pointer-events: none;
+}
