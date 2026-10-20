@@ -93,6 +93,8 @@ English or Korean is fine. If you're not sure, the maintainer will adjust the ti
 
 Merge pull requests without changing the version, and release only when there's something users should get.
 
+[Dependabot](./.github/dependabot.yml) opens a few grouped pull requests each month to update the npm packages and GitHub Actions. They run the same required checks. Merge them when the checks pass. A major update gets its own pull request, so read its changes first.
+
 1. On GitHub, go to **Actions → Release Obsidian plugin → Run workflow** and enter the new version (e.g. `1.3.7`).
 2. The workflow makes the version commit on a temporary branch and runs the same checks as pull requests on it (build, lint, unit tests, and E2E on the latest and the oldest supported Obsidian), which takes a few minutes. Only if they all pass does it put the commit on `main`, tag it, build, and publish the release as Latest. If a check fails, nothing changes. The release notes list the pull requests merged since the last release.
 3. On [community.obsidian.md](https://community.obsidian.md/account/plugins/tab-groups), select **Check for new releases** so the new version is reviewed.
