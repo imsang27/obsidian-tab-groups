@@ -42,6 +42,8 @@ Chrome-style tab groups for Obsidian. Name and color related tabs, and collapse 
 Run these from the command palette, or assign hotkeys in **Settings → Hotkeys**. Most of them work on the current tab.
 
 * **Create tab group from the current tab**
+* **Create tab group from all ungrouped tabs** (the tabs in the current pane that aren't in a group)
+* **Group tabs by folder** (makes a group for each folder with two or more ungrouped tabs in the current pane, named after the folder)
 * **Add the current tab to a group** (pick the group from a list)
 * **Remove the current tab from its group**
 * **Collapse or expand the current tab's group**

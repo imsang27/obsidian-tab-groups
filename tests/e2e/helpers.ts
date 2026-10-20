@@ -51,7 +51,9 @@ export async function resetWorkspace(notes: string[] = NOTES, settings: Record<s
         }
     }, notes, settings);
     await browser.waitUntil(async () => (await browser.getWindowHandles()).length === 1, { timeoutMsg: 'a pop-out window stayed open' });
-    await browser.waitUntil(async () => (await tabs()).map(tab => tab.title).join() === notes.join(), {
+    // 💡 탭 제목은 경로를 뺀 노트 이름 (Projects/Plan → Plan)
+    const titles = notes.map(note => note.split('/').pop());
+    await browser.waitUntil(async () => (await tabs()).map(tab => tab.title).join() === titles.join(), {
         timeoutMsg: `tabs didn't open: ${notes.join(', ')}`,
     });
 }

@@ -1,4 +1,4 @@
-import { Notice, WorkspaceLeaf, WorkspaceSplit } from 'obsidian';
+import { FileView, Notice, WorkspaceLeaf, WorkspaceSplit } from 'obsidian';
 import { t } from './i18n';
 import { internal } from './internal';
 import { savedTabFile } from './saved-tabs';
@@ -7,15 +7,48 @@ import { ConfirmModal, CreateGroupModal, EditGroupModal } from './ui/group-modal
 
 // ✨ 탭 메뉴·명령어·라벨이 함께 쓰는 그룹 동작 (결과는 바로 data.json에 저장하고 탭 바를 다시 정리)
 
-// 💡 새 그룹 만들기 창을 열고, 만들면 그 탭을 새 그룹에 넣습니다.
-export function createGroupWith(plugin: TabGroupsPlugin, leaf: WorkspaceLeaf) {
+// 💡 새 그룹 만들기 창을 열고, 만들면 그 탭(들)을 새 그룹에 넣습니다.
+export function createGroupWith(plugin: TabGroupsPlugin, leaf: WorkspaceLeaf | WorkspaceLeaf[]) {
+    const leaves = Array.isArray(leaf) ? leaf : [leaf];
     new CreateGroupModal(plugin.app, plugin.nextGroupColor(), async (groupName, color) => {
-        const groupId = 'group-' + Date.now();
-        plugin.groups.set(groupId, { name: groupName, color: color, leafIds: new Set(), isCollapsed: false, tabs: [] });
-        plugin.leafGroupMap.set(leaf, groupId);
+        newGroup(plugin, groupName, color, leaves);
         await plugin.saveSettings();
         plugin.enforcePhysicalSorting();
     }).open();
+}
+
+function newGroup(plugin: TabGroupsPlugin, name: string, color: string, leaves: WorkspaceLeaf[]): string {
+    // 💡 한 번에 여러 그룹을 만들어도 ID가 겹치지 않게 순번을 붙임
+    const groupId = `group-${Date.now()}-${plugin.groups.size}`;
+    plugin.groups.set(groupId, { name, color, leafIds: new Set(), isCollapsed: false, tabs: [] });
+    leaves.forEach(leaf => plugin.leafGroupMap.set(leaf, groupId));
+    return groupId;
+}
+
+// 💡 leaf가 있는 탭 묶음에서 그룹에 들지 않은 탭들 (탭 바 순서)
+export function ungroupedTabs(plugin: TabGroupsPlugin, leaf: WorkspaceLeaf): WorkspaceLeaf[] {
+    const children = (leaf as unknown as { parent?: { children?: WorkspaceLeaf[] } }).parent?.children ?? [];
+    return children.filter(child => !plugin.leafGroupMap.get(child));
+}
+
+// ✨ 폴더별로 그룹 만들기: 그룹에 들지 않은 노트 탭을 폴더마다 묶습니다. (같은 폴더의 탭이 2개 이상일 때만)
+// 이름은 폴더 이름(보관함 맨 위 폴더는 보관함 이름), 색은 아직 안 쓴 색부터. 만든 그룹 수를 돌려줍니다.
+export async function groupByFolder(plugin: TabGroupsPlugin, leaves: WorkspaceLeaf[]): Promise<number> {
+    const byFolder = new Map<string, { name: string; leaves: WorkspaceLeaf[] }>();
+    for (const leaf of leaves) {
+        const folder = leaf.view instanceof FileView ? leaf.view.file?.parent : null;
+        if (!folder) continue;
+        const entry = byFolder.get(folder.path) ?? { name: folder.isRoot() ? plugin.app.vault.getName() : folder.name, leaves: [] };
+        entry.leaves.push(leaf);
+        byFolder.set(folder.path, entry);
+    }
+    const folders = [...byFolder.values()].filter(entry => entry.leaves.length >= 2);
+    folders.forEach(entry => newGroup(plugin, entry.name, plugin.nextGroupColor(), entry.leaves));
+    if (folders.length > 0) {
+        await plugin.saveSettings();
+        plugin.enforcePhysicalSorting();
+    }
+    return folders.length;
 }
 
 // 💡 탭을 그룹에 넣습니다. (접힌 그룹이면 펼쳐서 넣은 탭이 보이게)
