@@ -43,6 +43,13 @@ html body .tab-group-label:hover {
     opacity: 0.8;
 }
 
+/* 그룹 이름 옆 탭 개수 (설정에서 켰을 때). 이름보다 조금 옅게, 숫자 폭은 같게 */
+html body .tab-group-label-count {
+    margin-left: 5px;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.75;
+}
+
 /* ✨ 그룹 표시 모양: 밑줄 (기본) — 크롬처럼 라벨은 작은 알약, 라벨 아래부터 그룹 탭 끝까지 색 밑줄이 이어짐
    (설정에서 클래식을 고르면 body에 .tab-groups-style-classic이 붙고, 그때는 아래 클래식 규칙을 씀)
    라벨(바깥)은 탭 바 높이를 채워 밑줄을 그리고, 안쪽 .tab-group-label-text가 알약 모양입니다. */
