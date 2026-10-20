@@ -1,0 +1,2 @@
+- Tab order after a restart
+- Label color in light theme

@@ -1,0 +1,2 @@
+- Group templates
+- Keyboard shortcuts for groups

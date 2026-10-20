@@ -10,6 +10,7 @@ export default defineConfig(
 		'esbuild.config.mjs',
 		'vitest.config.mts',
 		'wdio.conf.mts',
+		'wdio.demo.mts',
 		'tests/e2e/plugins',
 		'version-bump.mjs',
 		'scripts',

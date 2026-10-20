@@ -4,6 +4,7 @@
 //   npm run test:e2e:wsl                                   all tests
 //   npm run test:e2e:wsl -- --spec tests/e2e/specs/drag.e2e.ts
 //   OBSIDIAN_VERSION=earliest npm run test:e2e:wsl         another Obsidian version
+//   npm run demo:wsl                                       record the README demos (copies docs/images back)
 //
 // Copies this folder (without node_modules, .git and build output) to ~/.cache/obsidian-tab-groups-e2e in WSL,
 // installs packages there when package-lock.json changed, then runs `npm run test:e2e` under xvfb-run.
@@ -20,7 +21,8 @@ if (process.platform !== 'win32') {
 const root = resolve('.');
 const source = `/mnt/${root[0].toLowerCase()}${root.slice(2).replaceAll('\\', '/')}/`;
 const quote = (s) => `'${s.replaceAll("'", `'\\''`)}'`;
-const args = process.argv.slice(2).map(quote).join(' ');
+const demo = process.argv[2] === '--demo';
+const args = process.argv.slice(demo ? 3 : 2).map(quote).join(' ');
 const version = process.env.OBSIDIAN_VERSION ? `OBSIDIAN_VERSION=${quote(process.env.OBSIDIAN_VERSION)} ` : '';
 
 const script = `
@@ -39,7 +41,10 @@ if [ ! -d node_modules ] || [ "$(cat .lock-hash 2>/dev/null)" != "$lock" ]; then
 	npm ci --no-audit --no-fund --ignore-scripts
 	echo "$lock" > .lock-hash
 fi
-${version}xvfb-run --auto-servernum npm run test:e2e -- ${args}
+status=0
+${version}xvfb-run --auto-servernum npm run ${demo ? 'demo' : 'test:e2e'} -- ${args} || status=$?
+${demo ? `rsync -a docs/images/ ${quote(`${source}docs/images/`)}` : ''}
+exit $status
 `;
 
 // 💡 The script goes in through stdin: quotes inside a command-line argument get mangled on the way to wsl.exe.

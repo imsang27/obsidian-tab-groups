@@ -23,3 +23,6 @@ data.json
 
 # E2E tests (if OBSIDIAN_CACHE points here)
 .obsidian-cache
+
+# README demo stills (npm run demo writes them to check the GIFs)
+docs/images/stills
