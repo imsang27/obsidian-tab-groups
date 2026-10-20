@@ -82,7 +82,7 @@ describe('README demos', function () {
         // 그룹 모양: 밑줄 → 클래식 (뒤의 탭 바가 바로 바뀜)
         const style = $('//div[contains(@class, "mod-settings")]//div[contains(concat(" ", @class, " "), " setting-item ")][.//div[text()="Group style"]]//select');
         await rec.choose(style, 'classic');
-        rec.hold(1300);
+        rec.pauseFor(1000);
 
         // 숨은 그룹 다시 열기
         const reopen = $('.mod-settings').$('button=Reopen');
@@ -91,7 +91,8 @@ describe('README demos', function () {
         await rec.click(reopen);
         rec.hold(1800);
         await browser.keys(Key.Escape);
-        await rec.frame(2200);
+        await rec.frame();
+        rec.pauseFor(1000);
         report('demo-settings.gif', rec.save(`${OUT}/demo-settings.gif`));
     });
 });

@@ -28,7 +28,7 @@ const { applyPalette, GIFEncoder, quantize } = gifenc;
 const sleep = (ms: number) => browser.pause(ms);
 
 // 💡 GIF 전체 빠르기: 프레임마다 정한 시간에 곱함 (클수록 느림)
-const PACE = 1.6;
+const PACE = 1.4;
 
 export class Recorder {
     frames: { png: Buffer; delay: number }[] = [];
@@ -40,6 +40,12 @@ export class Recorder {
     async frame(delay = 40) {
         await sleep(60); // 화면이 다 그려지도록 잠깐 기다림
         this.frames.push({ png: Buffer.from(await browser.takeScreenshot(), 'base64'), delay });
+    }
+
+    // 💡 마지막 프레임이 GIF에서 딱 ms 동안 보이게 함 (PACE를 곱한 뒤의 시간)
+    pauseFor(ms: number) {
+        const last = this.frames[this.frames.length - 1];
+        if (last) last.delay = ms / PACE;
     }
 
     // 💡 마지막 프레임을 더 오래 보여 줌
