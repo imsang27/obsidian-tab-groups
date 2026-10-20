@@ -17,3 +17,18 @@ core:
                 - 'src/**/*.ts'
                 - 'tests/**/*.ts'
                 - 'styles.css'
+
+build:
+    - changed-files:
+          - any-glob-to-any-file:
+                - 'package.json'
+                - 'package-lock.json'
+                - '.npmrc'
+                - '*.config.mjs'
+                - '*.config.mts'
+                - 'tsconfig.json'
+                - 'version-bump.mjs'
+                - 'scripts/**'
+                - '.githooks/**'
+                - '.github/workflows/**'
+                - '.github/labeler.yml'
