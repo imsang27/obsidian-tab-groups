@@ -67,7 +67,7 @@ describe('README demos', function () {
         await rec.type('Rea');
         rec.hold(400);
         await rec.press(Key.Enter);
-        rec.endAfter(rec.frames.length - 1, 1500);
+        rec.endAfter(rec.frames.length - 1, 2280); // 💡 GIF 전체가 12.5초가 되게
         report('demo-hide.gif', rec.save(`${OUT}/demo-hide.gif`));
     });
 
