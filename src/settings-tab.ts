@@ -9,6 +9,8 @@ import { confirmDeleteGroup, reopenGroup } from './group-actions';
 // 그보다 오래된 버전은 display()로 그립니다. (두 곳의 내용을 함께 고쳐 주세요)
 export class TabGroupsSettingTab extends PluginSettingTab {
     plugin: TabGroupsPlugin;
+    // 💡 설정 화면에 마지막으로 넘긴 그룹 목록 (바뀌었을 때만 다시 그리려고)
+    shownGroups = '';
 
     constructor(app: App, plugin: TabGroupsPlugin) {
         super(app, plugin);
@@ -179,7 +181,10 @@ export class TabGroupsSettingTab extends PluginSettingTab {
         this.plugin.settings.language = language;
         setLanguage(language);
         await this.plugin.saveSettings();
-        this.refresh(); // 💡 설정 화면 문구도 바로 새 언어로
+        // 💡 설정 화면 문구도 바로 새 언어로. 1.13부터는 포커스가 있는 줄(방금 고른 언어 드롭다운)은 다시 그리지 않아 포커스를 풀어 둡니다.
+        const active = this.containerEl.doc.activeElement;
+        if (active?.instanceOf(HTMLElement)) active.blur();
+        this.refresh();
     }
 
     async changeGroupStyle(style: GroupStyle) {
@@ -196,6 +201,15 @@ export class TabGroupsSettingTab extends PluginSettingTab {
     async changeLockGroupedTabs(enabled: boolean) {
         this.plugin.settings.lockGroupedTabs = enabled;
         await this.plugin.saveSettings();
+    }
+
+    // 💡 1.13부터는 저장해 둔 정의로 그려서, 그룹이 바뀌면 다시 받아 둬야 설정을 열 때 지금 목록이 보입니다.
+    // 탭 배치가 바뀔 때마다 불리므로 목록에 보이는 내용이 달라졌을 때만 받습니다. (1.13 미만은 열 때마다 display()가 새로 그림)
+    updateGroups() {
+        const shown = JSON.stringify([...this.plugin.groups.entries()].map(([groupId, group]) => [group.name, group.color, this.groupDesc(groupId)]));
+        if (shown === this.shownGroups) return;
+        this.shownGroups = shown;
+        if (requireApiVersion('1.13.0')) this.update();
     }
 
     refresh() {

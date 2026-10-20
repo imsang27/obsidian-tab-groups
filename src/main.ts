@@ -55,6 +55,9 @@ export default class TabGroupsPlugin extends Plugin {
     // ✨ 단축키·다른 플러그인으로 탭을 옮겼을 때의 그룹 편입·이탈 담당
     tabMoves: TabMoveTracker = new TabMoveTracker(this);
 
+    // 💡 설정 화면 (그룹이 바뀌면 목록을 다시 받아 둠)
+    settingTab: TabGroupsSettingTab | null = null;
+
     // 💡 onunload가 불렸는지 (비동기 onload가 끝나기 전에 꺼질 수 있음)
     unloaded = false;
 
@@ -79,6 +82,7 @@ export default class TabGroupsPlugin extends Plugin {
             this.app.workspace.on('layout-change', () => {
                 this.layout.setupObservers();
                 this.enforcePhysicalSorting();
+                this.settingTab?.updateGroups(); // 💡 탭을 닫아 그룹이 숨겨지는 등 목록 내용이 바뀌었을 수 있음
             }),
         );
 
@@ -121,7 +125,8 @@ export default class TabGroupsPlugin extends Plugin {
         // ✨ 명령 팔레트·단축키용 명령어
         registerCommands(this);
 
-        this.addSettingTab(new TabGroupsSettingTab(this.app, this));
+        this.settingTab = new TabGroupsSettingTab(this.app, this);
+        this.addSettingTab(this.settingTab);
     }
 
     // ✨ 2. 데이터 불러오기 함수
@@ -173,6 +178,7 @@ export default class TabGroupsPlugin extends Plugin {
             });
         });
         await this.saveData(this.settings);
+        this.settingTab?.updateGroups();
     }
 
     // 💡 탭 바를 다시 정리합니다. (여러 모듈이 그룹을 바꾼 뒤 부름. 실제 작업은 group-layout.ts)
