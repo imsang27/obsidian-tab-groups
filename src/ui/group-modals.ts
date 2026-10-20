@@ -175,6 +175,40 @@ export class ConfirmModal extends Modal {
 }
 
 // 💡 이름 칸에서 Enter를 누르면 만들기·저장 (한글 등 입력 조합 중의 Enter는 무시)
+// ✨ 그룹 세트 이름 묻기 (같은 이름이면 그 세트를 바꿔 씀)
+export class GroupSetNameModal extends Modal {
+    name = '';
+
+    constructor(app: App, private onSubmit: (name: string) => void | Promise<void>) {
+        super(app);
+    }
+
+    submit() {
+        const name = this.name.trim();
+        if (!name) return;
+        this.close();
+        void this.onSubmit(name);
+    }
+
+    onOpen() {
+        this.titleEl.setText(t('modal.setTitle'));
+        new Setting(this.contentEl)
+            .setName(t('modal.setName'))
+            .setDesc(t('modal.setNameDesc'))
+            .addText((text) => {
+                text.onChange((val) => this.name = val);
+                onEnter(text.inputEl, () => this.submit());
+                window.setTimeout(() => text.inputEl.focus(), 0);
+            });
+        new Setting(this.contentEl)
+            .addButton((btn) => btn.setButtonText(t('modal.save')).setCta().onClick(() => this.submit()));
+    }
+
+    onClose() {
+        this.contentEl.empty();
+    }
+}
+
 function onEnter(inputEl: HTMLInputElement, submit: () => void) {
     inputEl.addEventListener('keydown', (e: KeyboardEvent) => {
         if (e.key !== 'Enter' || e.isComposing) return;

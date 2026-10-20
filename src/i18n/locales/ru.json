@@ -71,5 +71,14 @@
     "confirm.deleteTitle": "Удалить группу",
     "confirm.deleteDesc": "Закрыть открытые вкладки ({count}) и удалить группу «{name}»? Это нельзя отменить.",
     "confirm.delete": "Удалить",
-    "confirm.cancel": "Отмена"
+    "confirm.cancel": "Отмена",
+    "command.saveSet": "Сохранить текущие группы как набор",
+    "command.openSet": "Открыть сохранённый набор групп",
+    "command.deleteSet": "Удалить сохранённый набор групп",
+    "command.chooseSet": "Выберите набор",
+    "modal.setTitle": "Сохранить набор групп",
+    "modal.setName": "Название набора",
+    "modal.setNameDesc": "Сохранение под названием существующего набора заменяет его.",
+    "notice.setSaved": "Сохранено групп: {count}, набор «{name}».",
+    "notice.setDeleted": "Набор «{name}» удалён."
 }

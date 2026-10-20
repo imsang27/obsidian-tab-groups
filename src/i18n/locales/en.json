@@ -71,5 +71,14 @@
     "confirm.deleteTitle": "Delete group",
     "confirm.deleteDesc": "Close {count} open tabs and delete the group \"{name}\"? This can't be undone.",
     "confirm.delete": "Delete",
-    "confirm.cancel": "Cancel"
+    "confirm.cancel": "Cancel",
+    "command.saveSet": "Save the current groups as a set",
+    "command.openSet": "Open a saved group set",
+    "command.deleteSet": "Delete a saved group set",
+    "command.chooseSet": "Choose a set",
+    "modal.setTitle": "Save group set",
+    "modal.setName": "Set name",
+    "modal.setNameDesc": "Saving with the name of an existing set replaces it.",
+    "notice.setSaved": "Saved {count} groups as \"{name}\".",
+    "notice.setDeleted": "Deleted the set \"{name}\"."
 }

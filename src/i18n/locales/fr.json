@@ -71,5 +71,14 @@
     "confirm.deleteTitle": "Supprimer le groupe",
     "confirm.deleteDesc": "Fermer {count} onglets ouverts et supprimer le groupe « {name} » ? Action irréversible.",
     "confirm.delete": "Supprimer",
-    "confirm.cancel": "Annuler"
+    "confirm.cancel": "Annuler",
+    "command.saveSet": "Enregistrer les groupes actuels comme ensemble",
+    "command.openSet": "Ouvrir un ensemble de groupes enregistré",
+    "command.deleteSet": "Supprimer un ensemble de groupes enregistré",
+    "command.chooseSet": "Choisir un ensemble",
+    "modal.setTitle": "Enregistrer l'ensemble de groupes",
+    "modal.setName": "Nom de l'ensemble",
+    "modal.setNameDesc": "Enregistrer sous le nom d'un ensemble existant le remplace.",
+    "notice.setSaved": "{count} groupes enregistrés sous « {name} ».",
+    "notice.setDeleted": "Ensemble « {name} » supprimé."
 }

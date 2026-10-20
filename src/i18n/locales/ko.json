@@ -71,5 +71,14 @@
     "confirm.deleteTitle": "그룹 삭제",
     "confirm.deleteDesc": "열린 탭 {count}개를 닫고 \"{name}\" 그룹을 삭제할까요? 되돌릴 수 없습니다.",
     "confirm.delete": "삭제",
-    "confirm.cancel": "취소"
+    "confirm.cancel": "취소",
+    "command.saveSet": "지금 그룹들을 세트로 저장",
+    "command.openSet": "저장한 그룹 세트 열기",
+    "command.deleteSet": "저장한 그룹 세트 삭제",
+    "command.chooseSet": "세트 고르기",
+    "modal.setTitle": "그룹 세트 저장",
+    "modal.setName": "세트 이름",
+    "modal.setNameDesc": "이미 있는 세트의 이름으로 저장하면 그 세트를 바꿉니다.",
+    "notice.setSaved": "그룹 {count}개를 \"{name}\" 세트로 저장했습니다.",
+    "notice.setDeleted": "\"{name}\" 세트를 삭제했습니다."
 }

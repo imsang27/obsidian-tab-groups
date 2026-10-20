@@ -3,6 +3,8 @@ import type TabGroupsPlugin from './main';
 import type { TabGroupData } from './main';
 import { t } from './i18n';
 import { addToGroup, createGroupWith, groupByFolder, moveGroupToNewWindow, newTabInGroup, openEditGroup, removeFromGroup, reopenGroup, ungroupedTabs } from './group-actions';
+import { GroupSet, deleteGroupSet, openGroupSet, saveGroupSet } from './group-sets';
+import { GroupSetNameModal } from './ui/group-modals';
 
 // ✨ 명령어 (명령 팔레트·단축키): 지금 선택된 탭을 기준으로 그룹을 다룹니다.
 // 💡 명령 이름은 켜질 때의 언어로 정해집니다. (언어를 바꾸면 다시 켠 뒤 반영)
@@ -216,6 +218,67 @@ function neighborGroupStart(plugin: TabGroupsPlugin, leaf: WorkspaceLeaf, direct
     });
     // 끝까지 없으면 반대쪽 끝에서부터 (지금 그룹만 있으면 그대로 null)
     return ahead ?? ordered.find(first => plugin.leafGroupMap.get(first) !== current) ?? null;
+}
+
+// ✨ 그룹 세트 명령 (작업 공간처럼 그룹 구성을 저장했다가 다시 열기)
+export function registerGroupSetCommands(plugin: TabGroupsPlugin) {
+    plugin.addCommand({
+        id: 'save-group-set',
+        name: t('command.saveSet'),
+        checkCallback: (checking) => {
+            if (plugin.groups.size === 0) return false;
+            if (!checking) {
+                new GroupSetNameModal(plugin.app, async name => {
+                    const count = await saveGroupSet(plugin, name);
+                    new Notice(t('notice.setSaved', { name, count: String(count) }));
+                }).open();
+            }
+            return true;
+        },
+    });
+
+    plugin.addCommand({
+        id: 'open-group-set',
+        name: t('command.openSet'),
+        checkCallback: (checking) => {
+            if (plugin.settings.groupSets.length === 0) return false;
+            if (!checking) new GroupSetSuggestModal(plugin.app, plugin.settings.groupSets, set => { void openGroupSet(plugin, set); }).open();
+            return true;
+        },
+    });
+
+    plugin.addCommand({
+        id: 'delete-group-set',
+        name: t('command.deleteSet'),
+        checkCallback: (checking) => {
+            if (plugin.settings.groupSets.length === 0) return false;
+            if (!checking) {
+                new GroupSetSuggestModal(plugin.app, plugin.settings.groupSets, set => {
+                    void deleteGroupSet(plugin, set.name).then(() => new Notice(t('notice.setDeleted', { name: set.name })));
+                }).open();
+            }
+            return true;
+        },
+    });
+}
+
+class GroupSetSuggestModal extends FuzzySuggestModal<GroupSet> {
+    constructor(app: App, private sets: GroupSet[], private onChoose: (set: GroupSet) => void) {
+        super(app);
+        this.setPlaceholder(t('command.chooseSet'));
+    }
+
+    getItems() {
+        return this.sets;
+    }
+
+    getItemText(set: GroupSet) {
+        return set.name;
+    }
+
+    onChooseItem(set: GroupSet) {
+        this.onChoose(set);
+    }
 }
 
 // 💡 넣을 그룹 고르기 (이름 없는 그룹은 "이름 없는 그룹"으로 표시)

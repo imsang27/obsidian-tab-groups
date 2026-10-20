@@ -71,5 +71,14 @@
     "confirm.deleteTitle": "Eliminar grupo",
     "confirm.deleteDesc": "¿Cerrar {count} pestañas abiertas y eliminar el grupo \"{name}\"? No se puede deshacer.",
     "confirm.delete": "Eliminar",
-    "confirm.cancel": "Cancelar"
+    "confirm.cancel": "Cancelar",
+    "command.saveSet": "Guardar los grupos actuales como conjunto",
+    "command.openSet": "Abrir un conjunto de grupos guardado",
+    "command.deleteSet": "Eliminar un conjunto de grupos guardado",
+    "command.chooseSet": "Elige un conjunto",
+    "modal.setTitle": "Guardar conjunto de grupos",
+    "modal.setName": "Nombre del conjunto",
+    "modal.setNameDesc": "Guardar con el nombre de un conjunto existente lo reemplaza.",
+    "notice.setSaved": "Se guardaron {count} grupos como \"{name}\".",
+    "notice.setDeleted": "Se eliminó el conjunto \"{name}\"."
 }

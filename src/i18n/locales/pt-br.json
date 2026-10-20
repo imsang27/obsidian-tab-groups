@@ -71,5 +71,14 @@
     "confirm.deleteTitle": "Excluir grupo",
     "confirm.deleteDesc": "Fechar {count} abas abertas e excluir o grupo \"{name}\"? Não pode ser desfeito.",
     "confirm.delete": "Excluir",
-    "confirm.cancel": "Cancelar"
+    "confirm.cancel": "Cancelar",
+    "command.saveSet": "Salvar os grupos atuais como conjunto",
+    "command.openSet": "Abrir um conjunto de grupos salvo",
+    "command.deleteSet": "Excluir um conjunto de grupos salvo",
+    "command.chooseSet": "Escolha um conjunto",
+    "modal.setTitle": "Salvar conjunto de grupos",
+    "modal.setName": "Nome do conjunto",
+    "modal.setNameDesc": "Salvar com o nome de um conjunto existente o substitui.",
+    "notice.setSaved": "{count} grupos salvos como \"{name}\".",
+    "notice.setDeleted": "Conjunto \"{name}\" excluído."
 }

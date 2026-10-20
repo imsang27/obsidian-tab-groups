@@ -71,5 +71,14 @@
     "confirm.deleteTitle": "グループを削除",
     "confirm.deleteDesc": "開いているタブ {count} 個を閉じて「{name}」グループを削除しますか？元に戻せません。",
     "confirm.delete": "削除",
-    "confirm.cancel": "キャンセル"
+    "confirm.cancel": "キャンセル",
+    "command.saveSet": "現在のグループをセットとして保存",
+    "command.openSet": "保存したグループセットを開く",
+    "command.deleteSet": "保存したグループセットを削除",
+    "command.chooseSet": "セットを選択",
+    "modal.setTitle": "グループセットを保存",
+    "modal.setName": "セット名",
+    "modal.setNameDesc": "既存のセットと同じ名前で保存すると、そのセットを置き換えます。",
+    "notice.setSaved": "{count} 個のグループを「{name}」として保存しました。",
+    "notice.setDeleted": "セット「{name}」を削除しました。"
 }

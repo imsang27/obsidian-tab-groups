@@ -26,6 +26,7 @@ Chrome-style tab groups for Obsidian. Name and color related tabs, and collapse 
 
   ![Hiding the Reading group from its label's menu, then reopening it from the command palette with Reopen a hidden group](./docs/images/demo-hide.gif)
 
+* **Group sets:** Like workspaces, save your current groups (names, colors, collapsed state and tabs) as a named set, and open the set again later. Renamed notes are followed.
 * **10 languages:** The tab menu and group windows follow the Obsidian language by default. You can pick a language in the plugin settings. [Help translate](./docs/translating.md) it into your language!
 * **Pop-out windows:** Groups are shown and kept in pop-out windows too.
 
@@ -56,6 +57,7 @@ Run these from the command palette, or assign hotkeys in **Settings → Hotkeys*
 * **Hide the current tab's group**
 * **Collapse all groups** / **Expand all groups**
 * **Go to the next group** / **Go to the previous group** (the first tab of the next or previous group in the same pane, wrapping around at the ends. A collapsed group expands.)
+* **Save the current groups as a set** / **Open a saved group set** / **Delete a saved group set** (opening adds the set's groups at the end of the current pane. Saving with an existing name replaces that set.)
 
 ## ⚙️ Settings
 ---

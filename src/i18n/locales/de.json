@@ -71,5 +71,14 @@
     "confirm.deleteTitle": "Gruppe löschen",
     "confirm.deleteDesc": "{count} geöffnete Tabs schließen und die Gruppe \"{name}\" löschen? Das kann nicht rückgängig gemacht werden.",
     "confirm.delete": "Löschen",
-    "confirm.cancel": "Abbrechen"
+    "confirm.cancel": "Abbrechen",
+    "command.saveSet": "Aktuelle Gruppen als Set speichern",
+    "command.openSet": "Gespeichertes Gruppen-Set öffnen",
+    "command.deleteSet": "Gespeichertes Gruppen-Set löschen",
+    "command.chooseSet": "Set auswählen",
+    "modal.setTitle": "Gruppen-Set speichern",
+    "modal.setName": "Name des Sets",
+    "modal.setNameDesc": "Mit dem Namen eines vorhandenen Sets wird dieses ersetzt.",
+    "notice.setSaved": "{count} Gruppen als „{name}“ gespeichert.",
+    "notice.setDeleted": "Set „{name}“ gelöscht."
 }
