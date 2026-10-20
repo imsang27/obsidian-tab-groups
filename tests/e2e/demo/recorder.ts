@@ -48,6 +48,12 @@ export class Recorder {
         if (last) last.delay = ms / this.pace;
     }
 
+    // 💡 마지막 프레임을 GIF에서 ms만큼 짧게 보여 줌 (pace를 곱한 뒤의 시간)
+    shorten(ms: number) {
+        const last = this.frames[this.frames.length - 1];
+        if (last) last.delay = Math.max(0, last.delay - ms / this.pace);
+    }
+
     // 💡 마지막 프레임을 더 오래 보여 줌
     hold(ms: number) {
         const last = this.frames[this.frames.length - 1];
