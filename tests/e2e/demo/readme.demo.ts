@@ -81,10 +81,8 @@ describe('README demos', function () {
 
         // 그룹 모양: 밑줄 → 클래식 (뒤의 탭 바가 바로 바뀜)
         const style = $('//div[contains(@class, "mod-settings")]//div[contains(concat(" ", @class, " "), " setting-item ")][.//div[text()="Group style"]]//select');
-        await rec.moveToElement(style);
-        await rec.pulse();
-        await style.selectByAttribute('value', 'classic');
-        await rec.frame(1600);
+        await rec.choose(style, 'classic');
+        rec.hold(1300);
 
         // 숨은 그룹 다시 열기
         const reopen = $('.mod-settings').$('button=Reopen');

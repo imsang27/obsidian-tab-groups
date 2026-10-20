@@ -27,6 +27,9 @@ type WdioElement = ReturnType<typeof $>;
 const { applyPalette, GIFEncoder, quantize } = gifenc;
 const sleep = (ms: number) => browser.pause(ms);
 
+// 💡 GIF 전체 빠르기: 프레임마다 정한 시간에 곱함 (클수록 느림)
+const PACE = 1.6;
+
 export class Recorder {
     frames: { png: Buffer; delay: number }[] = [];
     cursor: Point = { x: 0, y: 0 };
@@ -112,6 +115,37 @@ export class Recorder {
         await this.moveToElement(el);
         await this.pulse();
         await el.click({ button: options.button ?? 'left' });
+        await this.frame(300);
+    }
+
+    // 💡 드롭다운에서 고르는 모습. 운영체제가 그리는 목록은 스크린샷에 찍히지 않아, 옵시디언 메뉴 모양으로 목록을 그려 보여 줌
+    async choose(select: WdioElement, value: string) {
+        await this.moveToElement(select);
+        await this.pulse();
+        const target = await browser.execute((selectEl: HTMLSelectElement, value: string) => {
+            const r = selectEl.getBoundingClientRect();
+            const menu = document.body.createDiv({ cls: 'menu demo-dropdown' });
+            menu.setCssStyles({ position: 'fixed', left: `${r.left}px`, top: `${r.bottom + 4}px`, minWidth: `${r.width}px`, zIndex: '2147483640' });
+            let point = { x: 0, y: 0 };
+            for (const option of Array.from(selectEl.options)) {
+                const item = menu.createDiv({ cls: 'menu-item' });
+                item.createDiv({ cls: 'menu-item-title', text: option.text });
+                if (option.selected) item.addClass('selected');
+                if (option.value === value) item.addClass('demo-target');
+            }
+            const t = menu.querySelector('.demo-target')!.getBoundingClientRect();
+            point = { x: t.left + Math.min(40, t.width / 2), y: t.top + t.height / 2 };
+            return point;
+        }, (await select.getElement()) as unknown as HTMLSelectElement, value);
+        await this.frame(500);
+        await this.moveTo(target, 8);
+        await browser.execute(() => {
+            document.querySelectorAll('.demo-dropdown .menu-item').forEach(item => item.toggleClass('selected', item.hasClass('demo-target')));
+        });
+        await this.frame(400);
+        await this.pulse();
+        await browser.execute(() => document.querySelectorAll('.demo-dropdown').forEach(el => el.remove()));
+        await select.selectByAttribute('value', value);
         await this.frame(300);
     }
 
@@ -220,7 +254,7 @@ export class Recorder {
             }
             gif.writeFrame(shown, width, height, {
                 palette: i === 0 ? palette : undefined,
-                delay: this.frames[i]!.delay,
+                delay: Math.round(this.frames[i]!.delay * PACE),
                 transparent: previous !== null,
                 transparentIndex,
                 dispose: 1,
@@ -245,7 +279,7 @@ export class Recorder {
     }
 
     async hideCursor() {
-        await browser.execute(() => document.querySelectorAll('.demo-cursor, .demo-click, .demo-drag-image').forEach(el => el.remove()));
+        await browser.execute(() => document.querySelectorAll('.demo-cursor, .demo-click, .demo-drag-image, .demo-dropdown').forEach(el => el.remove()));
     }
 }
 
