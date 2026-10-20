@@ -2,18 +2,24 @@ name: E2E tests
 
 # 🖱️ Launches Obsidian with the plugin and a test vault, then clicks and types like a user (tests/e2e).
 # Runs on pull requests, and on push only for main.
-# "e2e (latest)" and "e2e (earliest)" are required checks, so they always report on pull requests: when only
-# docs or GitHub templates change, the job runs but skips its steps.
+# Only the plugin, the E2E tests and their setup matter here (see on.push.paths). "e2e (latest)" and "e2e (earliest)"
+# are required checks, so they always report on pull requests: when none of those files change, the job runs
+# but skips its steps.
 on:
     push:
         branches: [main]
-        paths-ignore:
-            - '**.md'
-            - 'docs/**'
-            - 'LICENSE'
-            - '.github/ISSUE_TEMPLATE/**'
-            - '.github/pull_request_template.md'
-            - '.github/labeler.yml'
+        paths:
+            - 'src/**'
+            - 'tests/e2e/**'
+            - 'styles.css'
+            - 'manifest.json'
+            - 'package.json'
+            - 'package-lock.json'
+            - 'tsconfig.json'
+            - 'esbuild.config.mjs'
+            - 'wdio.conf.mts'
+            - '.npmrc'
+            - '.github/workflows/e2e.yml'
     pull_request:
 
 # A new push cancels the run still going for an older commit of the same branch or pull request.
@@ -41,13 +47,16 @@ jobs:
             - uses: actions/checkout@v6
               with:
                   fetch-depth: 0
-            # Docs and GitHub templates only (Markdown outside tests/, docs/, LICENSE, issue/PR templates, labeler.yml)?
-            - name: Check for code changes
+            # 💡 Only the files that can change this check's result (plugin, E2E tests and their setup). Same list as on.push.paths above.
+            - name: Check for relevant changes
               id: changes
               run: |
                   if [ "${{ github.event_name }}" != "pull_request" ]; then echo "code=true" >> "$GITHUB_OUTPUT"; exit 0; fi
-                  code=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" HEAD | awk '!/^tests\// && (/\.md$/ || /^docs\// || /^LICENSE$/ || /^\.github\/ISSUE_TEMPLATE\// || /^\.github\/labeler\.yml$/) {next} {print}')
-                  if [ -n "$code" ]; then echo "code=true"; else echo "code=false"; fi >> "$GITHUB_OUTPUT"
+                  if git diff --name-only "${{ github.event.pull_request.base.sha }}" HEAD | grep -qE '^(src/|tests/e2e/|styles\.css$|manifest\.json$|package(-lock)?\.json$|tsconfig\.json$|esbuild\.config\.mjs$|wdio\.conf\.mts$|\.npmrc$|\.github/workflows/e2e\.yml$)'; then
+                    echo "code=true" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "code=false" >> "$GITHUB_OUTPUT"
+                  fi
             - uses: actions/setup-node@v6
               if: steps.changes.outputs.code == 'true'
               with:
