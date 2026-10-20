@@ -124,6 +124,30 @@ describe('groups', function () {
         expect(await groupCount()).toBe(0);
     });
 
+    it('opens a new tab at the end of the group from the group window', async function () {
+        await createGroup('Alpha', 'Work');
+        await addToGroup('Beta', 'Work');
+        await label('Work').click({ button: 'right' });
+        await clickButton('New tab in group');
+
+        await waitForMembers('Work', ['Alpha', 'Beta', 'New tab']);
+        expect((await tab('New tab')).active).toBe(true);
+        expect((await tabs()).map(info => info.title)).toEqual(['Alpha', 'Beta', 'New tab', 'Gamma', 'Delta']);
+    });
+
+    it('opens a note in the new grouped tab even when grouped tabs are locked', async function () {
+        await resetWorkspace(['Alpha', 'Beta'], { lockGroupedTabs: true });
+        await createGroup('Alpha', 'Work');
+        await runCommand("Tab Groups: Open a new tab in the current tab's group");
+        await waitForMembers('Work', ['Alpha', 'New tab']);
+
+        // 💡 옵시디언은 지금 탭이 빈 탭이면 새 탭 대신 그 탭을 씀: 빠른 전환기로 연 노트가 그 탭에 열려 그룹에 남음
+        await browser.keys([Key.Ctrl, 'o']);
+        await choose('Epsilon');
+        await waitForMembers('Work', ['Alpha', 'Epsilon']);
+        expect((await tabs()).map(info => info.title)).toEqual(['Alpha', 'Epsilon', 'Beta']);
+    });
+
     it('removes the current tab from its group', async function () {
         await createGroup('Alpha', 'Work');
         await runCommand('Tab Groups: Remove the current tab from its group');

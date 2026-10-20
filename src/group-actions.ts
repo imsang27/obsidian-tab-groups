@@ -158,3 +158,38 @@ export async function reopenGroup(plugin: TabGroupsPlugin, groupId: string) {
     plugin.enforcePhysicalSorting();
     workspace.setActiveLeaf(opened[0]!, { focus: true });
 }
+
+// ✨ 그룹 끝에 새 탭을 열고 그 탭을 그룹에 넣습니다. (접힌 그룹이면 펼침)
+export async function newTabInGroup(plugin: TabGroupsPlugin, groupId: string) {
+    const groupData = plugin.groups.get(groupId);
+    const leaves = plugin.groupLeaves(groupId);
+    const last = leaves[leaves.length - 1];
+    const parent = last ? internal(last).parent : null;
+    if (!groupData || !last || !parent) return;
+    const leaf = plugin.app.workspace.createLeafInParent(parent as unknown as WorkspaceSplit, parent.children.indexOf(last) + 1);
+    plugin.leafGroupMap.set(leaf, groupId);
+    groupData.isCollapsed = false;
+    await plugin.saveSettings();
+    plugin.enforcePhysicalSorting();
+    plugin.app.workspace.setActiveLeaf(leaf, { focus: true });
+}
+
+// ✨ 그룹을 탭째로 새 창(팝아웃)으로 옮깁니다. 새 창이 처음 만든 빈 탭은 닫고, 접힌 그룹이면 펼침
+export async function moveGroupToNewWindow(plugin: TabGroupsPlugin, groupId: string) {
+    const groupData = plugin.groups.get(groupId);
+    const leaves = plugin.groupLeaves(groupId);
+    if (!groupData || leaves.length === 0) return;
+    const workspace = plugin.app.workspace;
+    const blank = workspace.openPopoutLeaf();
+    const target = internal(blank).parent;
+    if (!target) return;
+    for (const leaf of leaves) {
+        internal(leaf).parent?.removeChild(leaf);
+        target.insertChild(target.children.length, leaf);
+    }
+    blank.detach();
+    groupData.isCollapsed = false;
+    await plugin.saveSettings();
+    plugin.enforcePhysicalSorting();
+    workspace.setActiveLeaf(leaves[0]!, { focus: true });
+}
