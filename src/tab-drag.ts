@@ -1,6 +1,7 @@
 import { WorkspaceLeaf } from 'obsidian';
 import type TabGroupsPlugin from './main';
 import { GroupSlot, resolveGroupAt } from './tab-group-rules';
+import { setGroupColor } from './group-style';
 
 const TAB_BAR_SELECTOR = '.workspace-tab-header-container';
 const TAB_BAR_INNER_SELECTOR = '.workspace-tab-header-container-inner';
@@ -106,9 +107,18 @@ export class TabDragController {
         if (groupChanged) void this.plugin.saveSettings();
     }
 
-    // ✨ 놓은 자리에 따라 그룹 소속을 정합니다. (플레이스홀더 양옆의 보이는 탭·라벨 기준, 규칙은 resolveGroupAt)
-    // 그룹이 바뀌었으면 true를 돌려줍니다.
+    // ✨ 놓은 자리에 따라 그룹 소속을 정합니다. 그룹이 바뀌었으면 true를 돌려줍니다.
     applyDropGroup(leaf: WorkspaceLeaf): boolean {
+        const current = this.plugin.leafGroupMap.get(leaf) ?? null;
+        const newGroup = this.dropGroup(leaf);
+        if (newGroup === current) return false;
+        if (newGroup) this.plugin.leafGroupMap.set(leaf, newGroup);
+        else this.plugin.leafGroupMap.delete(leaf);
+        return true;
+    }
+
+    // 💡 지금 자리에 놓으면 들어갈 그룹 (플레이스홀더 양옆의 보이는 탭·라벨 기준, 규칙은 resolveGroupAt)
+    dropGroup(leaf: WorkspaceLeaf): string | null {
         const slot = (el: Element | null): GroupSlot | null => el && {
             groupId: el.getAttribute('data-tab-group-id') ?? el.getAttribute('data-group-id'),
             isLabel: el.classList.contains('tab-group-label'),
@@ -122,14 +132,18 @@ export class TabDragController {
         // 그룹 맨 끝으로 편입(또는 유지), 그 오른쪽이면 그룹 밖으로 놓습니다.
         const prevGroup = prev && !prev.isLabel ? prev.groupId : null;
         const atGroupEnd = !!prevGroup && isExpanded(prevGroup) && (next?.isLabel || next?.groupId !== prevGroup);
-        const newGroup = atGroupEnd
+        return atGroupEnd
             ? (this.insideGroupEnd ? prevGroup : null)
             : resolveGroupAt(prev, next, current, isExpanded);
+    }
 
-        if (newGroup === current) return false;
-        if (newGroup) this.plugin.leafGroupMap.set(leaf, newGroup);
-        else this.plugin.leafGroupMap.delete(leaf);
-        return true;
+    // 🎯 플레이스홀더에 놓으면 들어갈 그룹의 색 줄을 붙여, 그룹 안에 들어가는지 밖에 놓이는지 보여 줍니다.
+    // (그룹 맨 끝에서는 커서가 마지막 탭 위인지 그 오른쪽인지에 따라 바뀜)
+    showDropGroup() {
+        const groupId = this.draggedLeaf ? this.dropGroup(this.draggedLeaf) : null;
+        const color = groupId ? this.plugin.groups.get(groupId)?.color : undefined;
+        this.placeholderEl.toggleClass('is-in-group', !!color);
+        if (color) setGroupColor(this.placeholderEl, color);
     }
 
     // 💡 플레이스홀더 옆의 보이는 탭·라벨 (끌고 있는 탭과 접힌 탭은 건너뜀)
@@ -233,6 +247,7 @@ export class TabDragController {
         if (this.placeholderEl.parentElement !== inner || this.placeholderEl.nextSibling !== next) {
             inner.insertBefore(this.placeholderEl, next);
         }
+        this.showDropGroup();
     }
 
     // 💡 맨 뒤로 놓을 때: 마지막으로 보이는 요소 뒤. 접힌 그룹의 숨은 탭과 끌고 있는 탭은 건너뛰어,

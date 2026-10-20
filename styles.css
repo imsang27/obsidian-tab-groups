@@ -232,15 +232,40 @@ body.is-dragging-tab:not(#tab-groups) .workspace-tab-header-spacer {
 }
 /* ✨ 탭 하나를 끌 때 들어갈 자리를 밀어내며 보여 주는 플레이스홀더 */
 html body .tab-group-drag-placeholder {
+    position: relative;
     width: var(--tab-group-placeholder-width, 120px);
     flex-shrink: 0;
     align-self: stretch;
     margin: 4px 2px;
     border-radius: var(--tab-radius, var(--radius-s, 4px));
-    background-color: var(--interactive-accent);
-    opacity: 0.35;
+    background-color: color-mix(in srgb, var(--interactive-accent) 35%, transparent);
     pointer-events: all;
     -webkit-app-region: no-drag;
+}
+
+/* ✨ 놓으면 그룹에 들어가는 자리: 그 그룹 색으로 칠하고, 그룹 탭과 같은 자리에 색 줄을 그어 그룹과 이어 보이게 함
+   (줄은 플레이스홀더 바깥 여백만큼 늘려 옆 그룹 탭의 줄과 같은 높이·위치에 맞춤) */
+html body .tab-group-drag-placeholder.is-in-group {
+    background-color: color-mix(in srgb, var(--tab-group-color) 35%, transparent);
+}
+
+html body .tab-group-drag-placeholder.is-in-group::after {
+    content: '';
+    position: absolute;
+    left: -2px;
+    right: -2px;
+    background-color: var(--tab-group-color);
+    pointer-events: none;
+}
+
+html body:not(.tab-groups-style-classic) .tab-group-drag-placeholder.is-in-group::after {
+    bottom: -4px;
+    height: 2px;
+}
+
+html body.tab-groups-style-classic .tab-group-drag-placeholder.is-in-group::after {
+    top: -4px;
+    height: 3px;
 }
 
 /* 위치 계산 중에는 잠깐 빼서, 플레이스홀더가 없을 때의 탭 배치를 잽니다 */

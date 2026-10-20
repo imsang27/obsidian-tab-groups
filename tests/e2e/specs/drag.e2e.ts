@@ -1,5 +1,20 @@
 import { browser, expect } from '@wdio/globals';
-import { addToGroup, createGroup, dragTo, label, members, resetWorkspace, tab, tabHeader, titles } from '../helpers';
+import { addToGroup, cancelDrag, createGroup, dragOver, dragTo, label, members, resetWorkspace, startDrag, tab, tabHeader, titles } from '../helpers';
+
+// 💡 끄는 동안의 자리 표시: 놓으면 들어갈 그룹이 있으면 그 그룹 색 (없으면 null)
+async function placeholderGroupColor(): Promise<string | null> {
+    return browser.execute(() => {
+        const el = document.querySelector<HTMLElement>('.tab-group-drag-placeholder');
+        return el?.classList.contains('is-in-group') ? el.style.getPropertyValue('--tab-group-color') : null;
+    });
+}
+
+async function groupColor(name: string): Promise<string> {
+    return browser.executeObsidian(({ plugins }, name) => {
+        const groups = (plugins.tabGroups as unknown as { groups: Map<string, { name: string; color: string }> }).groups;
+        return [...groups.values()].find(group => group.name === name)!.color;
+    }, name);
+}
 
 // 💡 실제 마우스로 탭과 그룹 라벨을 끌어다 놓습니다.
 // 시작: [Work] Alpha Beta | Gamma Delta
@@ -24,6 +39,26 @@ describe('drag', function () {
 
         await browser.waitUntil(async () => (await members('Work')).length === 3, { timeoutMsg: 'Delta did not join the group' });
         expect(await titles()).toEqual(['Alpha', 'Beta', 'Delta', 'Gamma']);
+    });
+
+    it('shows on the placeholder whether the tab will join the group', async function () {
+        const color = await groupColor('Work');
+        await startDrag(tabHeader('Delta'));
+        try {
+            // 그룹 마지막 탭의 오른쪽 절반: 그룹 끝에 들어감
+            await dragOver(tabHeader('Beta'), 0.8);
+            expect(await placeholderGroupColor()).toBe(color);
+            // 그 오른쪽(다음 탭 왼쪽 절반): 그룹 밖
+            await dragOver(tabHeader('Gamma'), 0.2);
+            expect(await placeholderGroupColor()).toBeNull();
+            // 그룹 탭 사이: 들어감
+            await dragOver(tabHeader('Beta'), 0.2);
+            expect(await placeholderGroupColor()).toBe(color);
+        } finally {
+            await cancelDrag();
+        }
+        // 💡 끝내면 그대로 (취소한 끌기는 아무것도 바꾸지 않음)
+        expect(await titles()).toEqual(['Alpha', 'Beta', 'Gamma', 'Delta']);
     });
 
     it('leaves the group when a grouped tab is dropped outside it', async function () {
