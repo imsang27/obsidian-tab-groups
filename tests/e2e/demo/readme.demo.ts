@@ -28,16 +28,18 @@ describe('README demos', function () {
         const rec = new Recorder(await rootRegion(300));
         await rec.showCursor({ x: 700, y: 200 });
         await rec.frame(900);
+        rec.shorten(50);
 
         // 그룹을 맨 앞으로
         await rec.drag(label('Reading'), tabHeader('Daily note'), { x: 0.05, y: 0.5 }, 12);
         rec.hold(900);
+        rec.shorten(50);
 
         // 그룹을 편집 영역 오른쪽 끝에 놓아 화면 나누기
         await rec.drag(label('Project'), $('.workspace-split.mod-root .workspace-leaf.mod-active'), { x: 0.92, y: 0.25 }, 22);
         const dropped = rec.frames.length - 1;
         await rec.moveTo({ x: rec.cursor.x - 120, y: rec.cursor.y + 40 }, 6);
-        rec.endAfter(dropped, 1700);
+        rec.endAfter(dropped, 1800);
         report('demo-drag.gif', rec.save(`${OUT}/demo-drag.gif`));
     });
 
