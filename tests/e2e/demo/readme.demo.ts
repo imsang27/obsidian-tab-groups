@@ -67,7 +67,7 @@ describe('README demos', function () {
         await rec.type('Rea');
         rec.hold(400);
         await rec.press(Key.Enter);
-        rec.endAfter(rec.frames.length - 1, 1000);
+        rec.endAfter(rec.frames.length - 1, 1500);
         report('demo-hide.gif', rec.save(`${OUT}/demo-hide.gif`));
     });
 
