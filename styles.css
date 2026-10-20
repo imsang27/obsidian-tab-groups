@@ -105,6 +105,8 @@ html body .workspace-tab-header.tab-group-member:not(#tab-groups) .workspace-tab
     z-index: 2;
     background-color: var(--tab-group-color);
     pointer-events: none;
+    /* 💡 테마·스니펫이 같은 ::before에 준 여백 때문에 탭 사이 밑줄이 끊기지 않게 */
+    margin: 0;
 }
 
 html body:not(.tab-groups-style-classic) .workspace-tab-header.tab-group-member:not(#tab-groups) .workspace-tab-header-inner::before {
