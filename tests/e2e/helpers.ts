@@ -112,5 +112,60 @@ export async function choose(text: string) {
 }
 
 export async function clickButton(text: string) {
-    await $(".modal").$(`button=${text}`).click();
+    await $('.modal').$(`button=${text}`).click();
+}
+
+type WdioElement = ReturnType<typeof $>;
+
+// 💡 탭이나 라벨을 끌어다 target 요소 너비의 at 비율 지점(0 = 왼쪽 끝, 1 = 오른쪽 끝)에 놓습니다.
+// 🚨 ChromeDriver는 HTML5 드래그 중 dragover를 첫 한 번만 보내고 그 뒤 마우스 이동은 전달하지 않아,
+// 실제 마우스 동작으로는 놓을 자리가 따라오지 않습니다. 그래서 사람이 끌 때와 같은 순서·좌표로
+// 드래그 이벤트(dragstart → dragover 여러 번 → drop → dragend)를 페이지 안에서 보냅니다.
+// 끌기 시작하면 끄는 탭이 숨고 자리 표시가 생겨 다른 탭 자리가 바뀝니다. 놓을 지점은 그 뒤에,
+// 플러그인이 자리를 정할 때와 같은 기준(자리 표시를 뺀 배치, tab-drag.ts의 is-measuring)으로 잽니다.
+export async function dragTo(source: WdioElement, target: WdioElement, at: number) {
+    await browser.execute(async (sourceEl: HTMLElement, targetEl: HTMLElement, at: number) => {
+        const wait = (ms: number) => new Promise(resolve => window.setTimeout(resolve, ms));
+        const dataTransfer = new DataTransfer();
+        const fire = (type: string, el: Element, x: number, y: number) => el.dispatchEvent(new DragEvent(type, {
+            bubbles: true, cancelable: true, composed: true, clientX: x, clientY: y, dataTransfer,
+        }));
+
+        const s = sourceEl.getBoundingClientRect();
+        const start = { x: s.left + s.width / 2, y: s.top + s.height / 2 };
+        fire('dragstart', sourceEl, start.x, start.y);
+        fire('dragover', sourceEl, start.x, start.y);
+        await wait(50);
+
+        const placeholder = document.querySelector('.tab-group-drag-placeholder');
+        placeholder?.classList.add('is-measuring');
+        const r = targetEl.getBoundingClientRect();
+        placeholder?.classList.remove('is-measuring');
+        const end = { x: r.left + r.width * at, y: r.top + r.height / 2 };
+
+        // 사이를 몇 걸음에 나눠 지나가며, 그때마다 커서 아래 요소에 dragover
+        let under: Element = sourceEl;
+        for (let i = 1; i <= 5; i++) {
+            const x = start.x + (end.x - start.x) * i / 5;
+            under = document.elementFromPoint(x, end.y) ?? under;
+            fire('dragover', under, x, end.y);
+            await wait(30);
+        }
+        fire('drop', under, end.x, end.y);
+        fire('dragend', sourceEl, end.x, end.y);
+    }, (await source.getElement()) as unknown as HTMLElement, (await target.getElement()) as unknown as HTMLElement, at);
+    await browser.pause(200);
+}
+
+export async function titles(): Promise<string[]> {
+    return (await tabs()).map(info => info.title);
+}
+
+// 💡 그룹 이름 → 그 그룹의 탭 제목들 (탭 바 순서)
+export async function members(name: string): Promise<string[]> {
+    const groupId = await browser.executeObsidian(({ plugins }, name) => {
+        const groups = (plugins.tabGroups as unknown as { groups: Map<string, { name: string }> }).groups;
+        return [...groups.entries()].find(([, group]) => group.name === name)?.[0] ?? null;
+    }, name);
+    return (await tabs()).filter(info => info.group !== null && info.group === groupId).map(info => info.title);
 }

@@ -1,0 +1,9 @@
+{
+	"id": "e2e-move-tab",
+	"name": "E2E move tab",
+	"version": "1.0.0",
+	"minAppVersion": "1.8.7",
+	"description": "Test-only helper: moves the current tab one step left or right, like Pane Relief.",
+	"author": "imsang27",
+	"isDesktopOnly": true
+}
