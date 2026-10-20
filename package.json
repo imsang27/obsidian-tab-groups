@@ -12,7 +12,8 @@
 		"test": "vitest run",
 		"check-translations": "node scripts/check-translations.mjs",
 		"prepare": "node scripts/install-git-hooks.mjs",
-		"test:e2e": "npm run build && wdio run ./wdio.conf.mts"
+		"test:e2e": "npm run build && wdio run ./wdio.conf.mts",
+		"test:e2e:wsl": "node scripts/e2e-wsl.mjs"
 	},
 	"keywords": [
 		"obsidian",
