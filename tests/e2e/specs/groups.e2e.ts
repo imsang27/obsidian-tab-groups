@@ -1,6 +1,6 @@
 import { $, browser, expect } from '@wdio/globals';
 import { Key } from 'webdriverio';
-import { choose, clickButton, createGroup, groupCount, label, resetWorkspace, runCommand, tab, tabHeader, tabs, waitForMembers } from '../helpers';
+import { addToGroup, choose, clickButton, createGroup, groupCount, label, resetWorkspace, runCommand, tab, tabHeader, tabs, waitForMembers } from '../helpers';
 
 describe('groups', function () {
     beforeEach(async function () {
@@ -40,6 +40,56 @@ describe('groups', function () {
         await label('Work').click();
         await browser.waitUntil(async () => !(await tab('Alpha')).hidden);
         await expect(label('Work')).not.toHaveElementClass('is-collapsed');
+    });
+
+    // 💡 닫힌 탭 대신 옵시디언이 고르는 옆 탭이 접힌 그룹 안이면, 그룹을 펼치지 않고 보이는 탭으로 옮김
+    it('keeps a collapsed group collapsed when the tab after it is closed', async function () {
+        await createGroup('Beta', 'Work');
+        await addToGroup('Gamma', 'Work');
+        await tabHeader('Delta').click();
+        await label('Work').click();
+        await browser.waitUntil(async () => (await tab('Beta')).hidden);
+
+        await browser.keys([Key.Ctrl, 'w']);
+        await browser.waitUntil(async () => !(await tabs()).some(info => info.title === 'Delta'));
+        await browser.pause(300);
+
+        await expect(label('Work')).toHaveElementClass('is-collapsed');
+        expect((await tab('Beta')).hidden).toBe(true);
+        expect((await tab('Gamma')).hidden).toBe(true);
+        expect((await tab('Alpha')).active).toBe(true);
+    });
+
+    it('moves to the other side when the collapsed group comes after the closed tab', async function () {
+        await createGroup('Gamma', 'Work');
+        await addToGroup('Delta', 'Work');
+        await tabHeader('Beta').click();
+        await label('Work').click();
+        await browser.waitUntil(async () => (await tab('Gamma')).hidden);
+
+        await browser.keys([Key.Ctrl, 'w']);
+        await browser.waitUntil(async () => !(await tabs()).some(info => info.title === 'Beta'));
+        await browser.pause(300);
+
+        await expect(label('Work')).toHaveElementClass('is-collapsed');
+        expect((await tab('Gamma')).hidden).toBe(true);
+        expect((await tab('Alpha')).active).toBe(true);
+    });
+
+    it('expands the collapsed group when only its tabs are left', async function () {
+        await resetWorkspace(['Alpha', 'Beta', 'Gamma']);
+        await createGroup('Alpha', 'Work');
+        await addToGroup('Beta', 'Work');
+        await tabHeader('Gamma').click();
+        await label('Work').click();
+        await browser.waitUntil(async () => (await tab('Alpha')).hidden);
+
+        await browser.keys([Key.Ctrl, 'w']);
+        await browser.waitUntil(async () => !(await tabs()).some(info => info.title === 'Gamma'));
+
+        await expect(label('Work')).not.toHaveElementClass('is-collapsed');
+        await browser.waitUntil(async () => (await tabs()).every(info => !info.hidden), { timeoutMsg: 'the group stayed collapsed' });
+        expect((await tabs()).some(info => info.active)).toBe(true);
     });
 
     it('removes the current tab from its group', async function () {
