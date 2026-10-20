@@ -106,11 +106,10 @@ This project is built on the Obsidian sample plugin template.
 | Language | Status |
 | --- | --- |
 | 한국어 | Written by the maintainer (native speaker) |
-| English | Written by the maintainer, not yet reviewed by native speakers |
-| Deutsch, Español, Français, Português (Brasil), Русский, 日本語, 简体中文, 繁體中文 | AI-assisted, not yet reviewed by native speakers |
+| English, Deutsch, Español, Français, Português (Brasil), Русский, 日本語, 简体中文, 繁體中文 | AI-assisted, not yet reviewed by native speakers |
 
 > [!NOTE]
-> Only the Korean text is written by a native speaker. The English text hasn't been reviewed by native speakers yet, and the other translations were made with the help of AI, so they **may not be accurate**. If a string sounds wrong or unnatural, please help fix it.
+> Only the Korean text is written by a native speaker. The other languages, English included, were made with the help of AI and haven't been reviewed by native speakers yet, so they **may not be accurate**. If a string sounds wrong or unnatural, please help fix it.
 
 Translations are welcome! Each language is a small JSON file in [`src/i18n/locales/`](./src/i18n/locales/), and you can edit it right on GitHub without installing anything.
 

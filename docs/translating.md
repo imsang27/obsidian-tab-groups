@@ -51,7 +51,7 @@ If editing `index.ts` feels like too much, just add the JSON file and open the p
 ## Update an existing translation
 ---
 > [!NOTE]
-> Only the Korean text is written by a native speaker. The English text hasn't been reviewed by native speakers yet, and the other translations were first written with the help of AI, so they may not be accurate. If something sounds wrong or unnatural in your language, including English, please fix it. Reviews by native speakers are very welcome.
+> Only the Korean text is written by a native speaker. The other languages, English included, were first written with the help of AI and haven't been reviewed by native speakers yet, so they may not be accurate. If something sounds wrong or unnatural in your language, including English, please fix it. Reviews by native speakers are very welcome.
 
 The quickest way is to open your language's file on GitHub, select the pencil icon (**Edit this file**), fix the text, and propose the change.
 
