@@ -33,6 +33,8 @@
     "settings.removeEmptyGroupsDesc": "When the last tab of a group is closed, delete the group too, like Chrome. When off, the group stays so you can add tabs to it again.",
     "settings.lockGroupedTabs": "Lock grouped tabs",
     "settings.lockGroupedTabsDesc": "Keep the note in a grouped tab from being replaced. A note opened from it (link, file explorer, quick switcher) opens in a new tab outside the group; add that tab to the group from the tab menu to keep it. Tabs are not pinned, so they stay where they are.",
+    "settings.suggestGroupName": "Suggest a name and color for new groups",
+    "settings.suggestGroupNameDesc": "Fill in the folder of the tab's note as the name, with a color picked from that name, so the same folder gets the same color. You can still change both.",
     "settings.groups": "Tab groups",
     "settings.groupsDesc": "Hidden groups remember their tabs, so you can reopen them here. Delete the groups you no longer need.",
     "settings.noGroups": "No groups yet. Right-click a tab and select \"Create tab group\".",

@@ -4,17 +4,36 @@ import { internal } from './internal';
 import { savedTabFile } from './saved-tabs';
 import type TabGroupsPlugin from './main';
 import { ConfirmModal, CreateGroupModal, EditGroupModal } from './ui/group-modals';
+import { PRESET_COLORS } from './ui/color-palette';
 
 // ✨ 탭 메뉴·명령어·라벨이 함께 쓰는 그룹 동작 (결과는 바로 data.json에 저장하고 탭 바를 다시 정리)
 
 // 💡 새 그룹 만들기 창을 열고, 만들면 그 탭(들)을 새 그룹에 넣습니다.
+// 설정에서 이름·색 제안을 켜면 (첫) 탭 노트의 폴더 이름과 그 이름에서 정한 색을 미리 채웁니다.
 export function createGroupWith(plugin: TabGroupsPlugin, leaf: WorkspaceLeaf | WorkspaceLeaf[]) {
     const leaves = Array.isArray(leaf) ? leaf : [leaf];
-    new CreateGroupModal(plugin.app, plugin.nextGroupColor(), async (groupName, color) => {
+    const name = plugin.settings.suggestGroupName && leaves[0] ? folderName(leaves[0]) : '';
+    const color = name ? suggestedColor(plugin, name) : plugin.nextGroupColor();
+    new CreateGroupModal(plugin.app, color, async (groupName, color) => {
         newGroup(plugin, groupName, color, leaves);
         await plugin.saveSettings();
         plugin.enforcePhysicalSorting();
-    }).open();
+    }, name).open();
+}
+
+// 💡 탭 노트가 있는 폴더 이름 (보관함 맨 위의 노트나 노트가 아닌 탭은 빈 이름)
+function folderName(leaf: WorkspaceLeaf): string {
+    const folder = leaf.view instanceof FileView ? leaf.view.file?.parent : null;
+    return folder && !folder.isRoot() ? folder.name : '';
+}
+
+// 💡 이름마다 늘 같은 기본 색 (같은 폴더면 같은 색). 다른 그룹이 이미 쓰면 아직 안 쓴 색
+function suggestedColor(plugin: TabGroupsPlugin, name: string): string {
+    let hash = 0;
+    for (const char of name) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+    const color = PRESET_COLORS[hash % PRESET_COLORS.length]!;
+    const used = [...plugin.groups.values()].some(group => group.color.toLowerCase() === color.toLowerCase());
+    return used ? plugin.nextGroupColor() : color;
 }
 
 function newGroup(plugin: TabGroupsPlugin, name: string, color: string, leaves: WorkspaceLeaf[]): string {

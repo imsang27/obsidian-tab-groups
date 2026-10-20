@@ -29,6 +29,8 @@ export interface TabGroupsSettings {
 	removeEmptyGroups: boolean;
 	// 💡 그룹 탭에서 연 노트가 그 탭을 바꾸지 않고 새 탭에 열리게 할지 (탭을 고정하지는 않음)
 	lockGroupedTabs: boolean;
+	// 💡 새 그룹 창에 탭 노트의 폴더 이름과 그 이름에서 정한 색을 미리 채울지
+	suggestGroupName: boolean;
 }
 
 export const DEFAULT_SETTINGS: TabGroupsSettings = {
@@ -38,4 +40,5 @@ export const DEFAULT_SETTINGS: TabGroupsSettings = {
 	labelTabCount: 'off',
 	removeEmptyGroups: false,
 	lockGroupedTabs: false,
+	suggestGroupName: false,
 };

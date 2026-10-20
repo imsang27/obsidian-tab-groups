@@ -108,7 +108,8 @@ describe('settings tab', function () {
 
         await settingItem('Remove a group when its last tab closes').$('.checkbox-container').click();
         await settingItem('Lock grouped tabs').$('.checkbox-container').click();
-        await browser.waitUntil(async () => (await savedSetting('removeEmptyGroups')) === true && (await savedSetting('lockGroupedTabs')) === true, {
+        await settingItem('Suggest a name and color for new groups').$('.checkbox-container').click();
+        await browser.waitUntil(async () => (await savedSetting('removeEmptyGroups')) === true && (await savedSetting('lockGroupedTabs')) === true && (await savedSetting('suggestGroupName')) === true, {
             timeoutMsg: 'the toggles were not saved',
         });
 
@@ -116,6 +117,7 @@ describe('settings tab', function () {
         await openSettings();
         await expect(settingItem('Remove a group when its last tab closes').$('.checkbox-container')).toHaveElementClass('is-enabled');
         await expect(settingItem('Lock grouped tabs').$('.checkbox-container')).toHaveElementClass('is-enabled');
+        await expect(settingItem('Suggest a name and color for new groups').$('.checkbox-container')).toHaveElementClass('is-enabled');
 
         // 💡 바꾼 설정이 실제 동작에도 쓰임: 마지막 탭을 닫으면 그룹도 지워짐
         await closeSettings();

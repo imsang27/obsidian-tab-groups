@@ -33,6 +33,8 @@
     "settings.removeEmptyGroupsDesc": "關閉群組的最後一個分頁時，像 Chrome 一樣一併刪除群組。關閉此選項時群組會保留，之後可再加入分頁。",
     "settings.lockGroupedTabs": "鎖定群組分頁",
     "settings.lockGroupedTabsDesc": "防止群組分頁中的筆記被取代。從中開啟的筆記（連結、檔案總管、快速切換）會在群組外的新分頁中開啟；如需保留，請透過分頁選單將該分頁加入群組。分頁不會被釘選，位置保持不變。",
+    "settings.suggestGroupName": "為新群組建議名稱和顏色",
+    "settings.suggestGroupNameDesc": "以分頁筆記所在的資料夾名稱作為群組名稱，並依該名稱選擇顏色，同一資料夾一律同一顏色。兩者都可以修改。",
     "settings.groups": "分頁群組",
     "settings.groupsDesc": "隱藏的群組會記住其分頁，可以在這裡重新開啟。刪除不再需要的群組。",
     "settings.noGroups": "尚無群組。在分頁上按右鍵，選擇「建立分頁群組」。",
