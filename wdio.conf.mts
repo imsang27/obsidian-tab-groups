@@ -11,10 +11,12 @@ export const config: WebdriverIO.Config = {
 
     capabilities: [{
         browserName: 'obsidian',
-        browserVersion: 'latest',
+        // OBSIDIAN_VERSION picks another Obsidian version, e.g. OBSIDIAN_VERSION=1.12.7 or earliest (manifest minAppVersion)
+        browserVersion: process.env.OBSIDIAN_VERSION ?? 'latest',
         'wdio:obsidianOptions': {
             installerVersion: 'latest',
-            plugins: ['.'],
+            // The test-only helper plugin adds hotkeys that move the current tab (tests/e2e/specs/move.e2e.ts)
+            plugins: ['.', 'tests/e2e/plugins/e2e-move-tab'],
             vault: 'tests/e2e/vault',
         },
         // 💡 Run Obsidian in English whatever the system language, so tests can find commands and buttons by name
