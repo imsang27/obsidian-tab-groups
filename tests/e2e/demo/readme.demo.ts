@@ -37,7 +37,7 @@ describe('README demos', function () {
         await rec.drag(label('Project'), $('.workspace-split.mod-root .workspace-leaf.mod-active'), { x: 0.92, y: 0.25 }, 22);
         const dropped = rec.frames.length - 1;
         await rec.moveTo({ x: rec.cursor.x - 120, y: rec.cursor.y + 40 }, 6);
-        rec.endAfter(dropped, 1500);
+        rec.endAfter(dropped, 1700);
         report('demo-drag.gif', rec.save(`${OUT}/demo-drag.gif`));
     });
 
