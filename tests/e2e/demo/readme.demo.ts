@@ -67,7 +67,7 @@ describe('README demos', function () {
         await rec.type('Rea');
         rec.hold(400);
         await rec.press(Key.Enter);
-        rec.endAfter(rec.frames.length - 1, 1500);
+        rec.endAfter(rec.frames.length - 1, 1000);
         report('demo-hide.gif', rec.save(`${OUT}/demo-hide.gif`));
     });
 
@@ -98,7 +98,7 @@ describe('README demos', function () {
         rec.hold(1800);
         await browser.keys(Key.Escape);
         await rec.frame();
-        rec.endAfter(rec.frames.length - 1, 1500);
+        rec.endAfter(rec.frames.length - 1, 1000);
         report('demo-settings.gif', rec.save(`${OUT}/demo-settings.gif`));
     });
 });
