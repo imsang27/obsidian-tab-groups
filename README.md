@@ -39,7 +39,7 @@ Chrome-style tab groups for Obsidian. Name and color related tabs, and collapse 
     * **Delete group:** close its tabs and delete the group (asks first).
 
 ### Commands
-Run these from the command palette, or assign hotkeys in **Settings → Hotkeys**. They work on the current tab.
+Run these from the command palette, or assign hotkeys in **Settings → Hotkeys**. Most of them work on the current tab.
 
 * **Create tab group from the current tab**
 * **Add the current tab to a group** (pick the group from a list)
@@ -47,6 +47,9 @@ Run these from the command palette, or assign hotkeys in **Settings → Hotkeys*
 * **Collapse or expand the current tab's group**
 * **Edit the current tab's group**
 * **Reopen a hidden group** (pick the group from a list)
+* **Hide the current tab's group**
+* **Collapse all groups** / **Expand all groups**
+* **Go to the next group** / **Go to the previous group** (the first tab of the next or previous group in the same pane, wrapping around at the ends. A collapsed group expands.)
 
 ## ⚙️ Settings
 ---

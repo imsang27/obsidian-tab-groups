@@ -82,6 +82,89 @@ export function registerCommands(plugin: TabGroupsPlugin) {
             return true;
         },
     });
+
+    // 💡 열린 탭이 있는 그룹만 (숨은 그룹은 탭 바에 없음). 접기·펼치기는 라벨을 누른 것과 같게 처리
+    const openGroups = (collapsed: boolean) => [...plugin.groups.entries()]
+        .filter(([id, group]) => group.isCollapsed === collapsed && plugin.groupLeaves(id).length > 0);
+
+    plugin.addCommand({
+        id: 'collapse-all-groups',
+        name: t('command.collapseAll'),
+        checkCallback: (checking) => {
+            const groups = openGroups(false);
+            if (groups.length === 0) return false;
+            if (!checking) void (async () => { for (const [id, group] of groups) await plugin.labels.toggleCollapsed(id, group); })();
+            return true;
+        },
+    });
+
+    plugin.addCommand({
+        id: 'expand-all-groups',
+        name: t('command.expandAll'),
+        checkCallback: (checking) => {
+            const groups = openGroups(true);
+            if (groups.length === 0) return false;
+            if (!checking) void (async () => { for (const [id, group] of groups) await plugin.labels.toggleCollapsed(id, group); })();
+            return true;
+        },
+    });
+
+    // 💡 지금 탭 묶음에서 다음·이전 그룹의 첫 탭으로 (끝에서는 반대쪽 끝으로 돌아감). 접힌 그룹이면 그 탭을 열면서 펼쳐짐
+    const groupStep = (direction: 1 | -1) => (checking: boolean) => {
+        const leaf = activeLeaf();
+        const target = leaf ? neighborGroupStart(plugin, leaf, direction) : null;
+        if (!target) return false;
+        if (!checking) plugin.app.workspace.setActiveLeaf(target, { focus: true });
+        return true;
+    };
+
+    plugin.addCommand({
+        id: 'go-to-next-group',
+        name: t('command.nextGroup'),
+        checkCallback: groupStep(1),
+    });
+
+    plugin.addCommand({
+        id: 'go-to-previous-group',
+        name: t('command.previousGroup'),
+        checkCallback: groupStep(-1),
+    });
+
+    plugin.addCommand({
+        id: 'hide-active-group',
+        name: t('command.hideGroup'),
+        checkCallback: (checking) => {
+            const groupId = activeGroupId();
+            if (!groupId || !plugin.groups.has(groupId)) return false;
+            if (!checking) void plugin.hideGroup(groupId);
+            return true;
+        },
+    });
+}
+
+// 💡 leaf가 있는 탭 묶음에서, leaf 다음(또는 이전) 쪽으로 처음 나오는 다른 그룹의 첫 탭. 그룹이 하나도 없으면 null
+function neighborGroupStart(plugin: TabGroupsPlugin, leaf: WorkspaceLeaf, direction: 1 | -1): WorkspaceLeaf | null {
+    const children = (leaf as unknown as { parent?: { children?: WorkspaceLeaf[] } }).parent?.children ?? [];
+    const firsts: WorkspaceLeaf[] = [];
+    const seen = new Set<string>();
+    for (const child of children) {
+        const groupId = plugin.leafGroupMap.get(child);
+        if (groupId && !seen.has(groupId)) {
+            seen.add(groupId);
+            firsts.push(child);
+        }
+    }
+    if (firsts.length === 0) return null;
+
+    const index = children.indexOf(leaf);
+    const current = plugin.leafGroupMap.get(leaf);
+    const ordered = direction === 1 ? firsts : [...firsts].reverse();
+    const ahead = ordered.find(first => {
+        const at = children.indexOf(first);
+        return plugin.leafGroupMap.get(first) !== current && (direction === 1 ? at > index : at < index);
+    });
+    // 끝까지 없으면 반대쪽 끝에서부터 (지금 그룹만 있으면 그대로 null)
+    return ahead ?? ordered.find(first => plugin.leafGroupMap.get(first) !== current) ?? null;
 }
 
 // 💡 넣을 그룹 고르기 (이름 없는 그룹은 "이름 없는 그룹"으로 표시)
