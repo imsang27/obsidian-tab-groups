@@ -46,7 +46,8 @@ npm run check-translations
 * **Discuss bigger changes first** in an issue, so your work fits the plugin's direction.
 * **One topic per pull request.** Keep refactors separate from behavior changes.
 * **Unit tests** live in [`tests/`](./tests) and cover logic that runs without Obsidian (group rules, saved tabs, translations, colors). If you change that logic, add or update a test. They run with [Vitest](https://vitest.dev); `npm test` runs them once.
-* **Test in Obsidian**: dragging tabs and groups, collapsing and expanding, and restarting Obsidian (groups must be restored).
+* **E2E tests** live in [`tests/e2e/`](./tests/e2e). They launch a separate Obsidian with the plugin and a small test vault, then click and type like a user: creating, collapsing, hiding and reopening groups, the settings, and restoring groups after a restart. `npm run test:e2e` runs them (about 30 seconds). The first run downloads Obsidian into `~/.obsidian-cache` (or the folder in `OBSIDIAN_CACHE`). Your own Obsidian and vaults aren't touched. They also run in CI, so you don't have to run them before every push. If you change how something looks or behaves in Obsidian, add or update a test there.
+* **Test in Obsidian** what the E2E tests don't cover yet: dragging tabs and groups, collapsing and expanding, and restarting Obsidian (groups must be restored).
 * **New UI text** goes in [`src/i18n/locales/en.json`](./src/i18n/locales/en.json) and is used with `t('key')`. Add the Korean text to `ko.json` if you can. Other languages fall back to English until they are translated.
 * **Clean up** every listener with the `register*` helpers so that disabling the plugin leaves nothing behind.
 * **Don't** commit `main.js` or change the version. The maintainer bumps the version when releasing.
