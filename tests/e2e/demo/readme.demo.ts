@@ -68,7 +68,7 @@ describe('README demos', function () {
     it('changes the settings', async function () {
         const ARCHIVE = { name: 'Archive', color: '#E6955C', notes: ['Q3 review', 'Meeting notes'], hidden: true };
         await setScene([...NOTES.slice(0, 6), 'Q3 review', 'Meeting notes'], [PROJECT, READING, ARCHIVE]);
-        const rec = new Recorder(await rootRegion(560));
+        const rec = new Recorder(await rootRegion(560), 1.4);
         await rec.showCursor({ x: 700, y: 300 });
         await rec.frame(900);
 

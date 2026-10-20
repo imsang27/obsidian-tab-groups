@@ -27,14 +27,14 @@ type WdioElement = ReturnType<typeof $>;
 const { applyPalette, GIFEncoder, quantize } = gifenc;
 const sleep = (ms: number) => browser.pause(ms);
 
-// 💡 GIF 전체 빠르기: 프레임마다 정한 시간에 곱함 (클수록 느림)
-const PACE = 1.4;
+// 💡 GIF 빠르기 기본값: 프레임마다 정한 시간에 곱함 (클수록 느림). 데모마다 Recorder에서 바꿀 수 있음
+const PACE = 1.6;
 
 export class Recorder {
     frames: { png: Buffer; delay: number }[] = [];
     cursor: Point = { x: 0, y: 0 };
 
-    constructor(public region: Region) {}
+    constructor(public region: Region, public pace = PACE) {}
 
     // 💡 지금 화면을 한 프레임으로 (delay: 이 프레임을 보여 줄 시간, ms)
     async frame(delay = 40) {
@@ -42,10 +42,10 @@ export class Recorder {
         this.frames.push({ png: Buffer.from(await browser.takeScreenshot(), 'base64'), delay });
     }
 
-    // 💡 마지막 프레임이 GIF에서 딱 ms 동안 보이게 함 (PACE를 곱한 뒤의 시간)
+    // 💡 마지막 프레임이 GIF에서 딱 ms 동안 보이게 함 (pace를 곱한 뒤의 시간)
     pauseFor(ms: number) {
         const last = this.frames[this.frames.length - 1];
-        if (last) last.delay = ms / PACE;
+        if (last) last.delay = ms / this.pace;
     }
 
     // 💡 마지막 프레임을 더 오래 보여 줌
@@ -260,7 +260,7 @@ export class Recorder {
             }
             gif.writeFrame(shown, width, height, {
                 palette: i === 0 ? palette : undefined,
-                delay: Math.round(this.frames[i]!.delay * PACE),
+                delay: Math.round(this.frames[i]!.delay * this.pace),
                 transparent: previous !== null,
                 transparentIndex,
                 dispose: 1,
