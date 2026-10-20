@@ -1,0 +1,36 @@
+# ⬆️ Dependabot: opens pull requests to update dependencies, once a month, grouped so there are only a few.
+# Each pull request runs the required checks (build, e2e) like any other. Security updates (when turned on in
+# the repository settings) come as soon as GitHub knows about a vulnerability, separately from this schedule.
+version: 2
+updates:
+    # npm packages (dev dependencies only: the plugin bundles everything into main.js)
+    - package-ecosystem: npm
+      directory: /
+      schedule:
+          interval: monthly
+      open-pull-requests-limit: 5
+      commit-message:
+          prefix: '⬆️ build'
+          include: scope
+      groups:
+          # Minor and patch updates together in one pull request; each major update gets its own
+          npm-minor-and-patch:
+              update-types: [minor, patch]
+      ignore:
+          # wdio-obsidian-service supports WebdriverIO 9 only (peer dependency). Update together when it supports 10.
+          - dependency-name: 'webdriverio'
+            update-types: ['version-update:semver-major']
+          - dependency-name: '@wdio/*'
+            update-types: ['version-update:semver-major']
+
+    # Actions used in .github/workflows
+    - package-ecosystem: github-actions
+      directory: /
+      schedule:
+          interval: monthly
+      commit-message:
+          prefix: '⬆️ ci'
+          include: scope
+      groups:
+          github-actions:
+              patterns: ['*']

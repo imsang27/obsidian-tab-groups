@@ -93,6 +93,8 @@ npm run check-translations
 
 풀 리퀘스트는 버전을 바꾸지 않고 병합하고, 사용자에게 전달할 변경이 있을 때만 릴리스합니다.
 
+[Dependabot](../.github/dependabot.yml)이 매달 npm 패키지와 GitHub Actions를 업데이트하는 풀 리퀘스트를 묶어서 몇 개 올립니다. 같은 필수 검사가 돌고, 통과하면 병합하면 됩니다. 메이저 업데이트는 따로 올라오니 바뀐 내용을 먼저 읽어 보세요.
+
 1. GitHub에서 **Actions → Release Obsidian plugin → Run workflow**를 누르고 새 버전(예: `1.3.7`)을 입력합니다.
 2. 워크플로가 버전 커밋을 임시 브랜치에 만들고, 풀 리퀘스트와 같은 검사(빌드, 린트, 단위 테스트, 최신·최소 지원 옵시디언 E2E)를 돌립니다. 몇 분 걸립니다. 모두 통과해야 그 커밋을 `main`에 넣고, 태그를 달고, 빌드해서 릴리스를 Latest로 게시합니다. 검사가 하나라도 실패하면 아무것도 바뀌지 않습니다. 릴리스 노트에는 지난 릴리스 뒤에 병합된 풀 리퀘스트가 정리됩니다.
 3. [community.obsidian.md](https://community.obsidian.md/account/plugins/tab-groups)에서 **Check for new releases**를 눌러 새 버전 검토를 시작합니다.
