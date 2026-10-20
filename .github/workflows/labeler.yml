@@ -19,7 +19,7 @@ jobs:
             contents: read
             pull-requests: write
         steps:
-            - uses: actions/labeler@v5
+            - uses: actions/labeler@v7
             # 💡 Only when opened or reopened, so removing the assignee by hand sticks
             - name: Assign the maintainer
               if: github.event.action != 'synchronize'
