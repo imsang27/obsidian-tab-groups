@@ -1,0 +1,3 @@
+- Review the sprint board
+- Read two papers
+- Write the weekly summary
