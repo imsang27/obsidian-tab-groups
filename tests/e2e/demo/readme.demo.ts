@@ -55,19 +55,25 @@ describe('README demos', function () {
         await rec.frame(300);
         rec.hold(500);
         rec.shorten(100);
-        await rec.click($('.modal').$('button=Hide group'));
+        const hide = $('.modal').$('button=Hide group');
+        await rec.moveToElement(hide);
+        await rec.pulse();
+        rec.shorten(100);
+        await hide.click();
+        await rec.frame(300);
         await rec.moveTo({ x: 760, y: 330 }, 8);
         rec.hold(1200);
 
         // 명령 팔레트 → 숨은 그룹 다시 열기
         await rec.press([Key.Ctrl, 'p']);
+        rec.shorten(100);
         await rec.type('reopen hidden');
         rec.hold(400);
         await rec.press(Key.Enter);
         await rec.type('Rea');
         rec.hold(400);
         await rec.press(Key.Enter);
-        rec.endAfter(rec.frames.length - 1, 2280); // 💡 GIF 전체가 12.5초가 되게
+        rec.endAfter(rec.frames.length - 1, 2280);
         report('demo-hide.gif', rec.save(`${OUT}/demo-hide.gif`));
     });
 
