@@ -267,6 +267,13 @@ export async function titles(): Promise<string[]> {
     return (await tabs()).map(info => info.title);
 }
 
+// 💡 그룹의 탭이 기대한 대로 될 때까지 기다립니다. (라벨이 먼저 그려지고 탭은 조금 뒤에 열릴 수 있음)
+export async function waitForMembers(name: string, expected: string[]) {
+    await browser.waitUntil(async () => (await members(name)).join() === expected.join(), {
+        timeoutMsg: `${name}: expected ${expected.join(', ')}, got ${(await members(name)).join(', ')}`,
+    });
+}
+
 // 💡 그룹 이름 → 그 그룹의 탭 제목들 (탭 바 순서)
 export async function members(name: string): Promise<string[]> {
     const groupId = await browser.executeObsidian(({ plugins }, name) => {

@@ -1,6 +1,6 @@
 import { $, browser, expect } from '@wdio/globals';
 import { Key } from 'webdriverio';
-import { choose, clickButton, createGroup, groupCount, label, resetWorkspace, runCommand, tab, tabHeader, tabs } from '../helpers';
+import { choose, clickButton, createGroup, groupCount, label, resetWorkspace, runCommand, tab, tabHeader, tabs, waitForMembers } from '../helpers';
 
 describe('groups', function () {
     beforeEach(async function () {
@@ -80,8 +80,7 @@ describe('groups', function () {
         await runCommand('Tab Groups: Reopen a hidden group');
         await choose('Work');
         await label('Work').waitForExist();
-        const reopened = (await tabs()).filter(info => info.group !== null).map(info => info.title);
-        expect(reopened).toEqual(['Alpha', 'Beta']);
+        await waitForMembers('Work', ['Alpha', 'Beta']);
     });
 
     it('ungroups a group and keeps its tabs open', async function () {

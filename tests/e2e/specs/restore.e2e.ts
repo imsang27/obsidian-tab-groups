@@ -1,5 +1,5 @@
 import { browser, expect } from '@wdio/globals';
-import { addToGroup, createGroup, label, resetWorkspace, tab } from '../helpers';
+import { addToGroup, createGroup, label, resetWorkspace, tab, waitForMembers } from '../helpers';
 
 // 💡 옵시디언을 다시 켜도 그룹이 그대로인지 (파일마다 옵시디언을 새로 켜므로 다른 테스트에 영향 없음)
 describe('restore', function () {
@@ -16,6 +16,7 @@ describe('restore', function () {
         await browser.reloadObsidian();
 
         await label('Work').waitForExist({ timeout: 20000 });
+        await waitForMembers('Work', ['Alpha', 'Beta']);
         await expect(label('Work')).toHaveElementClass('is-collapsed');
         const alpha = await tab('Alpha');
         const beta = await tab('Beta');

@@ -1,6 +1,6 @@
 import { $, browser, expect } from '@wdio/globals';
 import { Key } from 'webdriverio';
-import { choose, createGroup, groupCount, label, resetWorkspace, runCommand, tab, tabHeader, tabs } from '../helpers';
+import { choose, createGroup, groupCount, label, resetWorkspace, runCommand, tab, tabHeader, tabs, waitForMembers } from '../helpers';
 
 async function closeTab(title: string) {
     await tabHeader(title).click();
@@ -26,7 +26,7 @@ describe('settings', function () {
             await runCommand('Tab Groups: Reopen a hidden group');
             await choose('Work');
             await label('Work').waitForExist();
-            expect((await tab('Alpha')).group).not.toBeNull();
+            await waitForMembers('Work', ['Alpha']);
         });
 
         it('deletes the group with its last tab when on', async function () {
