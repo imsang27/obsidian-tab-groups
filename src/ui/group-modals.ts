@@ -64,7 +64,7 @@ export class EditGroupModal extends Modal {
         initialName: string,
         initialColor: string,
         onSubmit: (groupName: string, color: string) => void | Promise<void>,
-        onAction: (action: GroupAction) => void | Promise<void>
+        onAction: (action: GroupAction) => void | Promise<void>,
         ) {
         super(app);
         this.groupName = initialName;
@@ -99,18 +99,18 @@ export class EditGroupModal extends Modal {
             .addButton((btn) => btn
                 .setButtonText(t('modal.hideGroup'))
                 .setTooltip(t('modal.hideGroupTip'))
-                .onClick(() => { this.close(); void this.onAction('hide'); })
+                .onClick(() => { this.close(); void this.onAction('hide'); }),
             )
             .addButton((btn) => btn
                 .setButtonText(t('modal.ungroup'))
                 .setTooltip(t('modal.ungroupTip'))
-                .onClick(() => { this.close(); void this.onAction('ungroup'); })
+                .onClick(() => { this.close(); void this.onAction('ungroup'); }),
             )
             .addButton((btn) => btn
                 .setButtonText(t('modal.deleteGroup'))
                 .setTooltip(t('modal.deleteGroupTip'))
                 .setWarning()
-                .onClick(() => { this.close(); void this.onAction('delete'); })
+                .onClick(() => { this.close(); void this.onAction('delete'); }),
             );
 
         // ✨ 맨 하단 저장 버튼

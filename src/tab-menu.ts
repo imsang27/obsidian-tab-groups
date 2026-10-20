@@ -25,7 +25,7 @@ export function registerTabMenu(plugin: TabGroupsPlugin) {
                 handledMenus.add(menu);
                 addGroupItems(plugin, menu, lastClickedLeaf);
             }
-        })
+        }),
     );
 
     // 💡 우클릭한 그 이벤트로 뜨는 메뉴만 건드립니다. 플러그인을 끄면 원래 함수로 되돌립니다.

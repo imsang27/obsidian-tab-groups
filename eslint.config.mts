@@ -1,3 +1,4 @@
+import stylistic from '@stylistic/eslint-plugin';
 import obsidianmd from 'eslint-plugin-obsidianmd';
 import globals from 'globals';
 import { globalIgnores, defineConfig } from 'eslint/config';
@@ -33,6 +34,17 @@ export default defineConfig(
 		},
 	},
 	...obsidianmd.configs.recommended,
+	// A comma after the last item of a multi-line list, so adding an item changes only one line in the diff.
+	// (JSON doesn't allow it, so this is for code only.)
+	{
+		files: ['**/*.{ts,mts,js,mjs}'],
+		plugins: {
+			'@stylistic': stylistic,
+		},
+		rules: {
+			'@stylistic/comma-dangle': ['error', 'always-multiline'],
+		},
+	},
 	// E2E tests run under Mocha (describe, it, beforeEach)
 	{
 		files: ['tests/e2e/**/*.ts'],

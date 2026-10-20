@@ -48,7 +48,7 @@ export function openEditGroup(plugin: TabGroupsPlugin, groupId: string) {
             await plugin.saveSettings();
             plugin.enforcePhysicalSorting();
         },
-        (action) => plugin.labels.applyAction(groupId, action)
+        (action) => plugin.labels.applyAction(groupId, action),
     ).open();
 }
 
