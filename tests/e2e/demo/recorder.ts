@@ -48,6 +48,16 @@ export class Recorder {
         if (last) last.delay = ms / this.pace;
     }
 
+    // 💡 마지막 행동 뒤 GIF가 끝나기까지의 시간을 ms로 맞춤 (pace를 곱한 뒤의 시간)
+    // from: 마지막 행동 직후 찍은 프레임의 번호. 그 뒤 프레임들의 시간을 빼고 남은 만큼 마지막 프레임을 보여 줌
+    endAfter(from: number, ms: number) {
+        const last = this.frames[this.frames.length - 1];
+        if (!last) return;
+        // GIF는 0.01초 단위로 저장하므로 그 단위로 반올림해 더함
+        const between = this.frames.slice(from, -1).reduce((sum, frame) => sum + Math.round(frame.delay * this.pace / 10) * 10, 0);
+        last.delay = Math.max(0, (ms - between) / this.pace);
+    }
+
     // 💡 마지막 프레임을 GIF에서 ms만큼 짧게 보여 줌 (pace를 곱한 뒤의 시간)
     shorten(ms: number) {
         const last = this.frames[this.frames.length - 1];
@@ -266,7 +276,7 @@ export class Recorder {
             }
             gif.writeFrame(shown, width, height, {
                 palette: i === 0 ? palette : undefined,
-                delay: Math.round(this.frames[i]!.delay * this.pace),
+                delay: Math.round(this.frames[i]!.delay * this.pace / 10) * 10,
                 transparent: previous !== null,
                 transparentIndex,
                 dispose: 1,

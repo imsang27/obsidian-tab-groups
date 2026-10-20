@@ -35,8 +35,9 @@ describe('README demos', function () {
 
         // 그룹을 편집 영역 오른쪽 끝에 놓아 화면 나누기
         await rec.drag(label('Project'), $('.workspace-split.mod-root .workspace-leaf.mod-active'), { x: 0.92, y: 0.25 }, 22);
+        const dropped = rec.frames.length - 1;
         await rec.moveTo({ x: rec.cursor.x - 120, y: rec.cursor.y + 40 }, 6);
-        rec.pauseFor(800);
+        rec.endAfter(dropped, 1500);
         report('demo-drag.gif', rec.save(`${OUT}/demo-drag.gif`));
     });
 
@@ -49,11 +50,11 @@ describe('README demos', function () {
         // 라벨 우클릭 → 그룹 창 → 그룹 숨기기
         await rec.moveToElement(label('Reading'));
         await rec.pulse();
-        rec.shorten(50);
+        rec.shorten(100);
         await label('Reading').click({ button: 'right' });
         await rec.frame(300);
         rec.hold(500);
-        rec.shorten(50);
+        rec.shorten(100);
         await rec.click($('.modal').$('button=Hide group'));
         await rec.moveTo({ x: 760, y: 330 }, 8);
         rec.hold(1200);
@@ -66,7 +67,7 @@ describe('README demos', function () {
         await rec.type('Rea');
         rec.hold(400);
         await rec.press(Key.Enter);
-        rec.pauseFor(800);
+        rec.endAfter(rec.frames.length - 1, 1500);
         report('demo-hide.gif', rec.save(`${OUT}/demo-hide.gif`));
     });
 
@@ -97,7 +98,7 @@ describe('README demos', function () {
         rec.hold(1800);
         await browser.keys(Key.Escape);
         await rec.frame();
-        rec.pauseFor(800);
+        rec.endAfter(rec.frames.length - 1, 1500);
         report('demo-settings.gif', rec.save(`${OUT}/demo-settings.gif`));
     });
 });
