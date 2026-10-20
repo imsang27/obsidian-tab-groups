@@ -47,7 +47,7 @@
 		"jiti": "^2.6.1",
 		"obsidian": "latest",
 		"pngjs": "^7.0.0",
-		"typescript": "^5.8.3",
+		"typescript": "^6.0.3",
 		"typescript-eslint": "^8.71.2",
 		"vitest": "^5.0.5",
 		"wdio-obsidian-reporter": "^3.3.0",
