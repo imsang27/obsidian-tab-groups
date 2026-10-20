@@ -44,7 +44,7 @@ jobs:
             OBSIDIAN_CACHE: ${{ github.workspace }}/.obsidian-cache
             OBSIDIAN_VERSION: ${{ matrix.obsidian }}
         steps:
-            - uses: actions/checkout@v6
+            - uses: actions/checkout@v7
               with:
                   fetch-depth: 0
             # 💡 Only the files that can change this check's result (plugin, E2E tests and their setup). Same list as on.push.paths above.
@@ -57,7 +57,7 @@ jobs:
                   else
                     echo "code=false" >> "$GITHUB_OUTPUT"
                   fi
-            - uses: actions/setup-node@v6
+            - uses: actions/setup-node@v7
               if: steps.changes.outputs.code == 'true'
               with:
                   node-version: 24
@@ -65,7 +65,7 @@ jobs:
             - if: steps.changes.outputs.code == 'true'
               run: npm ci
             # Downloaded Obsidian versions. A new Obsidian release just adds to the cache.
-            - uses: actions/cache@v4
+            - uses: actions/cache@v6
               if: steps.changes.outputs.code == 'true'
               with:
                   path: .obsidian-cache
