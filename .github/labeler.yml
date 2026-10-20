@@ -26,6 +26,7 @@ build:
                 - '.npmrc'
                 - '*.config.mjs'
                 - '*.config.mts'
+                - 'wdio.conf.mts'
                 - 'tsconfig.json'
                 - 'version-bump.mjs'
                 - 'scripts/**'

@@ -1,0 +1,53 @@
+name: E2E tests
+
+# 🖱️ Launches Obsidian with the plugin and a test vault, then clicks and types like a user (tests/e2e).
+# Skipped when only docs or GitHub templates change. Runs on pull requests, and on push only for main.
+on:
+    push:
+        branches: [main]
+        paths-ignore:
+            - '**.md'
+            - 'docs/**'
+            - 'LICENSE'
+            - '.github/ISSUE_TEMPLATE/**'
+            - '.github/pull_request_template.md'
+            - '.github/labeler.yml'
+    pull_request:
+        paths-ignore:
+            - '**.md'
+            - 'docs/**'
+            - 'LICENSE'
+            - '.github/ISSUE_TEMPLATE/**'
+            - '.github/pull_request_template.md'
+            - '.github/labeler.yml'
+
+# A new push cancels the run still going for an older commit of the same branch or pull request.
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
+jobs:
+    e2e:
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        env:
+            OBSIDIAN_CACHE: ${{ github.workspace }}/.obsidian-cache
+        steps:
+            - uses: actions/checkout@v6
+            - uses: actions/setup-node@v6
+              with:
+                  node-version: 24
+                  cache: 'npm'
+            - run: npm ci
+            # Downloaded Obsidian versions. A new Obsidian release just adds to the cache.
+            - uses: actions/cache@v4
+              with:
+                  path: .obsidian-cache
+                  key: obsidian-${{ runner.os }}-${{ github.run_id }}
+                  restore-keys: obsidian-${{ runner.os }}-
+            - run: npx tsc -noEmit -p tests/e2e
+            # Obsidian needs a screen, so run it on a virtual one.
+            - run: xvfb-run --auto-servernum npm run test:e2e

@@ -19,6 +19,7 @@ run() {
 }
 
 run "type check" npx --no-install tsc -noEmit -skipLibCheck
+run "type check (E2E tests)" npx --no-install tsc -noEmit -p tests/e2e
 run "lint" npm run --silent lint
 run "unit tests" npm test --silent
 run "translations" npm run --silent check-translations

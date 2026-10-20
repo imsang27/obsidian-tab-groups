@@ -8,6 +8,7 @@ export default defineConfig(
 		'dist',
 		'esbuild.config.mjs',
 		'vitest.config.mts',
+		'wdio.conf.mts',
 		'version-bump.mjs',
 		'scripts',
 		'versions.json',
@@ -31,4 +32,13 @@ export default defineConfig(
 		},
 	},
 	...obsidianmd.configs.recommended,
+	// E2E tests run under Mocha (describe, it, beforeEach)
+	{
+		files: ['tests/e2e/**/*.ts'],
+		languageOptions: {
+			globals: {
+				...globals.mocha,
+			},
+		},
+	},
 );
