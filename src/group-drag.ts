@@ -133,7 +133,7 @@ export class GroupDragController {
 
     groupEls(inner: HTMLElement, groupId: string): HTMLElement[] {
         return Array.from(inner.children).filter(el =>
-            el.getAttribute('data-group-id') === groupId || el.getAttribute('data-tab-group-id') === groupId
+            el.getAttribute('data-group-id') === groupId || el.getAttribute('data-tab-group-id') === groupId,
         ) as HTMLElement[];
     }
 

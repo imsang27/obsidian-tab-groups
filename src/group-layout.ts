@@ -39,7 +39,7 @@ export class GroupLayout {
                     const isOnlyPlaceholderMutation = mutations.every(m => {
                         const nodes = [...Array.from(m.addedNodes), ...Array.from(m.removedNodes)];
                         return nodes.length > 0 && nodes.every(n =>
-                            (n as HTMLElement).classList?.contains('tab-group-drag-placeholder')
+                            (n as HTMLElement).classList?.contains('tab-group-drag-placeholder'),
                         );
                     });
                     if (isOnlyPlaceholderMutation) return;

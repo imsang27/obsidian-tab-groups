@@ -207,7 +207,7 @@ export class TabDragController {
             el !== this.placeholderEl &&
             el !== source &&
             (el.classList.contains('workspace-tab-header') || el.classList.contains('tab-group-label')) &&
-            window.getComputedStyle(el).display !== 'none'
+            window.getComputedStyle(el).display !== 'none',
         ) as HTMLElement[];
 
         // 💡 위치는 플레이스홀더가 없을 때의 탭 배치 기준으로 계산합니다.

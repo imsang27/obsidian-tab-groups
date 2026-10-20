@@ -51,7 +51,7 @@ export function registerHiddenTabActivation(plugin: TabGroupsPlugin) {
             } else {
                 previousActiveLeaf = leaf;
             }
-        })
+        }),
     );
 }
 

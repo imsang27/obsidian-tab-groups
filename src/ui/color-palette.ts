@@ -10,7 +10,7 @@ export const PRESET_COLORS = [
     '#E673B3', // 핑크색 (Pink)
     '#A478E6', // 보라색 (Purple)
     '#56B6C2', // 하늘색 (Sky Blue)
-    '#E6955C'  // 주황색 (Orange)
+    '#E6955C',  // 주황색 (Orange)
 ];
 
 // ✨ UX 개선: 스포이드 시작 색상이 항상 현재 선택된 색상과 동기화되도록 개선된 함수

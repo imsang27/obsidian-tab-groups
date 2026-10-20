@@ -79,7 +79,7 @@ export default class TabGroupsPlugin extends Plugin {
             this.app.workspace.on('layout-change', () => {
                 this.layout.setupObservers();
                 this.enforcePhysicalSorting();
-            })
+            }),
         );
 
         // ✨ 그룹 탭에서 다른 노트를 열면 그룹이 기억하는 탭 목록도 갱신 (잦은 저장을 막으려고 모아서)
@@ -94,12 +94,12 @@ export default class TabGroupsPlugin extends Plugin {
                 let changed = false;
                 this.groups.forEach(group => { if (renameSavedTabs(group.tabs, oldPath, file.path)) changed = true; });
                 if (changed) void this.saveSettings();
-            })
+            }),
         );
 
         // ✨ 새로 연 창(팝업)에도 그룹 표시 모양을 적용
         this.registerEvent(
-            this.app.workspace.on('window-open', (win: WorkspaceWindow) => applyGroupStyle(win.doc, this.settings.groupStyle))
+            this.app.workspace.on('window-open', (win: WorkspaceWindow) => applyGroupStyle(win.doc, this.settings.groupStyle)),
         );
 
         this.lock.register();
@@ -136,7 +136,7 @@ export default class TabGroupsPlugin extends Plugin {
                 color: g.color,
                 isCollapsed: g.isCollapsed,
                 tabs: g.tabs ?? [],
-                leafIds: new Set() // 💡 탭 매핑(복구)은 다음 단계에서 구현!
+                leafIds: new Set(), // 💡 탭 매핑(복구)은 다음 단계에서 구현!
             });
         });
     }
