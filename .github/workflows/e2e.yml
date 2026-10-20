@@ -31,10 +31,17 @@ permissions:
 
 jobs:
     e2e:
+        # The latest Obsidian, and the oldest one the plugin supports (minAppVersion in manifest.json)
+        strategy:
+            fail-fast: false
+            matrix:
+                obsidian: [latest, earliest]
+        name: e2e (${{ matrix.obsidian }})
         runs-on: ubuntu-latest
         timeout-minutes: 15
         env:
             OBSIDIAN_CACHE: ${{ github.workspace }}/.obsidian-cache
+            OBSIDIAN_VERSION: ${{ matrix.obsidian }}
         steps:
             - uses: actions/checkout@v6
             - uses: actions/setup-node@v6
@@ -46,8 +53,8 @@ jobs:
             - uses: actions/cache@v4
               with:
                   path: .obsidian-cache
-                  key: obsidian-${{ runner.os }}-${{ github.run_id }}
-                  restore-keys: obsidian-${{ runner.os }}-
+                  key: obsidian-${{ runner.os }}-${{ matrix.obsidian }}-${{ github.run_id }}
+                  restore-keys: obsidian-${{ runner.os }}-${{ matrix.obsidian }}-
             - run: npx tsc -noEmit -p tests/e2e
             # Obsidian needs a screen, so run it on a virtual one.
             - run: xvfb-run --auto-servernum npm run test:e2e

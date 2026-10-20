@@ -1,4 +1,4 @@
-import { $, browser } from '@wdio/globals';
+import { $, $$, browser } from '@wdio/globals';
 import { Key } from 'webdriverio';
 
 // 💡 E2E 테스트가 같이 쓰는 동작: 탭과 그룹을 처음 상태로 돌리고, 사람처럼 클릭·입력합니다.
@@ -155,6 +155,28 @@ export async function dragTo(source: WdioElement, target: WdioElement, at: numbe
         fire('dragend', sourceEl, end.x, end.y);
     }, (await source.getElement()) as unknown as HTMLElement, (await target.getElement()) as unknown as HTMLElement, at);
     await browser.pause(200);
+}
+
+// 💡 편집 영역의 창(탭 묶음)마다 탭 제목들 (왼쪽·위쪽 창부터)
+export async function panes(): Promise<string[][]> {
+    return browser.execute(() => Array.from(document.querySelectorAll('.workspace-split.mod-root .workspace-tabs'))
+        .map(pane => Array.from(pane.querySelectorAll('.workspace-tab-header'))
+            .map(el => el.querySelector('.workspace-tab-header-inner-title')?.textContent ?? ''))
+        .filter(titles => titles.length > 0));
+}
+
+// 💡 index번째 창에서 지금 보이는 편집 화면
+export function paneContent(index: number) {
+    return $$('.workspace-split.mod-root .workspace-tabs')[index]!.$('.workspace-leaf:not([style*="display: none"])');
+}
+
+// 💡 노트를 오른쪽에 새 창(분할)으로 엽니다.
+export async function openInSplit(name: string) {
+    await browser.executeObsidian(async ({ app }, name) => {
+        const file = app.vault.getFileByPath(`${name}.md`);
+        if (file) await app.workspace.getLeaf('split', 'vertical').openFile(file);
+    }, name);
+    await browser.waitUntil(async () => (await panes()).length === 2, { timeoutMsg: 'the split did not open' });
 }
 
 export async function titles(): Promise<string[]> {
