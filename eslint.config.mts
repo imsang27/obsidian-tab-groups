@@ -1,3 +1,5 @@
+// TypeScript 6 no longer loads @types/node by default, and this file uses import.meta.dirname.
+/// <reference types="node" />
 import stylistic from '@stylistic/eslint-plugin';
 import obsidianmd from 'eslint-plugin-obsidianmd';
 import globals from 'globals';
