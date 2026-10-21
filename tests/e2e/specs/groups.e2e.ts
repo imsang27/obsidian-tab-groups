@@ -92,6 +92,38 @@ describe('groups', function () {
         expect((await tabs()).some(info => info.active)).toBe(true);
     });
 
+    it('creates a group from all ungrouped tabs', async function () {
+        await createGroup('Alpha', 'Work');
+        await tabHeader('Gamma').click();
+        await runCommand('Tab Groups: Create tab group from all ungrouped tabs');
+        const input = $('.modal input[type="text"]');
+        await input.waitForDisplayed();
+        await browser.keys('Rest');
+        await browser.keys(Key.Enter);
+
+        await waitForMembers('Rest', ['Beta', 'Gamma', 'Delta']);
+        await waitForMembers('Work', ['Alpha']);
+    });
+
+    it('groups tabs by folder', async function () {
+        await resetWorkspace(['Alpha', 'Projects/Plan', 'Beta', 'Projects/Tasks']);
+        await runCommand('Tab Groups: Group tabs by folder');
+
+        // 💡 폴더 이름이 그룹 이름 (보관함 맨 위의 노트는 보관함 이름의 그룹)
+        await label('Projects').waitForExist({ timeoutMsg: 'no Projects group' });
+        await waitForMembers('Projects', ['Plan', 'Tasks']);
+        expect(await groupCount()).toBe(2);
+        const vault = await browser.executeObsidian(({ app }) => app.vault.getName());
+        await waitForMembers(vault, ['Alpha', 'Beta']);
+    });
+
+    it('does not group a folder with only one ungrouped tab', async function () {
+        await resetWorkspace(['Alpha', 'Projects/Plan']);
+        await runCommand('Tab Groups: Group tabs by folder');
+        await $('.notice*=No folder has two or more ungrouped tabs').waitForExist({ timeoutMsg: 'no notice' });
+        expect(await groupCount()).toBe(0);
+    });
+
     it('removes the current tab from its group', async function () {
         await createGroup('Alpha', 'Work');
         await runCommand('Tab Groups: Remove the current tab from its group');

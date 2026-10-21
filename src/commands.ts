@@ -1,8 +1,8 @@
-import { App, FuzzySuggestModal, ItemView, WorkspaceLeaf } from 'obsidian';
+import { App, FuzzySuggestModal, ItemView, Notice, WorkspaceLeaf } from 'obsidian';
 import type TabGroupsPlugin from './main';
 import type { TabGroupData } from './main';
 import { t } from './i18n';
-import { addToGroup, createGroupWith, openEditGroup, removeFromGroup, reopenGroup } from './group-actions';
+import { addToGroup, createGroupWith, groupByFolder, openEditGroup, removeFromGroup, reopenGroup, ungroupedTabs } from './group-actions';
 
 // ✨ 명령어 (명령 팔레트·단축키): 지금 선택된 탭을 기준으로 그룹을 다룹니다.
 // 💡 명령 이름은 켜질 때의 언어로 정해집니다. (언어를 바꾸면 다시 켠 뒤 반영)
@@ -20,6 +20,35 @@ export function registerCommands(plugin: TabGroupsPlugin) {
             const leaf = activeLeaf();
             if (!leaf) return false;
             if (!checking) createGroupWith(plugin, leaf);
+            return true;
+        },
+    });
+
+    plugin.addCommand({
+        id: 'create-group-from-ungrouped-tabs',
+        name: t('command.groupUngrouped'),
+        checkCallback: (checking) => {
+            const leaf = activeLeaf();
+            const leaves = leaf ? ungroupedTabs(plugin, leaf) : [];
+            if (leaves.length === 0) return false;
+            if (!checking) createGroupWith(plugin, leaves);
+            return true;
+        },
+    });
+
+    plugin.addCommand({
+        id: 'group-tabs-by-folder',
+        name: t('command.groupByFolder'),
+        checkCallback: (checking) => {
+            const leaf = activeLeaf();
+            const leaves = leaf ? ungroupedTabs(plugin, leaf) : [];
+            if (leaves.length < 2) return false;
+            if (!checking) {
+                void groupByFolder(plugin, leaves).then(count => {
+                    // 💡 묶을 폴더가 없었으면 알려 줌 (같은 폴더의 탭이 2개 이상이어야 묶음)
+                    if (count === 0) new Notice(t('notice.noFolderGroups'));
+                });
+            }
             return true;
         },
     });
