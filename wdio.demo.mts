@@ -9,7 +9,7 @@ export const config: WebdriverIO.Config = {
         ...e2e.capabilities[0],
         'wdio:obsidianOptions': {
             installerVersion: 'latest',
-            plugins: ['.'],
+            plugins: ['.', { id: 'vertical-tabs', version: '0.18.6', enabled: false }],
             vault: 'tests/e2e/demo/vault',
         },
     }],
