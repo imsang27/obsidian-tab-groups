@@ -33,6 +33,8 @@
     "settings.removeEmptyGroupsDesc": "Al cerrar la última pestaña de un grupo, también se elimina el grupo, como en Chrome. Si está desactivado, el grupo se conserva para volver a usarlo.",
     "settings.lockGroupedTabs": "Bloquear pestañas agrupadas",
     "settings.lockGroupedTabsDesc": "Evita que se reemplace la nota de una pestaña agrupada. Una nota abierta desde ella (enlace, explorador de archivos, selector rápido) se abre en una pestaña nueva fuera del grupo; añade esa pestaña al grupo desde el menú de la pestaña para conservarla. Las pestañas no se fijan, así que se quedan donde están.",
+    "settings.suggestGroupName": "Sugerir nombre y color para grupos nuevos",
+    "settings.suggestGroupNameDesc": "Rellena el nombre con la carpeta de la nota de la pestaña y elige un color según ese nombre, para que la misma carpeta tenga el mismo color. Puedes cambiar ambos.",
     "settings.groups": "Grupos de pestañas",
     "settings.groupsDesc": "Los grupos ocultos recuerdan sus pestañas, así que puedes volver a abrirlos aquí. Elimina los grupos que ya no necesites.",
     "settings.noGroups": "Aún no hay grupos. Haz clic derecho en una pestaña y selecciona «Crear grupo de pestañas».",

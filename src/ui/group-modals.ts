@@ -9,9 +9,11 @@ export class CreateGroupModal extends Modal {
     groupColor: string;
     onSubmit: (groupName: string, color: string) => void | Promise<void>;
 
-    constructor(app: App, initialColor: string, onSubmit: (groupName: string, color: string) => void | Promise<void>) {
+    // 💡 initialName: 미리 채울 이름 (설정에서 이름 제안을 켰을 때)
+    constructor(app: App, initialColor: string, onSubmit: (groupName: string, color: string) => void | Promise<void>, initialName = '') {
         super(app);
         this.groupColor = initialColor;
+        this.groupName = initialName;
         this.onSubmit = onSubmit;
     }
 
@@ -28,9 +30,11 @@ export class CreateGroupModal extends Modal {
             .setName(t('modal.name'))
             .setDesc(t('modal.nameDesc'))
             .addText((text) => {
+                text.setValue(this.groupName);
                 text.onChange((val) => this.groupName = val);
                 onEnter(text.inputEl, () => this.submit());
-                window.setTimeout(() => text.inputEl.focus(), 0);
+                // 💡 제안한 이름은 골라 둬서, 바로 치면 새 이름으로 바뀜
+                window.setTimeout(() => { text.inputEl.focus(); text.inputEl.select(); }, 0);
             });
 
         const colorSetting = new Setting(contentEl)

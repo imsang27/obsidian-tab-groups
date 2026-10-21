@@ -33,6 +33,8 @@
     "settings.removeEmptyGroupsDesc": "关闭组的最后一个标签页时，像 Chrome 一样同时删除该组。关闭此选项时组会保留，之后可以再加入标签页。",
     "settings.lockGroupedTabs": "锁定组内标签页",
     "settings.lockGroupedTabsDesc": "防止组内标签页中的笔记被替换。从中打开的笔记（链接、文件列表、快速切换）会在组外的新标签页中打开；如需保留，请通过标签页菜单将该标签页加入组。标签页不会被固定，位置保持不变。",
+    "settings.suggestGroupName": "为新组建议名称和颜色",
+    "settings.suggestGroupNameDesc": "以标签页笔记所在的文件夹名作为组名，并根据该名称选择颜色，同一文件夹总是同一颜色。两者都可以修改。",
     "settings.groups": "标签页组",
     "settings.groupsDesc": "隐藏的组会记住其标签页，可以在这里重新打开。删除不再需要的组。",
     "settings.noGroups": "还没有组。右键点击标签页，选择“新建标签页组”。",

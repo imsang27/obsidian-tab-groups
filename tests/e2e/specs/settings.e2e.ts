@@ -78,6 +78,53 @@ describe('settings', function () {
         });
     });
 
+    describe('suggest a name and color for new groups', function () {
+        // 💡 지금 탭으로 새 그룹 창을 열어 미리 채워진 이름을 읽음
+        async function suggestedName(title: string): Promise<string> {
+            await tabHeader(title).click();
+            await runCommand('Tab Groups: Create tab group from the current tab');
+            const input = $('.modal input[type="text"]');
+            await input.waitForDisplayed();
+            return input.getValue();
+        }
+
+        async function groupColor(name: string): Promise<string | undefined> {
+            return browser.executeObsidian(({ plugins }, name) => {
+                const groups = (plugins.tabGroups as unknown as { groups: Map<string, { name: string; color: string }> }).groups;
+                return [...groups.values()].find(group => group.name === name)?.color;
+            }, name);
+        }
+
+        it('leaves the name empty when off', async function () {
+            await resetWorkspace(['Projects/Plan', 'Alpha']);
+            expect(await suggestedName('Plan')).toBe('');
+        });
+
+        it("fills in the note's folder, with the same color for the same folder", async function () {
+            await resetWorkspace(['Projects/Plan', 'Projects/Tasks', 'Alpha'], { suggestGroupName: true });
+            expect(await suggestedName('Plan')).toBe('Projects');
+            await browser.keys(Key.Enter);
+            await label('Projects').waitForExist();
+            const color = await groupColor('Projects');
+
+            // 그룹을 풀고 같은 폴더의 다른 노트로 다시 만들면 같은 색
+            await browser.executeObsidian(async ({ plugins }) => {
+                const plugin = plugins.tabGroups as unknown as { groups: Map<string, unknown>; ungroupGroup(id: string): Promise<void> };
+                for (const id of [...plugin.groups.keys()]) await plugin.ungroupGroup(id);
+            });
+            await label('Projects').waitForExist({ reverse: true });
+            expect(await suggestedName('Tasks')).toBe('Projects');
+            await browser.keys(Key.Enter);
+            await label('Projects').waitForExist();
+            expect(await groupColor('Projects')).toBe(color);
+        });
+
+        it('leaves the name empty for a note at the top of the vault', async function () {
+            await resetWorkspace(['Alpha', 'Beta'], { suggestGroupName: true });
+            expect(await suggestedName('Alpha')).toBe('');
+        });
+    });
+
     describe('lock grouped tabs', function () {
         it('replaces the note in the grouped tab when off', async function () {
             await resetWorkspace(['Alpha', 'Beta']);

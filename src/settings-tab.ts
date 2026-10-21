@@ -47,6 +47,11 @@ export class TabGroupsSettingTab extends PluginSettingTab {
                 control: { type: 'toggle', key: 'lockGroupedTabs' },
             },
             {
+                name: t('settings.suggestGroupName'),
+                desc: t('settings.suggestGroupNameDesc'),
+                control: { type: 'toggle', key: 'suggestGroupName' },
+            },
+            {
                 type: 'list',
                 heading: t('settings.groups'),
                 emptyState: t('settings.noGroups'),
@@ -71,6 +76,7 @@ export class TabGroupsSettingTab extends PluginSettingTab {
         if (key === 'labelTabCount') await this.changeLabelTabCount(value as LabelTabCount);
         if (key === 'removeEmptyGroups') await this.changeRemoveEmptyGroups(value === true);
         if (key === 'lockGroupedTabs') await this.changeLockGroupedTabs(value === true);
+        if (key === 'suggestGroupName') await this.changeSuggestGroupName(value === true);
     }
 
     // 💡 옵시디언 1.13 미만용
@@ -115,6 +121,13 @@ export class TabGroupsSettingTab extends PluginSettingTab {
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.lockGroupedTabs)
                 .onChange(value => { void this.changeLockGroupedTabs(value); }));
+
+        new Setting(containerEl)
+            .setName(t('settings.suggestGroupName'))
+            .setDesc(t('settings.suggestGroupNameDesc'))
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.suggestGroupName)
+                .onChange(value => { void this.changeSuggestGroupName(value); }));
 
         this.displayGroups(containerEl);
     }
@@ -225,6 +238,11 @@ export class TabGroupsSettingTab extends PluginSettingTab {
 
     async changeLockGroupedTabs(enabled: boolean) {
         this.plugin.settings.lockGroupedTabs = enabled;
+        await this.plugin.saveSettings();
+    }
+
+    async changeSuggestGroupName(enabled: boolean) {
+        this.plugin.settings.suggestGroupName = enabled;
         await this.plugin.saveSettings();
     }
 
