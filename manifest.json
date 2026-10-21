@@ -1,7 +1,7 @@
 {
 	"id": "tab-groups",
 	"name": "Tab Groups",
-	"version": "1.11.0",
+	"version": "1.12.0",
 	"minAppVersion": "1.8.7",
 	"description": "Group tabs with names and colored labels. Collapse, reorder, and drag whole groups, and tabs join or leave groups as you move them.",
 	"author": "imsang27",
