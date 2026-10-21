@@ -43,9 +43,13 @@ html body .tab-group-label:hover {
     opacity: 0.8;
 }
 
-/* 그룹 이름 옆 탭 개수 (설정에서 켰을 때). 이름보다 조금 옅게, 숫자 폭은 같게 */
+/* 그룹 이름 옆 탭 개수 (설정에서 켰을 때). 이름과는 구분 점으로 나누고, 이름보다 조금 옅게, 숫자 폭은 같게 */
+html body .tab-group-label-separator {
+    margin: 0 4px;
+    opacity: 0.6;
+}
+
 html body .tab-group-label-count {
-    margin-left: 5px;
     font-variant-numeric: tabular-nums;
     opacity: 0.75;
 }

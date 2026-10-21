@@ -73,6 +73,8 @@ describe('settings', function () {
             await browser.waitUntil(async () => (await labelCount('Work')) === '1');
             await addToGroup('Beta', 'Work');
             await browser.waitUntil(async () => (await labelCount('Work')) === '2', { timeoutMsg: 'the count did not follow the new tab' });
+            // 💡 이름과 개수 사이 구분 점
+            expect(await label('Work').$('.tab-group-label-text').getProperty('textContent')).toBe('Work·2');
         });
     });
 
