@@ -25,6 +25,8 @@ const internal = (leaf: WorkspaceLeaf) => leaf as unknown as InternalLeaf;
 export class TabDragController {
     plugin: TabGroupsPlugin;
     placeholderEl: HTMLElement;
+    // 💡 자리 표시와 한 덩어리로 이어 보이게 모서리를 평평하게 한 양옆 그룹 탭
+    joinedHeaders: HTMLElement[] = [];
     draggedLeaf: WorkspaceLeaf | null = null;
     draggedHeader: HTMLElement | null = null;
     draggedWidth = 0;
@@ -144,6 +146,27 @@ export class TabDragController {
         const color = groupId ? this.plugin.groups.get(groupId)?.color : undefined;
         this.placeholderEl.toggleClass('is-in-group', !!color);
         if (color) setGroupColor(this.placeholderEl, color);
+
+        // 💡 그룹 안 자리면 양옆 그룹 탭과 한 덩어리로: 그룹 끝의 둥근 모서리는 자리 표시가 맡고,
+        // 자리 표시와 맞닿은 그룹 탭의 모서리는 평평하게 (클래식 모양에서 씀)
+        this.clearJoined();
+        const sameGroup = (el: Element | null): el is HTMLElement => !!color && !!el
+            && el.classList.contains('workspace-tab-header') && el.getAttribute('data-tab-group-id') === groupId;
+        const prev = this.neighbor('previousElementSibling'), next = this.neighbor('nextElementSibling');
+        this.placeholderEl.toggleClass('is-group-first', !!color && !sameGroup(prev));
+        this.placeholderEl.toggleClass('is-group-last', !!color && !sameGroup(next));
+        if (sameGroup(prev)) this.join(prev, 'tab-group-joined-right');
+        if (sameGroup(next)) this.join(next, 'tab-group-joined-left');
+    }
+
+    join(header: HTMLElement, cls: string) {
+        header.addClass(cls);
+        this.joinedHeaders.push(header);
+    }
+
+    clearJoined() {
+        this.joinedHeaders.forEach(header => header.removeClasses(['tab-group-joined-right', 'tab-group-joined-left']));
+        this.joinedHeaders = [];
     }
 
     // 💡 플레이스홀더 옆의 보이는 탭·라벨 (끌고 있는 탭과 접힌 탭은 건너뜀)
@@ -208,6 +231,7 @@ export class TabDragController {
 
     hidePlaceholder() {
         this.placeholderEl.remove();
+        this.clearJoined();
         this.draggedHeader?.classList.remove('tab-group-drag-source');
         document.body.classList.remove('is-dragging-tab-in-tab-bar');
     }

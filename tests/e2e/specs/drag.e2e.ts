@@ -9,6 +9,16 @@ async function placeholderGroupColor(): Promise<string | null> {
     });
 }
 
+// 💡 자리 표시가 그룹의 처음·끝인지, 맞닿아 모서리를 평평하게 한 그룹 탭은 무엇인지 (클래식 모양에서 한 덩어리로 보이게)
+async function placeholderJoin(): Promise<{ first: boolean; last: boolean; joined: string[] }> {
+    return browser.execute(() => {
+        const el = document.querySelector('.tab-group-drag-placeholder');
+        const joined = Array.from(document.querySelectorAll('.tab-group-joined-right, .tab-group-joined-left'))
+            .map(header => `${header.getAttribute('aria-label')}:${header.classList.contains('tab-group-joined-right') ? 'right' : 'left'}`);
+        return { first: !!el?.classList.contains('is-group-first'), last: !!el?.classList.contains('is-group-last'), joined };
+    });
+}
+
 async function groupColor(name: string): Promise<string> {
     return browser.executeObsidian(({ plugins }, name) => {
         const groups = (plugins.tabGroups as unknown as { groups: Map<string, { name: string; color: string }> }).groups;
@@ -48,15 +58,19 @@ describe('drag', function () {
             // 그룹 마지막 탭의 오른쪽 절반: 그룹 끝에 들어감
             await dragOver(tabHeader('Beta'), 0.8);
             expect(await placeholderGroupColor()).toBe(color);
+            expect(await placeholderJoin()).toEqual({ first: false, last: true, joined: ['Beta:right'] });
             // 그 오른쪽(다음 탭 왼쪽 절반): 그룹 밖
             await dragOver(tabHeader('Gamma'), 0.2);
             expect(await placeholderGroupColor()).toBeNull();
+            expect(await placeholderJoin()).toEqual({ first: false, last: false, joined: [] });
             // 그룹 탭 사이: 들어감
             await dragOver(tabHeader('Beta'), 0.2);
             expect(await placeholderGroupColor()).toBe(color);
+            expect(await placeholderJoin()).toEqual({ first: false, last: false, joined: ['Alpha:right', 'Beta:left'] });
         } finally {
             await cancelDrag();
         }
+        expect((await placeholderJoin()).joined).toEqual([]);
         // 💡 끝내면 그대로 (취소한 끌기는 아무것도 바꾸지 않음)
         expect(await titles()).toEqual(['Alpha', 'Beta', 'Gamma', 'Delta']);
     });

@@ -263,9 +263,63 @@ html body:not(.tab-groups-style-classic) .tab-group-drag-placeholder.is-in-group
     height: 2px;
 }
 
+/* ✨ 클래식: 그룹에 들어가는 자리는 그룹 탭과 같은 모양(같은 높이, 옅은 배경, 위쪽 색 줄)으로 그룹 덩어리에 이어 붙이고,
+   그 안에 들어갈 자리를 그룹 색으로 보여 줌. 그룹 끝의 둥근 모서리는 자리 표시가 맡음 (색 줄 높이는 옆 그룹 탭과 같게) */
+html body.tab-groups-style-classic .tab-group-drag-placeholder.is-in-group {
+    z-index: 2;
+    margin: 0;
+    border-radius: 0;
+    background-color: color-mix(in srgb, var(--tab-group-color) 10%, var(--tab-container-background, var(--background-secondary)));
+}
+
 html body.tab-groups-style-classic .tab-group-drag-placeholder.is-in-group::after {
-    top: -4px;
-    height: 3px;
+    top: 0;
+    bottom: 4px;
+    left: 0;
+    right: 0;
+    border-top: 3px solid var(--tab-group-color);
+    border-radius: inherit;
+    background-color: transparent;
+}
+
+html body.tab-groups-style-classic .tab-group-drag-placeholder.is-in-group::before {
+    content: '';
+    position: absolute;
+    top: 7px;
+    bottom: 7px;
+    left: 4px;
+    right: 4px;
+    border-radius: var(--radius-s, 4px);
+    background-color: color-mix(in srgb, var(--tab-group-color) 35%, transparent);
+    pointer-events: none;
+}
+
+html body.tab-groups-style-classic .tab-group-drag-placeholder.is-in-group.is-group-first,
+html body.tab-groups-style-classic .tab-group-drag-placeholder.is-in-group.is-group-last {
+    border-radius: var(--tab-radius-active, 10px 10px 0 0);
+}
+
+html body.tab-groups-style-classic .tab-group-drag-placeholder.is-in-group.is-group-first:not(.is-group-last) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+html body.tab-groups-style-classic .tab-group-drag-placeholder.is-in-group.is-group-last:not(.is-group-first) {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+/* 💡 자리 표시와 맞닿은 그룹 끝 탭은 그쪽 모서리를 평평하게 해서 자리 표시와 한 덩어리로 보이게 함 */
+html body.tab-groups-style-classic .workspace-tab-header.tab-group-member.tab-group-last.tab-group-joined-right:not(#tab-groups),
+html body.tab-groups-style-classic .workspace-tab-header.tab-group-member.tab-group-last.tab-group-joined-right:not(#tab-groups) .workspace-tab-header-inner::before {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+html body.tab-groups-style-classic .workspace-tab-header.tab-group-member.tab-group-first.tab-group-joined-left:not(#tab-groups),
+html body.tab-groups-style-classic .workspace-tab-header.tab-group-member.tab-group-first.tab-group-joined-left:not(#tab-groups) .workspace-tab-header-inner::before {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
 }
 
 /* 위치 계산 중에는 잠깐 빼서, 플레이스홀더가 없을 때의 탭 배치를 잽니다 */
