@@ -2,7 +2,7 @@ import { App, FuzzySuggestModal, ItemView, Notice, WorkspaceLeaf } from 'obsidia
 import type TabGroupsPlugin from './main';
 import type { TabGroupData } from './main';
 import { t } from './i18n';
-import { addToGroup, createGroupWith, groupByFolder, openEditGroup, removeFromGroup, reopenGroup, ungroupedTabs } from './group-actions';
+import { addToGroup, createGroupWith, groupByFolder, moveGroupToNewWindow, newTabInGroup, openEditGroup, removeFromGroup, reopenGroup, ungroupedTabs } from './group-actions';
 
 // ✨ 명령어 (명령 팔레트·단축키): 지금 선택된 탭을 기준으로 그룹을 다룹니다.
 // 💡 명령 이름은 켜질 때의 언어로 정해집니다. (언어를 바꾸면 다시 켠 뒤 반영)
@@ -97,6 +97,28 @@ export function registerCommands(plugin: TabGroupsPlugin) {
             const hidden = [...plugin.groups.entries()].filter(([id]) => plugin.isGroupHidden(id));
             if (hidden.length === 0) return false;
             if (!checking) new GroupSuggestModal(plugin.app, hidden, groupId => { void reopenGroup(plugin, groupId); }).open();
+            return true;
+        },
+    });
+
+    plugin.addCommand({
+        id: 'new-tab-in-active-group',
+        name: t('command.newTabInGroup'),
+        checkCallback: (checking) => {
+            const groupId = activeGroupId();
+            if (!groupId || !plugin.groups.has(groupId)) return false;
+            if (!checking) void newTabInGroup(plugin, groupId);
+            return true;
+        },
+    });
+
+    plugin.addCommand({
+        id: 'move-active-group-to-new-window',
+        name: t('command.moveGroupToWindow'),
+        checkCallback: (checking) => {
+            const groupId = activeGroupId();
+            if (!groupId || !plugin.groups.has(groupId)) return false;
+            if (!checking) void moveGroupToNewWindow(plugin, groupId);
             return true;
         },
     });

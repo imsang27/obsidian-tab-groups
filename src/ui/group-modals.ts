@@ -2,7 +2,7 @@ import { App, Modal, Setting } from 'obsidian';
 import { t } from '../i18n';
 import { renderColorPalette } from './color-palette';
 
-export type GroupAction = 'hide' | 'ungroup' | 'delete';
+export type GroupAction = 'hide' | 'ungroup' | 'delete' | 'newTab' | 'newWindow';
 
 export class CreateGroupModal extends Modal {
     groupName: string = '';
@@ -115,6 +115,20 @@ export class EditGroupModal extends Modal {
                 .setTooltip(t('modal.deleteGroupTip'))
                 .setWarning()
                 .onClick(() => { this.close(); void this.onAction('delete'); }),
+            );
+
+        // ✨ 그룹의 탭 다루기 (크롬 그룹 메뉴의 "그룹에 새 탭 추가", "그룹을 새 창으로 이동")
+        new Setting(contentEl)
+            .setName(t('modal.tabActions'))
+            .addButton((btn) => btn
+                .setButtonText(t('modal.newTab'))
+                .setTooltip(t('modal.newTabTip'))
+                .onClick(() => { this.close(); void this.onAction('newTab'); }),
+            )
+            .addButton((btn) => btn
+                .setButtonText(t('modal.newWindow'))
+                .setTooltip(t('modal.newWindowTip'))
+                .onClick(() => { this.close(); void this.onAction('newWindow'); }),
             );
 
         // ✨ 맨 하단 저장 버튼

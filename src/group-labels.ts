@@ -4,7 +4,7 @@ import type { TabGroupData } from './main';
 import { setGroupColor } from './group-style';
 import { internal } from './internal';
 import { GroupAction } from './ui/group-modals';
-import { confirmDeleteGroup, openEditGroup } from './group-actions';
+import { confirmDeleteGroup, moveGroupToNewWindow, newTabInGroup, openEditGroup } from './group-actions';
 
 // ✨ 그룹 라벨: 그룹 맨 앞 탭 앞에 그리고, 클릭하면 접기·펼치기, 우클릭하면 관리 창, 끌면 그룹 통째로 옮기기.
 export class GroupLabels {
@@ -110,6 +110,8 @@ export class GroupLabels {
         const plugin = this.plugin;
         if (action === 'hide') await plugin.hideGroup(groupId);
         else if (action === 'ungroup') await plugin.ungroupGroup(groupId);
+        else if (action === 'newTab') await newTabInGroup(plugin, groupId);
+        else if (action === 'newWindow') await moveGroupToNewWindow(plugin, groupId);
         else confirmDeleteGroup(plugin, groupId);
     }
 
