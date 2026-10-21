@@ -15,7 +15,7 @@ Chrome-style tab groups for Obsidian. Name and color related tabs, and collapse 
 ---
 * **Colored groups with labels:** Give a group of tabs a name and a color. A label sits in front of the group, and every tab in it shares the same color line.
 * **Collapse and expand:** Click a group label to hide its tabs and free up space. Click again to bring them back in their original order. Switching tabs skips over collapsed groups.
-* **Drag and drop:** Drag a single tab or a whole group (by its label). A placeholder shows exactly where it will land. Drop a group onto the edge of a pane to split it, or onto another pane's tab bar to move it there.
+* **Drag and drop:** Drag a single tab or a whole group (by its label). A placeholder shows exactly where it will land, in the group's color when the tab will join that group. Drop a group onto the edge of a pane to split it, or onto another pane's tab bar to move it there.
 
   ![Dragging the Reading group's label to the front of the tab bar, then dragging the Project group's label to the right edge of the pane, which splits the view and moves the group there](./docs/images/demo-drag.gif)
 

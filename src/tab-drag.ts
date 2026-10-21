@@ -1,6 +1,7 @@
 import { WorkspaceLeaf } from 'obsidian';
 import type TabGroupsPlugin from './main';
 import { GroupSlot, resolveGroupAt } from './tab-group-rules';
+import { setGroupColor } from './group-style';
 
 const TAB_BAR_SELECTOR = '.workspace-tab-header-container';
 const TAB_BAR_INNER_SELECTOR = '.workspace-tab-header-container-inner';
@@ -24,6 +25,8 @@ const internal = (leaf: WorkspaceLeaf) => leaf as unknown as InternalLeaf;
 export class TabDragController {
     plugin: TabGroupsPlugin;
     placeholderEl: HTMLElement;
+    // 💡 자리 표시와 한 덩어리로 이어 보이게 모서리를 평평하게 한 양옆 그룹 탭
+    joinedHeaders: HTMLElement[] = [];
     draggedLeaf: WorkspaceLeaf | null = null;
     draggedHeader: HTMLElement | null = null;
     draggedWidth = 0;
@@ -106,9 +109,18 @@ export class TabDragController {
         if (groupChanged) void this.plugin.saveSettings();
     }
 
-    // ✨ 놓은 자리에 따라 그룹 소속을 정합니다. (플레이스홀더 양옆의 보이는 탭·라벨 기준, 규칙은 resolveGroupAt)
-    // 그룹이 바뀌었으면 true를 돌려줍니다.
+    // ✨ 놓은 자리에 따라 그룹 소속을 정합니다. 그룹이 바뀌었으면 true를 돌려줍니다.
     applyDropGroup(leaf: WorkspaceLeaf): boolean {
+        const current = this.plugin.leafGroupMap.get(leaf) ?? null;
+        const newGroup = this.dropGroup(leaf);
+        if (newGroup === current) return false;
+        if (newGroup) this.plugin.leafGroupMap.set(leaf, newGroup);
+        else this.plugin.leafGroupMap.delete(leaf);
+        return true;
+    }
+
+    // 💡 지금 자리에 놓으면 들어갈 그룹 (플레이스홀더 양옆의 보이는 탭·라벨 기준, 규칙은 resolveGroupAt)
+    dropGroup(leaf: WorkspaceLeaf): string | null {
         const slot = (el: Element | null): GroupSlot | null => el && {
             groupId: el.getAttribute('data-tab-group-id') ?? el.getAttribute('data-group-id'),
             isLabel: el.classList.contains('tab-group-label'),
@@ -122,14 +134,39 @@ export class TabDragController {
         // 그룹 맨 끝으로 편입(또는 유지), 그 오른쪽이면 그룹 밖으로 놓습니다.
         const prevGroup = prev && !prev.isLabel ? prev.groupId : null;
         const atGroupEnd = !!prevGroup && isExpanded(prevGroup) && (next?.isLabel || next?.groupId !== prevGroup);
-        const newGroup = atGroupEnd
+        return atGroupEnd
             ? (this.insideGroupEnd ? prevGroup : null)
             : resolveGroupAt(prev, next, current, isExpanded);
+    }
 
-        if (newGroup === current) return false;
-        if (newGroup) this.plugin.leafGroupMap.set(leaf, newGroup);
-        else this.plugin.leafGroupMap.delete(leaf);
-        return true;
+    // 🎯 플레이스홀더에 놓으면 들어갈 그룹의 색 줄을 붙여, 그룹 안에 들어가는지 밖에 놓이는지 보여 줍니다.
+    // (그룹 맨 끝에서는 커서가 마지막 탭 위인지 그 오른쪽인지에 따라 바뀜)
+    showDropGroup() {
+        const groupId = this.draggedLeaf ? this.dropGroup(this.draggedLeaf) : null;
+        const color = groupId ? this.plugin.groups.get(groupId)?.color : undefined;
+        this.placeholderEl.toggleClass('is-in-group', !!color);
+        if (color) setGroupColor(this.placeholderEl, color);
+
+        // 💡 그룹 안 자리면 양옆 그룹 탭과 한 덩어리로: 그룹 끝의 둥근 모서리는 자리 표시가 맡고,
+        // 자리 표시와 맞닿은 그룹 탭의 모서리는 평평하게 (클래식 모양에서 씀)
+        this.clearJoined();
+        const sameGroup = (el: Element | null): el is HTMLElement => !!color && !!el
+            && el.classList.contains('workspace-tab-header') && el.getAttribute('data-tab-group-id') === groupId;
+        const prev = this.neighbor('previousElementSibling'), next = this.neighbor('nextElementSibling');
+        this.placeholderEl.toggleClass('is-group-first', !!color && !sameGroup(prev));
+        this.placeholderEl.toggleClass('is-group-last', !!color && !sameGroup(next));
+        if (sameGroup(prev)) this.join(prev, 'tab-group-joined-right');
+        if (sameGroup(next)) this.join(next, 'tab-group-joined-left');
+    }
+
+    join(header: HTMLElement, cls: string) {
+        header.addClass(cls);
+        this.joinedHeaders.push(header);
+    }
+
+    clearJoined() {
+        this.joinedHeaders.forEach(header => header.removeClasses(['tab-group-joined-right', 'tab-group-joined-left']));
+        this.joinedHeaders = [];
     }
 
     // 💡 플레이스홀더 옆의 보이는 탭·라벨 (끌고 있는 탭과 접힌 탭은 건너뜀)
@@ -194,6 +231,7 @@ export class TabDragController {
 
     hidePlaceholder() {
         this.placeholderEl.remove();
+        this.clearJoined();
         this.draggedHeader?.classList.remove('tab-group-drag-source');
         document.body.classList.remove('is-dragging-tab-in-tab-bar');
     }
@@ -233,6 +271,7 @@ export class TabDragController {
         if (this.placeholderEl.parentElement !== inner || this.placeholderEl.nextSibling !== next) {
             inner.insertBefore(this.placeholderEl, next);
         }
+        this.showDropGroup();
     }
 
     // 💡 맨 뒤로 놓을 때: 마지막으로 보이는 요소 뒤. 접힌 그룹의 숨은 탭과 끌고 있는 탭은 건너뛰어,

@@ -197,6 +197,43 @@ export async function dragTo(source: WdioElement, target: WdioElement, at: numbe
     await browser.pause(200);
 }
 
+// 💡 끄는 도중의 화면을 보려고, 끌기를 시작·이동·끝내기로 나눠 보냅니다. (드롭하지 않고 끝내면 아무 데도 옮기지 않음)
+export async function startDrag(source: WdioElement) {
+    await browser.execute((sourceEl: HTMLElement) => {
+        const r = sourceEl.getBoundingClientRect();
+        const init = { bubbles: true, cancelable: true, composed: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, dataTransfer: new DataTransfer() };
+        (window as unknown as { e2eDrag: { source: HTMLElement; dataTransfer: DataTransfer } }).e2eDrag = { source: sourceEl, dataTransfer: init.dataTransfer };
+        sourceEl.dispatchEvent(new DragEvent('dragstart', init));
+        sourceEl.dispatchEvent(new DragEvent('dragover', init));
+    }, (await source.getElement()) as unknown as HTMLElement);
+    await browser.pause(50);
+}
+
+// 💡 끌고 있는 것을 target 요소 너비의 at 비율 지점 위로 옮깁니다. (dragTo처럼 자리 표시를 뺀 배치로 잼)
+export async function dragOver(target: WdioElement, at: number) {
+    await browser.execute((targetEl: HTMLElement, at: number) => {
+        const placeholder = document.querySelector('.tab-group-drag-placeholder');
+        placeholder?.classList.add('is-measuring');
+        const r = targetEl.getBoundingClientRect();
+        placeholder?.classList.remove('is-measuring');
+        const x = r.left + r.width * at, y = r.top + r.height / 2;
+        const { dataTransfer } = (window as unknown as { e2eDrag: { dataTransfer: DataTransfer } }).e2eDrag;
+        (document.elementFromPoint(x, y) ?? targetEl).dispatchEvent(new DragEvent('dragover', {
+            bubbles: true, cancelable: true, composed: true, clientX: x, clientY: y, dataTransfer,
+        }));
+    }, (await target.getElement()) as unknown as HTMLElement, at);
+    await browser.pause(50);
+}
+
+// 💡 놓지 않고 끌기를 끝냅니다. (Esc로 취소한 것과 같음)
+export async function cancelDrag() {
+    await browser.execute(() => {
+        const { source, dataTransfer } = (window as unknown as { e2eDrag: { source: HTMLElement; dataTransfer: DataTransfer } }).e2eDrag;
+        source.dispatchEvent(new DragEvent('dragend', { bubbles: true, cancelable: true, composed: true, dataTransfer }));
+    });
+    await browser.pause(100);
+}
+
 // 💡 편집 영역의 창(탭 묶음)마다 탭 제목들 (왼쪽·위쪽 창부터)
 export async function panes(): Promise<string[][]> {
     return browser.execute(() => Array.from(document.querySelectorAll('.workspace-split.mod-root .workspace-tabs'))
