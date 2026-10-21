@@ -131,6 +131,8 @@ export function confirmDeleteGroup(plugin: TabGroupsPlugin, groupId: string, onD
 export async function reopenGroup(plugin: TabGroupsPlugin, groupId: string) {
     const groupData = plugin.groups.get(groupId);
     if (!groupData || groupData.tabs.length === 0) return;
+    // 💡 숨길 때 닫힌 탭들이 닫은 탭 다시 열기로 또 열리지 않게
+    plugin.reopen.forget(groupId, { dropUndo: true });
     const workspace = plugin.app.workspace;
     const anchor = workspace.getMostRecentLeaf();
     const parent = anchor ? internal(anchor).parent : null;

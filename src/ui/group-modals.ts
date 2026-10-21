@@ -150,7 +150,7 @@ export class EditGroupModal extends Modal {
     }
 }
 
-// ✨ 되돌릴 수 없는 동작 전 확인 창 (그룹 삭제: 탭도 닫힘)
+// ✨ 탭이 닫히는 동작 전 확인 창 (그룹 삭제: 탭도 닫힘)
 export class ConfirmModal extends Modal {
     constructor(app: App, private title: string, private message: string, private confirmText: string, private onConfirm: () => void | Promise<void>) {
         super(app);
