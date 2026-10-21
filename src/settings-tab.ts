@@ -2,6 +2,7 @@ import { App, PluginSettingTab, Setting, SettingDefinitionItem, requireApiVersio
 import type TabGroupsPlugin from './main';
 import { LANGUAGE_NAMES, Language, LanguageSetting, setLanguage, t } from './i18n';
 import { GroupStyle } from './group-style';
+import type { LabelTabCount } from './settings';
 import { confirmDeleteGroup, reopenGroup } from './group-actions';
 
 // ✨ 설정 → 커뮤니티 플러그인 → Tab Groups 화면
@@ -29,6 +30,11 @@ export class TabGroupsSettingTab extends PluginSettingTab {
                 name: t('settings.groupStyle'),
                 desc: t('settings.groupStyleDesc'),
                 control: { type: 'dropdown', key: 'groupStyle', options: this.groupStyleOptions() },
+            },
+            {
+                name: t('settings.labelTabCount'),
+                desc: t('settings.labelTabCountDesc'),
+                control: { type: 'dropdown', key: 'labelTabCount', options: this.labelTabCountOptions() },
             },
             {
                 name: t('settings.removeEmptyGroups'),
@@ -62,6 +68,7 @@ export class TabGroupsSettingTab extends PluginSettingTab {
     async setControlValue(key: string, value: unknown) {
         if (key === 'language') await this.changeLanguage(value as LanguageSetting);
         if (key === 'groupStyle') await this.changeGroupStyle(value as GroupStyle);
+        if (key === 'labelTabCount') await this.changeLabelTabCount(value as LabelTabCount);
         if (key === 'removeEmptyGroups') await this.changeRemoveEmptyGroups(value === true);
         if (key === 'lockGroupedTabs') await this.changeLockGroupedTabs(value === true);
     }
@@ -86,6 +93,14 @@ export class TabGroupsSettingTab extends PluginSettingTab {
                 .addOptions(this.groupStyleOptions())
                 .setValue(this.plugin.settings.groupStyle)
                 .onChange(value => { void this.changeGroupStyle(value as GroupStyle); }));
+
+        new Setting(containerEl)
+            .setName(t('settings.labelTabCount'))
+            .setDesc(t('settings.labelTabCountDesc'))
+            .addDropdown(dropdown => dropdown
+                .addOptions(this.labelTabCountOptions())
+                .setValue(this.plugin.settings.labelTabCount)
+                .onChange(value => { void this.changeLabelTabCount(value as LabelTabCount); }));
 
         new Setting(containerEl)
             .setName(t('settings.removeEmptyGroups'))
@@ -135,6 +150,10 @@ export class TabGroupsSettingTab extends PluginSettingTab {
 
     groupStyleOptions(): Record<GroupStyle, string> {
         return { underline: t('settings.groupStyleUnderline'), classic: t('settings.groupStyleClassic') };
+    }
+
+    labelTabCountOptions(): Record<LabelTabCount, string> {
+        return { off: t('settings.labelTabCountOff'), collapsed: t('settings.labelTabCountCollapsed'), all: t('settings.labelTabCountAll') };
     }
 
     addSwatch(setting: Setting, color: string) {
@@ -190,6 +209,12 @@ export class TabGroupsSettingTab extends PluginSettingTab {
     async changeGroupStyle(style: GroupStyle) {
         this.plugin.settings.groupStyle = style;
         this.plugin.applyGroupStyle();
+        await this.plugin.saveSettings();
+    }
+
+    async changeLabelTabCount(count: LabelTabCount) {
+        this.plugin.settings.labelTabCount = count;
+        this.plugin.enforcePhysicalSorting(); // 💡 라벨을 다시 그려 개수를 바로 보이거나 숨김
         await this.plugin.saveSettings();
     }
 

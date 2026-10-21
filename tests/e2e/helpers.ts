@@ -42,7 +42,7 @@ export async function resetWorkspace(notes: string[] = NOTES, settings: Record<s
         });
         leaves.forEach(leaf => leaf.detach());
         plugin.groups.clear();
-        Object.assign(plugin.settings, { groupStyle: 'underline', removeEmptyGroups: false, lockGroupedTabs: false }, settings);
+        Object.assign(plugin.settings, { groupStyle: 'underline', labelTabCount: 'off', removeEmptyGroups: false, lockGroupedTabs: false }, settings);
         plugin.applyGroupStyle();
         await plugin.saveSettings();
         for (const [i, name] of notes.entries()) {

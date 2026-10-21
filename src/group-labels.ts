@@ -155,7 +155,14 @@ export class GroupLabels {
         });
 
         // 💡 이름은 안쪽 span에 둡니다. (밑줄 모양에서는 바깥 라벨이 탭 바 높이를 채워 밑줄을 그리고, span이 알약 모양)
-        labelEl.createSpan({ cls: 'tab-group-label-text', text: groupData.name });
+        const textEl = labelEl.createSpan({ cls: 'tab-group-label-text', text: groupData.name });
+        // 💡 설정에 따라 이름 옆에 탭 개수 (접힌 그룹의 숨은 탭도 셈)
+        const showCount = plugin.settings.labelTabCount === 'all' || (plugin.settings.labelTabCount === 'collapsed' && groupData.isCollapsed);
+        if (showCount) {
+            // 💡 이름과 개수 사이 구분 점 (이름 없는 그룹은 개수만)
+            if (groupData.name) textEl.createSpan({ cls: 'tab-group-label-separator', text: '·', attr: { 'aria-hidden': 'true' } });
+            textEl.createSpan({ cls: 'tab-group-label-count', text: String(plugin.groupLeaves(groupId).length) });
+        }
         labelEl.toggleClass('is-collapsed', groupData.isCollapsed);
         setGroupColor(labelEl, groupData.color);
 

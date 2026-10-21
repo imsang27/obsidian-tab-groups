@@ -89,6 +89,19 @@ describe('settings tab', function () {
         expect(await savedSetting('groupStyle')).toBe('underline');
     });
 
+    it('shows the tab count on labels as soon as it is chosen', async function () {
+        await resetWorkspace(['Alpha', 'Beta']);
+        await createGroup('Alpha', 'Work');
+        await openSettings();
+
+        await settingItem('Tab count on group labels').$('select').selectByAttribute('value', 'all');
+        expect(await savedSetting('labelTabCount')).toBe('all');
+        await inMainWindow(() => expect(label('Work').$('.tab-group-label-count')).toHaveText('1'));
+
+        await settingItem('Tab count on group labels').$('select').selectByAttribute('value', 'off');
+        await inMainWindow(() => expect(label('Work').$('.tab-group-label-count')).not.toBeExisting());
+    });
+
     it('saves the toggles and shows them again when reopened', async function () {
         await resetWorkspace(['Alpha', 'Beta']);
         await openSettings();
