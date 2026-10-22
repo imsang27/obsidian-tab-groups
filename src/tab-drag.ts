@@ -1,6 +1,7 @@
 import { WorkspaceLeaf } from 'obsidian';
 import type TabGroupsPlugin from './main';
 import { GroupSlot, resolveGroupAt } from './tab-group-rules';
+import { isStackedContainer } from './stacked-order';
 import { setGroupColor } from './group-style';
 
 const TAB_BAR_SELECTOR = '.workspace-tab-header-container';
@@ -182,8 +183,10 @@ export class TabDragController {
 
     onDragEnd() {
         if (!this.isDragging) return;
+        // 💡 쌓인 탭 모드의 막대는 옵시디언이 직접 옮기므로, 놓은 자리로 그룹 편입·이탈을 정함 (탭 바에서는 onDrop이 이미 정함)
+        const stacked = !!this.draggedHeader?.parentElement && isStackedContainer(this.draggedHeader.parentElement);
         this.finishDrag();
-        window.setTimeout(() => this.plugin.enforcePhysicalSorting({ trackMoves: false }), 0);
+        window.setTimeout(() => this.plugin.enforcePhysicalSorting(stacked ? { dropped: true } : { trackMoves: false }), 0);
     }
 
     finishDrag() {

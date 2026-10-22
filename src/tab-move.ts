@@ -1,6 +1,7 @@
 import { WorkspaceLeaf } from 'obsidian';
 import type TabGroupsPlugin from './main';
 import { resolveGroupAt } from './tab-group-rules';
+import { isStackedContainer, setStackedOrder } from './stacked-order';
 
 interface LeafMove {
     leaf: WorkspaceLeaf;
@@ -25,7 +26,8 @@ export class TabMoveTracker {
     }
 
     // 💡 탭 하나가 옮겨졌으면 그룹 소속(과 필요하면 자리)을 고칩니다. 소속이 바뀌었으면 true.
-    applyMove(container: Element): boolean {
+    // dropped: 끌어다 놓은 이동 (한 칸이어도 놓은 자리 양옆으로 정함)
+    applyMove(container: Element, dropped = false): boolean {
         const before = this.lastOrders.get(container);
         if (!before) return false;
         const now = this.leavesOf(container);
@@ -41,7 +43,7 @@ export class TabMoveTracker {
         let newGroup: string | null;
         let newIndex: number | null = null; // others 기준으로 다시 놓을 자리 (null이면 옮겨진 자리 그대로)
 
-        if (Math.abs(to - from) === 1) {
+        if (Math.abs(to - from) === 1 && !dropped) {
             // 🎯 한 칸 이동: 크롬처럼 그룹 경계(라벨)를 넘는 것도 한 걸음으로 칩니다.
             const direction = to - from;
             const neighborGroup = groupOf(before[from + direction]);
@@ -100,7 +102,7 @@ export class TabMoveTracker {
 
     // 💡 이 탭 바에서 선택된 탭 (Pane Relief 등은 선택된 탭을 옮김)
     activeLeafIn(container: Element, leaves: WorkspaceLeaf[]): WorkspaceLeaf | null {
-        const header = container.querySelector('.workspace-tab-header.is-active');
+        const header = container.querySelector(':scope > .workspace-tab-header.is-active');
         return leaves.find(l => (l as unknown as { tabHeaderEl?: HTMLElement }).tabHeaderEl === header) ?? null;
     }
 
@@ -110,13 +112,19 @@ export class TabMoveTracker {
             const header = (leaf as unknown as { tabHeaderEl?: HTMLElement }).tabHeaderEl;
             if (header) byHeader.set(header, leaf);
         });
-        return Array.from(container.querySelectorAll('.workspace-tab-header'))
+        // 💡 바로 아래 탭 머리만 (쌓인 탭 모드에서는 탭 화면이 사이사이에 있어 그 안의 요소는 빼야 함)
+        return Array.from(container.querySelectorAll(':scope > .workspace-tab-header'))
             .map(header => byHeader.get(header))
             .filter((leaf): leaf is WorkspaceLeaf => !!leaf);
     }
 
     // 💡 탭 헤더를 주어진 순서로 다시 꽂습니다. (내부 배열은 뒤이은 정렬이 DOM 순서에 맞춰 줌)
+    // 쌓인 탭 모드에서는 옵시디언에 순서를 넘겨 다시 그리게 함
     reorderHeaders(container: Element, order: WorkspaceLeaf[]) {
+        if (isStackedContainer(container)) {
+            setStackedOrder(order);
+            return;
+        }
         order.forEach(leaf => {
             const header = (leaf as unknown as { tabHeaderEl?: HTMLElement }).tabHeaderEl;
             if (header) container.appendChild(header);

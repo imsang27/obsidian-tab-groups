@@ -64,45 +64,8 @@ export class GroupLabels {
 
             markBeforeActive(container);
         });
-        this.stackedContainers().forEach(container => this.renderStacked(container));
-    }
-
-    // 💡 쌓인 탭(Stacked tabs) 모드의 탭 묶음: 탭 머리가 탭 바가 아니라 화면 사이(.workspace-tab-container)에 세로 막대로 놓임
-    stackedContainers(): HTMLElement[] {
-        const containers = new Set<HTMLElement>();
-        this.plugin.app.workspace.iterateAllLeaves(leaf => {
-            const container = internal(leaf).tabHeaderEl?.parentElement;
-            if (container?.classList.contains('workspace-tab-container')) containers.add(container);
-        });
-        return [...containers];
-    }
-
-    // ✨ 쌓인 탭 모드: 라벨 대신 그룹 첫 막대에 이름을 보이고(styles.css), 접어도 막대를 숨기지 않습니다.
-    // 옵시디언이 막대 위치를 탭 순서대로 계산하므로, 막대를 숨기거나 사이에 라벨을 끼우면 위치가 어긋납니다.
-    // (접힌 상태는 그대로 두어, 일반 탭 모드로 돌아오면 다시 접힘)
-    renderStacked(container: HTMLElement) {
-        // 💡 일반 모드일 때 위쪽 탭 바에 그려 둔 라벨은 치움
-        container.parentElement?.querySelectorAll('.workspace-tab-header-container-inner > .tab-group-label').forEach(el => el.remove());
-
-        const headers = Array.from(container.children).filter((el): el is HTMLElement => el.classList.contains('workspace-tab-header'));
-        const groupMap = new Map<string, HTMLElement[]>();
-        headers.forEach(header => {
-            header.removeClasses(['tab-group-hidden', 'tab-group-first', 'tab-group-last']);
-            header.querySelector('.workspace-tab-header-inner')?.removeAttribute('data-tab-group-name');
-            const groupId = header.getAttribute('data-tab-group-id');
-            if (!groupId) return;
-            if (!groupMap.has(groupId)) groupMap.set(groupId, []);
-            groupMap.get(groupId)!.push(header);
-        });
-
-        groupMap.forEach((groupHeaders, groupId) => {
-            const groupData = this.plugin.groups.get(groupId);
-            if (!groupData) return;
-            // 💡 이름은 안쪽 요소에 둠 (CSS attr()은 ::after를 그리는 요소의 속성을 읽음)
-            groupHeaders[0]!.querySelector('.workspace-tab-header-inner')?.setAttribute('data-tab-group-name', groupData.name);
-            groupHeaders[0]!.addClass('tab-group-first');
-            groupHeaders[groupHeaders.length - 1]!.addClass('tab-group-last');
-        });
+        // 💡 쌓인 탭 모드의 탭 묶음은 stacked-tabs.ts가 그림
+        this.plugin.stacked.renderAll();
     }
 
     // 💡 플러그인을 끌 때 라벨을 모두 치웁니다.
