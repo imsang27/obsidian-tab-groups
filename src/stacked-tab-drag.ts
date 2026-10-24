@@ -86,7 +86,11 @@ export class StackedTabDrag {
         const prevGroup = groupOf(others[index - 1]);
         const next = others[index];
         let groupId: string | null;
-        if (prevGroup && isExpanded(prevGroup) && groupOf(next) !== prevGroup) {
+        if (from === index && current !== prevGroup && prevGroup) {
+            // 🎯 그룹 바로 뒤의 다른 탭을 제자리에서 끔: 커서가 제 막대·화면 위면 그대로, 그 앞 그룹 마지막 탭 위면 편입 (탭 바와 같음)
+            const ownLeft = internal(leaf).tabHeaderEl?.getBoundingClientRect().left ?? -Infinity;
+            groupId = !current && isExpanded(prevGroup) && e.clientX < ownLeft ? prevGroup : current;
+        } else if (prevGroup && isExpanded(prevGroup) && groupOf(next) !== prevGroup) {
             // 🎯 펼쳐진 그룹의 맨 끝: 다음 막대(없으면 탭 묶음 끝) 앞 막대 하나 너비 안쪽이면 그룹 밖, 그 앞이면 편입
             const width = internal(leaf).tabHeaderEl?.offsetWidth || 40;
             const nextHeader = next ? internal(next).tabHeaderEl : null;

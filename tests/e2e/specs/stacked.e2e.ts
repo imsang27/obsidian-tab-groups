@@ -233,9 +233,10 @@ describe('stacked tabs', function () {
     });
 
     // 💡 막대를 실제로 끌기: 끌기 시작 → 커서 자리에서 끌기 → 빈 막대를 읽고 → 놓기 → 끌기 끝
-    // 커서 자리: 'spine'은 그 막대 왼쪽 가장자리 위(그 앞자리), 'page'는 그 막대 바로 오른쪽의 화면 위(그 뒷자리)
+    // 커서 자리: 'spine'은 그 막대 왼쪽 가장자리 위(그 앞자리), 'end'는 그 막대 오른쪽 가장자리 위,
+    // 'page'는 그 막대 바로 오른쪽의 화면 위 (둘 다 그 뒷자리)
     // (커서는 실제처럼 한 자리에 둠: 빈 막대가 끼면 막대가 밀려나므로 놓을 자리는 끌기 시작 때 한 번만 잼)
-    async function dragSpine(title: string, overTitle: string, over: 'spine' | 'page' = 'spine'): Promise<{ shown: boolean, inGroup: boolean }> {
+    async function dragSpine(title: string, overTitle: string, over: 'spine' | 'end' | 'page' = 'spine'): Promise<{ shown: boolean, inGroup: boolean }> {
         const placeholder = await browser.execute(async (source: HTMLElement, target: HTMLElement, over: string) => {
             const dataTransfer = new DataTransfer();
             const fire = (el: Element, type: string, x: number, y: number) =>
@@ -244,7 +245,8 @@ describe('stacked tabs', function () {
             const s = source.getBoundingClientRect();
             fire(source, 'dragstart', s.left + 5, s.top + 100);
             const t = target.getBoundingClientRect();
-            const at = { x: over === 'spine' ? t.left + 3 : t.right + 50, y: t.top + 300 };
+            const x = { spine: t.left + 3, end: t.right - 3, page: t.right + 50 }[over as 'spine' | 'end' | 'page'];
+            const at = { x, y: t.top + 300 };
             for (let i = 0; i < 4; i++) {
                 fire(document.elementFromPoint(at.x, at.y) ?? target, 'dragover', at.x, at.y);
                 await new Promise(resolve => window.setTimeout(resolve, 30));
@@ -293,6 +295,21 @@ describe('stacked tabs', function () {
         expect((await members('Work')).join()).toBe('Alpha,Beta');
     });
 
+    it('keeps a tab right after the group out of it when it is dragged in place', async function () {
+        await tabHeader('Gamma').click();
+        await setStacked(true);
+        // 💡 Gamma를 제 화면 위에서 끌었다 놓음 → 빈 막대 없이 그대로 그룹 밖
+        expect(await dragSpine('Gamma', 'Gamma', 'page')).toEqual({ shown: false, inGroup: false });
+        await browser.pause(300);
+        expect((await members('Work')).join()).toBe('Alpha,Beta');
+        expect(await titles()).toEqual(['Alpha', 'Beta', 'Gamma', 'Delta']);
+
+        // 💡 그 앞 그룹 마지막 탭(Beta) 위로 끌면 그룹 맨 끝으로 편입
+        expect(await dragSpine('Gamma', 'Beta', 'end')).toEqual({ shown: true, inGroup: true });
+        await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha,Beta,Gamma', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
+        expect(await titles()).toEqual(['Alpha', 'Beta', 'Gamma', 'Delta']);
+    });
+
     it('takes the last tab out of the group in place when it is dropped next to the following spine', async function () {
         await tabHeader('Beta').click();
         await setStacked(true);
@@ -301,7 +318,7 @@ describe('stacked tabs', function () {
         expect(await titles()).toEqual(['Alpha', 'Beta', 'Gamma', 'Delta']);
 
         // 💡 그룹 마지막 탭 위에 다시 놓으면 그 그룹 맨 끝으로 돌아감
-        expect(await dragSpine('Beta', 'Alpha', 'page')).toEqual({ shown: true, inGroup: true });
+        expect(await dragSpine('Beta', 'Alpha', 'end')).toEqual({ shown: true, inGroup: true });
         await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha,Beta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
         expect(await titles()).toEqual(['Alpha', 'Beta', 'Gamma', 'Delta']);
     });
