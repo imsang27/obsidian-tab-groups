@@ -497,6 +497,11 @@ html body .workspace-tabs.mod-stacked .workspace-tab-header.tab-group-stacked-dr
     box-shadow: inset -3px 0 0 var(--interactive-accent);
 }
 
+/* 💡 막대를 끄는 동안 옵시디언 드롭 선: 놓으면 그룹에 들어가는 자리면 그 그룹 색 (stacked-drag.ts) */
+html body .workspace-drop-overlay.tab-group-drop-in-group:not(#tab-groups)::before {
+    background-color: var(--tab-group-color);
+}
+
 html body .workspace-tabs.mod-stacked .workspace-tab-header.tab-group-stacked-hidden:not(#tab-groups),
 html body .workspace-tabs.mod-stacked .workspace-leaf.tab-group-stacked-hidden:not(#tab-groups) {
     display: none;

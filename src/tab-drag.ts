@@ -76,8 +76,12 @@ export class TabDragController {
         if (!inner) {
             // 💡 탭 바 밖: 분할 미리보기 등 옵시디언 기본 오버레이가 보이도록 우리 표시만 치웁니다.
             this.hidePlaceholder();
+            // 💡 쌓인 탭 막대 사이: 옵시디언 드롭 선을 들어갈 그룹 색으로 (stacked-drag.ts)
+            const stackedDrop = this.plugin.stackedDrop;
+            stackedDrop.showTabSlot(stackedDrop.tabSlot(e, this.draggedLeaf!));
             return;
         }
+        this.plugin.stackedDrop.showTabSlot(null);
 
         // 💡 탭 바 안: 옵시디언 기본 드롭 선(보라색 선)은 CSS로 숨기고 플레이스홀더만 보여 줍니다.
         e.preventDefault();
@@ -193,6 +197,7 @@ export class TabDragController {
 
     finishDrag() {
         this.hidePlaceholder();
+        this.plugin.stackedDrop.showTabSlot(null);
         this.draggedLeaf = null;
         this.draggedHeader = null;
         document.body.classList.remove('is-dragging-tab');

@@ -13,6 +13,15 @@ describe('stacked tabs', function () {
             else app.workspace.iterateRootLeaves(leaf => { (leaf as unknown as Tabs).parent.setStacked(false); });
         }, on);
         await browser.waitUntil(async () => (await $('.workspace-split.mod-root .workspace-tabs.mod-stacked').isExisting()) === on);
+        if (!on) return;
+        // 💡 옵시디언이 막대 위치를 다 잡을 때까지 (라벨이 움직이는 중에 누르면 다른 곳이 눌림)
+        let last = '';
+        await browser.waitUntil(async () => {
+            const now = await browser.execute(() => JSON.stringify(document.querySelector('.tab-group-stacked-label')?.getBoundingClientRect() ?? null));
+            const stable = now !== 'null' && now === last;
+            last = now;
+            return stable;
+        }, { interval: 100, timeoutMsg: 'the label kept moving' });
     }
 
     // 💡 쌓인 탭의 막대 (탭 바가 아니라 화면 사이에 있음)
@@ -216,5 +225,46 @@ describe('stacked tabs', function () {
         await dropLabelOnPage('Work', 'Delta', 0.5, 0.95);
         await browser.waitUntil(async () => (await tabGroupCount()) === 2, { timeoutMsg: 'no split' });
         expect((await members('Work')).join()).toBe('Alpha,Beta');
+    });
+
+    // 💡 막대를 실제로 끌기: 끌기 시작 → 놓을 막대 왼쪽 가장자리 위(그 앞자리) → 드롭 선이 그룹 색인지 읽고 → 놓기 → 끌기 끝
+    async function dragSpine(title: string, beforeTitle: string): Promise<boolean> {
+        const inGroup = await browser.execute(async (source: HTMLElement, target: HTMLElement) => {
+            const dataTransfer = new DataTransfer();
+            const fire = (el: Element, type: string, at: Element = target) => {
+                // 💡 끌기가 시작되면 막대 위치가 바뀔 수 있어 매번 다시 잼
+                const r = at.getBoundingClientRect();
+                el.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, composed: true, dataTransfer, clientX: r.left + 3, clientY: r.top + 300 }));
+            };
+            // 옵시디언은 5px 넘게 움직여야 끌기로 봄 (시작은 끄는 막대 위에서)
+            fire(source, 'dragstart', source);
+            for (let i = 0; i < 4; i++) {
+                fire(target, 'dragover');
+                await new Promise(resolve => window.setTimeout(resolve, 30));
+            }
+            const inGroup = !!document.querySelector('.workspace-drop-overlay')?.classList.contains('tab-group-drop-in-group');
+            fire(target, 'drop');
+            fire(source, 'dragend');
+            return inGroup;
+        }, (await spine(title).getElement()) as unknown as HTMLElement, (await spine(beforeTitle).getElement()) as unknown as HTMLElement);
+        await browser.pause(300);
+        return inGroup;
+    }
+
+    it('shows in the group color when a dragged spine will join the group, like in the tab bar', async function () {
+        await setStacked(true);
+        // 💡 그룹 탭 둘 사이 → 그룹 색 드롭 선, 놓으면 편입
+        expect(await dragSpine('Delta', 'Beta')).toBe(true);
+        await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha,Delta,Beta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
+        expect(await titles()).toEqual(['Alpha', 'Delta', 'Beta', 'Gamma']);
+        await expect($('.tab-group-drop-in-group')).not.toBeExisting();
+    });
+
+    it('shows the plain drop line when a dragged spine will leave the group', async function () {
+        await setStacked(true);
+        // 💡 그룹 밖 탭 사이(Delta 앞) → 기본 드롭 선, 놓으면 이탈
+        expect(await dragSpine('Alpha', 'Delta')).toBe(false);
+        await browser.waitUntil(async () => (await members('Work')).join() === 'Beta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
+        expect(await titles()).toEqual(['Beta', 'Gamma', 'Alpha', 'Delta']);
     });
 });
