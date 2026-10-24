@@ -358,7 +358,7 @@ export async function setScene(notes: string[], groups: DemoGroup[], settings: R
         if (keep) plugin.leafGroupMap.delete(keep);
         leaves.forEach(leaf => leaf.detach());
         plugin.groups.clear();
-        Object.assign(plugin.settings, { groupStyle: 'underline', labelTabCount: 'off', removeEmptyGroups: false, lockGroupedTabs: false, suggestGroupName: false }, settings);
+        Object.assign(plugin.settings, { groupStyle: 'underline', labelTabCount: 'off', removeEmptyGroups: false, lockGroupedTabs: false, suggestGroupName: false, groupSets: [] }, settings);
         plugin.applyGroupStyle();
 
         const opened = new Map<string, object>();

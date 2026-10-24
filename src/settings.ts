@@ -1,6 +1,7 @@
 import type { LanguageSetting } from './i18n';
 import type { GroupStyle } from './group-style';
 import type { SavedTab } from './saved-tabs';
+import type { GroupSet } from './group-sets';
 
 // ✨ 플러그인이 data.json에 저장할 데이터의 형태를 정의
 export interface SavedGroupData {
@@ -31,6 +32,8 @@ export interface TabGroupsSettings {
 	lockGroupedTabs: boolean;
 	// 💡 새 그룹 창에 탭 노트의 폴더 이름과 그 이름에서 정한 색을 미리 채울지
 	suggestGroupName: boolean;
+	// 💡 이름 붙여 저장해 둔 그룹 구성 (명령으로 저장·열기·삭제)
+	groupSets: GroupSet[];
 }
 
 export const DEFAULT_SETTINGS: TabGroupsSettings = {
@@ -41,4 +44,5 @@ export const DEFAULT_SETTINGS: TabGroupsSettings = {
 	removeEmptyGroups: false,
 	lockGroupedTabs: false,
 	suggestGroupName: false,
+	groupSets: [],
 };

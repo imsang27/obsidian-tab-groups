@@ -1,4 +1,4 @@
-import { App, Modal, Setting } from 'obsidian';
+import { App, Modal, Notice, Setting } from 'obsidian';
 import { t } from '../i18n';
 import { renderColorPalette } from './color-palette';
 
@@ -175,7 +175,48 @@ export class ConfirmModal extends Modal {
 }
 
 // 💡 이름 칸에서 Enter를 누르면 만들기·저장 (한글 등 입력 조합 중의 Enter는 무시)
-function onEnter(inputEl: HTMLInputElement, submit: () => void) {
+// ✨ 그룹 세트 이름 묻기 (같은 이름이면 그 세트를 바꿔 씀)
+export class GroupSetNameModal extends Modal {
+    name = '';
+    inputEl: HTMLInputElement | null = null;
+
+    constructor(app: App, private onSubmit: (name: string) => void | Promise<void>) {
+        super(app);
+    }
+
+    // 💡 이름이 비었으면 알리고 창은 열어 둠 (설정 탭의 "새 세트" 줄과 같음)
+    submit() {
+        const name = this.name.trim();
+        if (!name) {
+            new Notice(t('settings.setNameRequired'));
+            this.inputEl?.focus();
+            return;
+        }
+        this.close();
+        void this.onSubmit(name);
+    }
+
+    onOpen() {
+        this.titleEl.setText(t('modal.setTitle'));
+        new Setting(this.contentEl)
+            .setName(t('modal.setName'))
+            .setDesc(t('modal.setNameDesc'))
+            .addText((text) => {
+                text.onChange((val) => this.name = val);
+                this.inputEl = text.inputEl;
+                onEnter(text.inputEl, () => this.submit());
+                window.setTimeout(() => text.inputEl.focus(), 0);
+            });
+        new Setting(this.contentEl)
+            .addButton((btn) => btn.setButtonText(t('modal.save')).setCta().onClick(() => this.submit()));
+    }
+
+    onClose() {
+        this.contentEl.empty();
+    }
+}
+
+export function onEnter(inputEl: HTMLInputElement, submit: () => void) {
     inputEl.addEventListener('keydown', (e: KeyboardEvent) => {
         if (e.key !== 'Enter' || e.isComposing) return;
         e.preventDefault();

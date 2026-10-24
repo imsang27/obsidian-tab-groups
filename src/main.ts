@@ -14,10 +14,11 @@ import { registerHiddenTabSkip } from './hidden-tab-skip';
 import { registerHiddenTabActivation } from './hidden-tab-activate';
 import { registerExplorerOpen } from './explorer-open';
 import { registerTabMenu } from './tab-menu';
-import { registerCommands } from './commands';
+import { registerCommands, registerGroupSetCommands } from './commands';
 import { setLanguage } from './i18n';
 import { internal } from './internal';
 import { TabGroupsSettingTab } from './settings-tab';
+import { renameInGroupSets } from './group-sets';
 import { PRESET_COLORS } from './ui/color-palette';
 import { GroupStyle, applyGroupStyle } from './group-style';
 import { SavedTab, renameSavedTabs } from './saved-tabs';
@@ -104,6 +105,7 @@ export default class TabGroupsPlugin extends Plugin {
             this.app.vault.on('rename', (file, oldPath) => {
                 let changed = false;
                 this.groups.forEach(group => { if (renameSavedTabs(group.tabs, oldPath, file.path)) changed = true; });
+                if (renameInGroupSets(this, oldPath, file.path)) changed = true;
                 if (changed) void this.saveSettings();
             }),
         );
@@ -131,6 +133,7 @@ export default class TabGroupsPlugin extends Plugin {
 
         // ✨ 명령 팔레트·단축키용 명령어
         registerCommands(this);
+        registerGroupSetCommands(this);
 
         this.settingTab = new TabGroupsSettingTab(this.app, this);
         this.addSettingTab(this.settingTab);

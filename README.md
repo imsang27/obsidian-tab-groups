@@ -26,6 +26,7 @@ Chrome-style tab groups for Obsidian. Name and color related tabs, and collapse 
 
   ![Hiding the Reading group from its label's menu, then reopening it from the command palette with Reopen a hidden group](./docs/images/demo-hide.gif)
 
+* **Group sets:** Like workspaces, save your current groups (names, colors, collapsed state and tabs) as a named set, and open the set again later. Renamed notes are followed.
 * **10 languages:** The tab menu and group windows follow the Obsidian language by default. You can pick a language in the plugin settings. [Help translate](./docs/translating.md) it into your language!
 * **Pop-out windows:** Groups are shown and kept in pop-out windows too.
 
@@ -56,6 +57,7 @@ Run these from the command palette, or assign hotkeys in **Settings → Hotkeys*
 * **Hide the current tab's group**
 * **Collapse all groups** / **Expand all groups**
 * **Go to the next group** / **Go to the previous group** (the first tab of the next or previous group in the same pane, wrapping around at the ends. A collapsed group expands.)
+* **Save the current groups as a set** / **Open a saved group set** / **Delete a saved group set** (opening adds the set's groups at the end of the current pane. Saving with an existing name replaces that set.)
 
 ## ⚙️ Settings
 ---
@@ -76,6 +78,7 @@ Open **Settings → Community plugins → Tab Groups**.
 * **Lock grouped tabs:** Off by default. When on, a note opened from a grouped tab (a link, the file explorer or the quick switcher) opens in a new tab outside the group, so the grouped tab keeps its note. Add the new tab to the group from the tab menu to lock it too. Tabs aren't pinned, so they stay where they are. Going back or forward inside a grouped tab still changes its note, and only tabs in the main window are locked.
 * **Suggest a name and color for new groups:** Off by default. When on, the window for a new group fills in the folder of the tab's note as the name, with a color picked from that name, so the same folder always gets the same color (unless another group already uses it). Notes at the top of the vault get no name. You can still change both.
 * **Tab groups:** Lists every group with the number of open tabs. Hidden groups show how many tabs they remember, with a **Reopen** button. Select **Delete group** to remove the ones you no longer need.
+* **Group sets:** Lists every saved set with its number of groups and tabs. Type a name under **New set** and select **Save current groups** to save the current groups as a set (an existing name replaces that set). Select **Open** to open a set's groups at the end of the current pane, or **Delete set** to remove it (open tabs stay as they are).
 
 ## 📝 Scope
 ---

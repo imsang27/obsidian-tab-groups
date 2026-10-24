@@ -1,4 +1,4 @@
-import { $, browser, expect } from '@wdio/globals';
+import { $, $$, browser, expect } from '@wdio/globals';
 import { Key } from 'webdriverio';
 import { createGroup, groupCount, label, resetWorkspace, tabHeader, tabs, waitForMembers } from '../helpers';
 
@@ -195,5 +195,62 @@ describe('settings tab', function () {
         await inMainWindow(() => browser.waitUntil(async () => (await tabs()).map(info => info.title).join() === 'Beta', {
             timeoutMsg: "the group's tab was not closed",
         }));
+    });
+
+    // 💡 그룹 세트: 맨 위 "새 세트" 줄에서 창 없이 바로 저장하고, 세트마다 열거나 지움
+    const setNames = async () => (await savedSetting('groupSets') as { name: string }[]).map(set => set.name);
+
+    it('saves the current groups as a set right from the settings tab', async function () {
+        await resetWorkspace(['Alpha', 'Beta']);
+        await createGroup('Alpha', 'Work');
+        await openSettings();
+        await expect($('//div[contains(@class, "mod-settings")]//*[contains(text(), "No saved sets yet.")]')).toBeDisplayed();
+
+        // 버튼으로 저장 → 창 없이 바로, 칸은 비워짐
+        await settingItem('New set').$('input').setValue('Trip');
+        await settingItem('New set').$('button=Save current groups').click();
+        await browser.waitUntil(async () => (await setNames()).join() === 'Trip', { timeoutMsg: 'the set was not saved' });
+        await expect($('.modal-title=Save group set')).not.toBeExisting();
+        await expect(settingItem('Trip').$('.setting-item-description')).toHaveText('1 groups · 1 tabs');
+        await expect(settingItem('New set').$('input')).toHaveValue('');
+
+        // Enter로도 저장
+        await settingItem('New set').$('input').setValue('Home');
+        await browser.keys(Key.Enter);
+        await browser.waitUntil(async () => (await setNames()).join() === 'Trip,Home', { timeoutMsg: 'Enter did not save the set' });
+
+        // 이름이 비었으면 저장하지 않고 알림
+        await settingItem('New set').$('button=Save current groups').click();
+        await browser.waitUntil(async () => (await $$('.notice').map(el => el.getText())).some(text => text.includes('Type a name for the set first.')), { timeoutMsg: 'no notice for an empty name' });
+        expect(await setNames()).toEqual(['Trip', 'Home']);
+    });
+
+    it('opens a saved set and deletes it from the list', async function () {
+        await resetWorkspace(['Alpha']);
+        await browser.executeObsidian(async ({ plugins }) => {
+            const plugin = plugins.tabGroups as unknown as { settings: { groupSets: unknown[] }; saveSettings(): Promise<void> };
+            plugin.settings.groupSets = [{
+                name: 'Trip',
+                groups: [{ name: 'Plan', color: '#e03131', isCollapsed: false, tabs: [
+                    { type: 'markdown', state: { file: 'Gamma.md' } },
+                    { type: 'markdown', state: { file: 'Delta.md' } },
+                ] }],
+            }];
+            await plugin.saveSettings();
+        });
+        await openSettings();
+        await expect(settingItem('Trip').$('.setting-item-description')).toHaveText('1 groups · 2 tabs');
+
+        await settingItem('Trip').$('button=Open').click();
+        await inMainWindow(async () => {
+            await label('Plan').waitForExist({ timeoutMsg: 'the set did not open' });
+            await waitForMembers('Plan', ['Gamma', 'Delta']);
+        });
+
+        await settingItem('Trip').$('button=Delete set').click();
+        await browser.waitUntil(async () => (await setNames()).length === 0, { timeoutMsg: 'the set was not deleted' });
+        await expect($('//div[contains(@class, "mod-settings")]//*[contains(text(), "No saved sets yet.")]')).toBeDisplayed();
+        // 열린 탭은 그대로
+        expect(await groupCount()).toBe(1);
     });
 });
