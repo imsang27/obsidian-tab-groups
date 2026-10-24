@@ -96,7 +96,9 @@ export class StackedTabDrag {
             const nextHeader = next ? internal(next).tabHeaderEl : null;
             const lastPage = internal(tabs.children[tabs.children.length - 1]!).containerEl.getBoundingClientRect().right;
             const end = nextHeader ? nextHeader.getBoundingClientRect().left : Math.min(rect.right, lastPage);
-            groupId = e.clientX < end - width ? prevGroup : null;
+            // 화면이 가려져 막대끼리 붙어 있어도 그룹 마지막 막대 위(오른쪽 절반)면 편입 (탭 바와 같음)
+            const prevRight = internal(others[index - 1]!).tabHeaderEl?.getBoundingClientRect().right ?? -Infinity;
+            groupId = e.clientX < Math.max(end - width, prevRight) ? prevGroup : null;
         } else {
             groupId = from === index ? current : droppedGroup(others, index, current, groupOf, isExpanded);
         }

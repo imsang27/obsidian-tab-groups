@@ -287,6 +287,15 @@ describe('stacked tabs', function () {
         expect(await titles()).toEqual(['Alpha', 'Beta', 'Delta', 'Gamma']);
     });
 
+    it('joins the group at its end over its last spine even when its page is covered', async function () {
+        // 💡 Delta가 열려 있으면 Beta 화면은 가려지고 막대만 붙어 있음 → Beta 막대 오른쪽 끝 위면 편입
+        await tabHeader('Delta').click();
+        await setStacked(true);
+        expect(await dragSpine('Delta', 'Beta', 'end')).toEqual({ shown: true, inGroup: true });
+        await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha,Beta,Delta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
+        expect(await titles()).toEqual(['Alpha', 'Beta', 'Delta', 'Gamma']);
+    });
+
     it('stays out of the group at its end when a spine is dropped next to the following spine', async function () {
         await tabHeader('Beta').click();
         await setStacked(true);
