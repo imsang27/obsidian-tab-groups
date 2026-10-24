@@ -90,5 +90,6 @@
     "settings.deleteSet": "Delete set",
     "settings.deleteSetTip": "Delete this saved set. Open tabs stay as they are.",
     "settings.newSet": "New set",
-    "settings.saveSet": "Save current groups"
+    "settings.saveSet": "Save current groups",
+    "settings.setNameRequired": "Type a name for the set first."
 }

@@ -90,5 +90,6 @@
     "settings.deleteSet": "Set löschen",
     "settings.deleteSetTip": "Löscht dieses gespeicherte Set. Offene Tabs bleiben, wie sie sind.",
     "settings.newSet": "Neues Set",
-    "settings.saveSet": "Aktuelle Gruppen speichern"
+    "settings.saveSet": "Aktuelle Gruppen speichern",
+    "settings.setNameRequired": "Gib zuerst einen Namen für das Set ein."
 }

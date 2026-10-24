@@ -206,10 +206,11 @@ export class TabGroupsSettingTab extends PluginSettingTab {
             .onClick(() => { if (input) void this.saveSet(input); }));
     }
 
-    // 💡 이름이 비었으면 칸으로 돌려보내고, 그룹이 없으면 저장할 게 없으므로 그룹 만드는 법을 알림
+    // 💡 이름이 비었으면 알리고 칸으로 돌려보내고, 그룹이 없으면 저장할 게 없으므로 그룹 만드는 법을 알림
     async saveSet(input: HTMLInputElement) {
         const name = input.value.trim();
         if (!name) {
+            new Notice(t('settings.setNameRequired'));
             input.focus();
             return;
         }

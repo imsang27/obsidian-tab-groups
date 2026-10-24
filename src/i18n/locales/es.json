@@ -90,5 +90,6 @@
     "settings.deleteSet": "Eliminar conjunto",
     "settings.deleteSetTip": "Elimina este conjunto guardado. Las pestañas abiertas se quedan como están.",
     "settings.newSet": "Nuevo conjunto",
-    "settings.saveSet": "Guardar grupos actuales"
+    "settings.saveSet": "Guardar grupos actuales",
+    "settings.setNameRequired": "Escribe primero un nombre para el conjunto."
 }

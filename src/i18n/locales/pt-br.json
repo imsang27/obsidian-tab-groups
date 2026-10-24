@@ -90,5 +90,6 @@
     "settings.deleteSet": "Excluir conjunto",
     "settings.deleteSetTip": "Exclui este conjunto salvo. As abas abertas continuam como estão.",
     "settings.newSet": "Novo conjunto",
-    "settings.saveSet": "Salvar grupos atuais"
+    "settings.saveSet": "Salvar grupos atuais",
+    "settings.setNameRequired": "Digite primeiro um nome para o conjunto."
 }

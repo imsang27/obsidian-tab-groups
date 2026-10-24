@@ -90,5 +90,6 @@
     "settings.deleteSet": "刪除組合",
     "settings.deleteSetTip": "刪除這個已儲存的組合。已開啟的分頁維持不變。",
     "settings.newSet": "新組合",
-    "settings.saveSet": "儲存目前的群組"
+    "settings.saveSet": "儲存目前的群組",
+    "settings.setNameRequired": "請先輸入組合名稱。"
 }

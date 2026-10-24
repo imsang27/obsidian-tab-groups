@@ -1,4 +1,4 @@
-import { $, browser, expect } from '@wdio/globals';
+import { $, $$, browser, expect } from '@wdio/globals';
 import { Key } from 'webdriverio';
 import { createGroup, groupCount, label, resetWorkspace, tabHeader, tabs, waitForMembers } from '../helpers';
 
@@ -219,9 +219,9 @@ describe('settings tab', function () {
         await browser.keys(Key.Enter);
         await browser.waitUntil(async () => (await setNames()).join() === 'Trip,Home', { timeoutMsg: 'Enter did not save the set' });
 
-        // 이름이 비었으면 저장하지 않음
+        // 이름이 비었으면 저장하지 않고 알림
         await settingItem('New set').$('button=Save current groups').click();
-        await browser.pause(300);
+        await browser.waitUntil(async () => (await $$('.notice').map(el => el.getText())).some(text => text.includes('Type a name for the set first.')), { timeoutMsg: 'no notice for an empty name' });
         expect(await setNames()).toEqual(['Trip', 'Home']);
     });
 

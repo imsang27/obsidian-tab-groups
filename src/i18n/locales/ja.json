@@ -90,5 +90,6 @@
     "settings.deleteSet": "セットを削除",
     "settings.deleteSetTip": "保存したセットを削除します。開いているタブはそのままです。",
     "settings.newSet": "新しいセット",
-    "settings.saveSet": "現在のグループを保存"
+    "settings.saveSet": "現在のグループを保存",
+    "settings.setNameRequired": "先にセットの名前を入力してください。"
 }

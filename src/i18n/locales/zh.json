@@ -90,5 +90,6 @@
     "settings.deleteSet": "删除组集",
     "settings.deleteSetTip": "删除这个已保存的组集。已打开的标签页保持不变。",
     "settings.newSet": "新组集",
-    "settings.saveSet": "保存当前组"
+    "settings.saveSet": "保存当前组",
+    "settings.setNameRequired": "请先输入组集名称。"
 }

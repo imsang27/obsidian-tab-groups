@@ -90,5 +90,6 @@
     "settings.deleteSet": "Удалить набор",
     "settings.deleteSetTip": "Удаляет этот сохранённый набор. Открытые вкладки остаются как есть.",
     "settings.newSet": "Новый набор",
-    "settings.saveSet": "Сохранить текущие группы"
+    "settings.saveSet": "Сохранить текущие группы",
+    "settings.setNameRequired": "Сначала введите имя набора."
 }

@@ -90,5 +90,6 @@
     "settings.deleteSet": "세트 삭제",
     "settings.deleteSetTip": "저장한 세트를 삭제합니다. 열려 있는 탭은 그대로 둡니다.",
     "settings.newSet": "새 세트",
-    "settings.saveSet": "지금 그룹 저장"
+    "settings.saveSet": "지금 그룹 저장",
+    "settings.setNameRequired": "세트 이름을 먼저 적어 주세요."
 }

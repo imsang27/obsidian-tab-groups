@@ -90,5 +90,6 @@
     "settings.deleteSet": "Supprimer l'ensemble",
     "settings.deleteSetTip": "Supprime cet ensemble enregistré. Les onglets ouverts restent tels quels.",
     "settings.newSet": "Nouvel ensemble",
-    "settings.saveSet": "Enregistrer les groupes actuels"
+    "settings.saveSet": "Enregistrer les groupes actuels",
+    "settings.setNameRequired": "Saisissez d'abord un nom pour l'ensemble."
 }
