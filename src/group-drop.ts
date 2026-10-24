@@ -26,6 +26,7 @@ export class GroupDropHandler {
             if (!e.relatedTarget) {
                 plugin.groupDrag.hide();
                 plugin.groupDrag.hideSplitPreview();
+                plugin.stackedDrop.clear();
             }
         }, { capture: true });
     }
@@ -54,6 +55,17 @@ export class GroupDropHandler {
         if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
 
         const groupDrag = this.plugin.groupDrag;
+        // 💡 쌓인 탭의 막대 위: 앞·뒤 막대에 선을 그어 들어갈 자리를 보여 줌 (stacked-drag.ts)
+        const stackedDrop = this.plugin.stackedDrop;
+        const stacked = stackedDrop.containerAt(e.target as HTMLElement);
+        if (stacked) {
+            groupDrag.hide();
+            groupDrag.hideSplitPreview();
+            stackedDrop.update(stacked, e.clientX, this.plugin.draggingGroupId);
+            return;
+        }
+        stackedDrop.clear();
+
         const container = this.findTabBarInner(e.target as HTMLElement);
         if (!container) {
             // 💡 탭 바 밖(에디터 본문 등): 자리 표시는 치우고, 편집 화면 위면 분할 미리보기를 보여 줌 (드롭은 onGroupDrop에서 처리)
@@ -82,6 +94,17 @@ export class GroupDropHandler {
         if (!draggedGroupId) return; // 💡 단일 탭 드롭은 TabDragController가 처리
 
         const groupDrag = this.plugin.groupDrag;
+        const stackedDrop = this.plugin.stackedDrop;
+        const stacked = stackedDrop.containerAt(e.target as HTMLElement);
+        if (stacked) {
+            e.preventDefault();
+            e.stopPropagation();
+            groupDrag.finish();
+            stackedDrop.update(stacked, e.clientX, draggedGroupId);
+            stackedDrop.drop(draggedGroupId);
+            return;
+        }
+        stackedDrop.clear();
         // 💡 마지막 dragover가 늦게 처리돼도 놓은 좌표 그대로 자리를 한 번 더 맞춥니다.
         const container = this.findTabBarInner(e.target as HTMLElement);
         if (container) this.currentDropTarget = groupDrag.update(container, e.clientX) ?? { node: null, insertAfter: false };

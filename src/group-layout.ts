@@ -4,6 +4,13 @@ import { clearGroupHeader, removeLegacyInlineColor, setGroupColor } from './grou
 import { InternalTabs, internal } from './internal';
 import { SavedTab, nextSavedTabs, snapshotLeaf } from './saved-tabs';
 
+// 💡 trackMoves: 지난 정렬 뒤 탭 하나가 옮겨졌으면(단축키·Pane Relief 등) 그룹 편입·이탈을 먼저 반영 (기본 켜짐)
+// dropped: 그 이동이 끌어다 놓은 것 (한 칸 옮겨도 단축키처럼 그룹 가장자리로 보내지 않고 놓은 자리 기준)
+export interface SortingOptions {
+    trackMoves?: boolean;
+    dropped?: boolean;
+}
+
 // ✨ 탭 바 정리: 같은 그룹의 탭을 한데 모으고(화면과 옵시디언 내부 순서 모두), 그룹 표시와 라벨을 다시 그립니다.
 // 탭 바가 바뀌면 감시자(MutationObserver)가 알려 주어 화면이 그려지기 전에 정리합니다.
 export class GroupLayout {
@@ -27,7 +34,8 @@ export class GroupLayout {
             observer.disconnect();
             this.globalObservers.delete(container);
         });
-        plugin.tabContainers().forEach(container => {
+        // 💡 쌓인 탭 모드에서는 막대가 화면 사이에 있어 그 묶음도 감시 (끌어 옮기면 순서가 바뀜)
+        [...plugin.tabContainers(), ...plugin.stacked.containers()].forEach(container => {
             if (!this.globalObservers.has(container)) {
                 const observer = new MutationObserver((mutations) => {
                     // 🚨 꺼진 인스턴스의 감시자가 남아 있으면 스스로 떼어 냅니다. (다른 인스턴스와 핑퐁 방지)
@@ -56,19 +64,19 @@ export class GroupLayout {
         this.globalObservers.forEach(obs => obs.disconnect());
     }
 
-    // 💡 trackMoves: 지난 정렬 뒤 탭 하나가 옮겨졌으면(단축키·Pane Relief 등) 그룹 편입·이탈을 먼저 반영
-    enforcePhysicalSorting(options: { trackMoves?: boolean } = {}) {
+    enforcePhysicalSorting(options: SortingOptions = {}) {
         const plugin = this.plugin;
         // ✨ 무한루프 방지: 우리가 DOM을 엎어버리는 동안에는 감시자를 잠시 끕니다.
         this.disconnectObservers();
 
         try {
             const tabContainers = plugin.tabContainers();
+            const stackedContainers = plugin.stacked.containers();
 
             let groupChanged = false;
             if (options.trackMoves !== false) {
-                tabContainers.forEach(container => {
-                    if (plugin.tabMoves.applyMove(container)) groupChanged = true;
+                [...tabContainers, ...stackedContainers].forEach(container => {
+                    if (plugin.tabMoves.applyMove(container, options.dropped)) groupChanged = true;
                 });
             }
             if (this.detachStrayTabs()) groupChanged = true;
@@ -131,9 +139,12 @@ export class GroupLayout {
                 }
             });
 
+            // 💡 쌓인 탭 묶음은 머리와 화면이 번갈아 놓여 있어 DOM 대신 옵시디언에 순서를 넘겨 모음
+            stackedContainers.forEach(container => plugin.stacked.gather(container));
+
             plugin.labels.render();
 
-            tabContainers.forEach(container => plugin.tabMoves.remember(container));
+            [...tabContainers, ...stackedContainers].forEach(container => plugin.tabMoves.remember(container));
             this.rememberMembers();
             if (groupChanged) void plugin.saveSettings(); // ✨ 그룹 소속이 바뀌었으니 data.json에 저장
         } finally {

@@ -4,7 +4,10 @@ import { TabDragController } from './tab-drag';
 import { GroupDragController } from './group-drag';
 import { GroupDropHandler } from './group-drop';
 import { GroupLabels } from './group-labels';
-import { GroupLayout } from './group-layout';
+import { StackedTabs } from './stacked-tabs';
+import { StackedGroupDrop } from './stacked-drag';
+import { StackedTabDrag } from './stacked-tab-drag';
+import { GroupLayout, SortingOptions } from './group-layout';
 import { GroupLock } from './group-lock';
 import { TabMoveTracker } from './tab-move';
 import { registerHiddenTabSkip } from './hidden-tab-skip';
@@ -44,8 +47,12 @@ export default class TabGroupsPlugin extends Plugin {
     groupDrag: GroupDragController = new GroupDragController();
     // ✨ 그룹(라벨) 드롭 처리(재배치·다른 창으로 병합·창 분할) 담당
     groupDrop: GroupDropHandler = new GroupDropHandler(this);
+    stackedDrop: StackedGroupDrop = new StackedGroupDrop(this);
+    stackedTabDrag: StackedTabDrag = new StackedTabDrag(this);
     // ✨ 그룹 라벨(접기·관리 창·끌기) 담당
     labels: GroupLabels = new GroupLabels(this);
+    // ✨ 쌓인 탭 모드의 라벨·접힘·탭 모으기 담당
+    stacked: StackedTabs = new StackedTabs(this);
     // ✨ 탭 바 정렬과 감시자 담당
     layout: GroupLayout = new GroupLayout(this);
 
@@ -182,7 +189,7 @@ export default class TabGroupsPlugin extends Plugin {
     }
 
     // 💡 탭 바를 다시 정리합니다. (여러 모듈이 그룹을 바꾼 뒤 부름. 실제 작업은 group-layout.ts)
-    enforcePhysicalSorting(options: { trackMoves?: boolean } = {}) {
+    enforcePhysicalSorting(options: SortingOptions = {}) {
         this.layout.enforcePhysicalSorting(options);
     }
 
@@ -278,8 +285,11 @@ export default class TabGroupsPlugin extends Plugin {
         this.lock.release();
         this.tabDrag.unload();
         this.groupDrag.finish();
+        this.stackedDrop.clear();
+        this.stackedTabDrag.finish();
         this.layout.disconnectObservers();
         this.labels.removeAll();
+        this.stacked.unload();
         // 🚨탭 헤더를 원래 모습으로 되돌립니다. (그대로 두면 끈 뒤에도 접힌 그룹의 탭이 숨겨진 채 남음)
         this.layout.clearAllHeaders();
         this.applyGroupStyle(null);

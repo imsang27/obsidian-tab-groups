@@ -1,6 +1,7 @@
 import { WorkspaceLeaf } from 'obsidian';
 import type TabGroupsPlugin from './main';
 import { GroupSlot, resolveGroupAt } from './tab-group-rules';
+import { isStackedContainer } from './stacked-order';
 import { setGroupColor } from './group-style';
 
 const TAB_BAR_SELECTOR = '.workspace-tab-header-container';
@@ -30,6 +31,8 @@ export class TabDragController {
     draggedLeaf: WorkspaceLeaf | null = null;
     draggedHeader: HTMLElement | null = null;
     draggedWidth = 0;
+    // 💡 끌기 시작 때의 그룹 (쌓인 탭에 놓을 때는 놓기와 끌기 끝 두 번 맞추므로, 저장할지는 이것과 비교)
+    startGroup: string | null = null;
     // 💡 그룹 맨 끝 자리에서 커서가 그 그룹 마지막 탭 위에 있는지 (크롬처럼 그룹 안쪽에 놓으면 편입)
     insideGroupEnd = false;
 
@@ -52,6 +55,8 @@ export class TabDragController {
 
     onDragStart(e: DragEvent) {
         if (this.plugin.draggingGroupId) return;
+        // 💡 쌓인 탭 막대 안의 그룹 라벨을 끄는 건 그룹 끌기 (stacked-tabs.ts)
+        if ((e.target as HTMLElement).closest?.('.tab-group-stacked-label')) return;
         const header = (e.target as HTMLElement).closest?.<HTMLElement>('.workspace-tab-header');
         if (!header) return;
         const leaf = this.plugin.findLeafFromHeader(header);
@@ -59,6 +64,10 @@ export class TabDragController {
 
         this.draggedLeaf = leaf;
         this.draggedHeader = header;
+        this.startGroup = this.plugin.leafGroupMap.get(leaf) ?? null;
+        // 💡 옵시디언이 놓을 때 탭을 다른 탭 묶음으로 옮기며 원래 탭 머리를 잠시 떼어 내면(쌓인 탭 창으로 끌어 올 때 등),
+        // 끌기 끝(dragend)이 떨어진 요소에만 와서 창까지 오지 않습니다. 그 요소에서도 듣습니다. (먼저 온 쪽만 처리)
+        header.addEventListener('dragend', this.onSourceDragEnd);
         this.draggedWidth = header.getBoundingClientRect().width;
         // 💡 새 창 분리 방지: 탭 바 안쪽은 원래 창 이동 영역(-webkit-app-region: drag)이라,
         // 플레이스홀더나 그 여백에 놓으면 OS가 "창 밖에 놓음"으로 처리해 새 창이 열립니다.
@@ -73,8 +82,11 @@ export class TabDragController {
         if (!inner) {
             // 💡 탭 바 밖: 분할 미리보기 등 옵시디언 기본 오버레이가 보이도록 우리 표시만 치웁니다.
             this.hidePlaceholder();
+            // 💡 쌓인 탭 막대 사이: 들어갈 자리에 빈 막대 (stacked-tab-drag.ts)
+            this.plugin.stackedTabDrag.update(e, this.draggedLeaf!);
             return;
         }
+        this.plugin.stackedTabDrag.finish();
 
         // 💡 탭 바 안: 옵시디언 기본 드롭 선(보라색 선)은 CSS로 숨기고 플레이스홀더만 보여 줍니다.
         e.preventDefault();
@@ -86,6 +98,14 @@ export class TabDragController {
     onDrop(e: DragEvent) {
         const leaf = this.draggedLeaf;
         const inner = this.findTabBarInner(e.target as HTMLElement);
+        // 💡 옵시디언은 끌기 끝에 막대 위치로 자리를 다시 재므로, 쌓인 탭의 빈 막대는 놓을 때 바로 뺌
+        if (!inner) {
+            // 💡 다른 창에서 끌어 오면 옵시디언이 놓을 때 바로 옮기고, 그 뒤 화면 정리(layout-change)가 곧장 정렬하므로
+            // 그룹은 지금 미리 맞춤 (안 그러면 그룹 탭 사이에 놓은 탭이 그룹 밖으로 보고 그룹 뒤로 밀려남)
+            // 같은 탭 묶음 안에서는 옵시디언이 끌기 끝에 옮기므로 그때 맞춤 (미리 맞추면 옮기기 전에 그룹 쪽으로 정렬돼 버림)
+            const dropped = this.plugin.stackedTabDrag.drop();
+            if (leaf && dropped && dropped.from === -1) this.applyGroup(leaf, dropped.groupId);
+        }
         if (!leaf || !inner) return; // 탭 바 밖 드롭은 옵시디언 기본 처리(분할 등)에 맡김
 
         // 💡 마지막 dragover가 늦게 처리돼도 놓은 좌표 그대로 자리를 한 번 더 맞춥니다.
@@ -111,8 +131,11 @@ export class TabDragController {
 
     // ✨ 놓은 자리에 따라 그룹 소속을 정합니다. 그룹이 바뀌었으면 true를 돌려줍니다.
     applyDropGroup(leaf: WorkspaceLeaf): boolean {
+        return this.applyGroup(leaf, this.dropGroup(leaf));
+    }
+
+    applyGroup(leaf: WorkspaceLeaf, newGroup: string | null): boolean {
         const current = this.plugin.leafGroupMap.get(leaf) ?? null;
-        const newGroup = this.dropGroup(leaf);
         if (newGroup === current) return false;
         if (newGroup) this.plugin.leafGroupMap.set(leaf, newGroup);
         else this.plugin.leafGroupMap.delete(leaf);
@@ -182,12 +205,31 @@ export class TabDragController {
 
     onDragEnd() {
         if (!this.isDragging) return;
+        // 💡 쌓인 탭 모드의 막대는 옵시디언이 직접 옮기므로, 놓은 자리로 그룹 편입·이탈을 정함 (탭 바에서는 onDrop이 이미 정함)
+        const stacked = !!this.draggedHeader?.parentElement && isStackedContainer(this.draggedHeader.parentElement);
+        const leaf = this.draggedLeaf;
+        const startGroup = this.startGroup;
+        const dropped = this.plugin.stackedTabDrag.takeDropped();
         this.finishDrag();
-        window.setTimeout(() => this.plugin.enforcePhysicalSorting({ trackMoves: false }), 0);
+        window.setTimeout(() => {
+            // 💡 쌓인 탭 막대 사이에 놓았으면 빈 막대가 보여 준 그룹으로 맞춤 (그룹 맨 끝은 커서 위치로 정해서)
+            // 정렬보다 먼저 맞춤: 그룹 밖으로 본 채 정렬하면 그룹 탭 사이에 놓은 탭이 그룹 뒤로 밀려남
+            if (leaf && dropped) {
+                this.applyGroup(leaf, dropped.groupId);
+                this.plugin.enforcePhysicalSorting({ trackMoves: false });
+                if (dropped.groupId !== startGroup) void this.plugin.saveSettings();
+                return;
+            }
+            this.plugin.enforcePhysicalSorting(stacked ? { dropped: true } : { trackMoves: false });
+        }, 0);
     }
 
+    onSourceDragEnd = () => this.onDragEnd();
+
     finishDrag() {
+        this.draggedHeader?.removeEventListener('dragend', this.onSourceDragEnd);
         this.hidePlaceholder();
+        this.plugin.stackedTabDrag.finish();
         this.draggedLeaf = null;
         this.draggedHeader = null;
         document.body.classList.remove('is-dragging-tab');

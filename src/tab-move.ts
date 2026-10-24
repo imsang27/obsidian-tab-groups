@@ -1,6 +1,7 @@
 import { WorkspaceLeaf } from 'obsidian';
 import type TabGroupsPlugin from './main';
 import { resolveGroupAt } from './tab-group-rules';
+import { isStackedContainer, setStackedOrder } from './stacked-order';
 
 interface LeafMove {
     leaf: WorkspaceLeaf;
@@ -25,7 +26,8 @@ export class TabMoveTracker {
     }
 
     // 💡 탭 하나가 옮겨졌으면 그룹 소속(과 필요하면 자리)을 고칩니다. 소속이 바뀌었으면 true.
-    applyMove(container: Element): boolean {
+    // dropped: 끌어다 놓은 이동 (한 칸이어도 놓은 자리 양옆으로 정함)
+    applyMove(container: Element, dropped = false): boolean {
         const before = this.lastOrders.get(container);
         if (!before) return false;
         const now = this.leavesOf(container);
@@ -41,7 +43,7 @@ export class TabMoveTracker {
         let newGroup: string | null;
         let newIndex: number | null = null; // others 기준으로 다시 놓을 자리 (null이면 옮겨진 자리 그대로)
 
-        if (Math.abs(to - from) === 1) {
+        if (Math.abs(to - from) === 1 && !dropped) {
             // 🎯 한 칸 이동: 크롬처럼 그룹 경계(라벨)를 넘는 것도 한 걸음으로 칩니다.
             const direction = to - from;
             const neighborGroup = groupOf(before[from + direction]);
@@ -72,19 +74,7 @@ export class TabMoveTracker {
             }
         } else {
             // 🎯 여러 칸 이동(맨 앞으로 등): 드래그 드롭과 같은 규칙으로 새 자리 양옆을 봅니다.
-            const prevGroup = groupOf(others[to - 1]);
-            const nextGroup = groupOf(others[to]);
-            if (current && nextGroup === current && prevGroup !== current) {
-                newGroup = current; // 자기 그룹 맨 앞
-            } else {
-                newGroup = resolveGroupAt(
-                    to > 0 ? { groupId: prevGroup, isLabel: false } : null,
-                    // 그룹 첫 탭 바로 앞은 그 그룹 라벨의 앞자리
-                    to < others.length ? { groupId: nextGroup, isLabel: !!nextGroup && prevGroup !== nextGroup } : null,
-                    current,
-                    isExpanded,
-                );
-            }
+            newGroup = droppedGroup(others, to, current, groupOf, isExpanded);
         }
 
         if (newIndex !== null) {
@@ -100,7 +90,7 @@ export class TabMoveTracker {
 
     // 💡 이 탭 바에서 선택된 탭 (Pane Relief 등은 선택된 탭을 옮김)
     activeLeafIn(container: Element, leaves: WorkspaceLeaf[]): WorkspaceLeaf | null {
-        const header = container.querySelector('.workspace-tab-header.is-active');
+        const header = container.querySelector(':scope > .workspace-tab-header.is-active');
         return leaves.find(l => (l as unknown as { tabHeaderEl?: HTMLElement }).tabHeaderEl === header) ?? null;
     }
 
@@ -110,18 +100,45 @@ export class TabMoveTracker {
             const header = (leaf as unknown as { tabHeaderEl?: HTMLElement }).tabHeaderEl;
             if (header) byHeader.set(header, leaf);
         });
-        return Array.from(container.querySelectorAll('.workspace-tab-header'))
+        // 💡 바로 아래 탭 머리만 (쌓인 탭 모드에서는 탭 화면이 사이사이에 있어 그 안의 요소는 빼야 함)
+        return Array.from(container.querySelectorAll(':scope > .workspace-tab-header'))
             .map(header => byHeader.get(header))
             .filter((leaf): leaf is WorkspaceLeaf => !!leaf);
     }
 
     // 💡 탭 헤더를 주어진 순서로 다시 꽂습니다. (내부 배열은 뒤이은 정렬이 DOM 순서에 맞춰 줌)
+    // 쌓인 탭 모드에서는 옵시디언에 순서를 넘겨 다시 그리게 함
     reorderHeaders(container: Element, order: WorkspaceLeaf[]) {
+        if (isStackedContainer(container)) {
+            setStackedOrder(order);
+            return;
+        }
         order.forEach(leaf => {
             const header = (leaf as unknown as { tabHeaderEl?: HTMLElement }).tabHeaderEl;
             if (header) container.appendChild(header);
         });
     }
+}
+
+// 💡 탭을 다른 탭들(others) 사이 to 자리에 놓았을 때 들어갈 그룹 (탭 바처럼 라벨이 없는 순서에서 쓰는 드롭 규칙)
+// 쌓인 탭 막대를 끌 때 자리 표시 색에도 씀 (stacked-drag.ts)
+export function droppedGroup(
+    others: WorkspaceLeaf[],
+    to: number,
+    current: string | null,
+    groupOf: (l: WorkspaceLeaf | undefined) => string | null,
+    isExpanded: (groupId: string) => boolean,
+): string | null {
+    const prevGroup = groupOf(others[to - 1]);
+    const nextGroup = groupOf(others[to]);
+    if (current && nextGroup === current && prevGroup !== current) return current; // 자기 그룹 맨 앞
+    return resolveGroupAt(
+        to > 0 ? { groupId: prevGroup, isLabel: false } : null,
+        // 그룹 첫 탭 바로 앞은 그 그룹 라벨의 앞자리
+        to < others.length ? { groupId: nextGroup, isLabel: !!nextGroup && prevGroup !== nextGroup } : null,
+        current,
+        isExpanded,
+    );
 }
 
 // 💡 두 순서를 비교해 탭 하나만 자리를 옮겼으면 그 탭과 이전·새 위치를 돌려줍니다.

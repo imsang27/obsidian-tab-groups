@@ -424,3 +424,114 @@ html body .tab-group-color-custom input[type='color'] {
     left: -50%;
     cursor: pointer;
 }
+
+/* ✨ 쌓인 탭(Stacked tabs) 모드: 탭 머리가 화면 사이의 세로 막대가 됨 (stacked-tabs.ts)
+   그룹 막대는 그룹 색으로 옅게 칠하고 위쪽에 색 줄을 긋고, 그룹 첫 막대 맨 위에 라벨 (밑줄·클래식 모양 모두 같게) */
+html body .workspace-tabs.mod-stacked .workspace-tab-header.tab-group-member:not(#tab-groups) {
+    background-color: color-mix(in srgb, var(--tab-group-color) 14%, var(--background-primary));
+    border-radius: 0;
+}
+
+html body .workspace-tabs.mod-stacked .workspace-tab-header.tab-group-member:not(#tab-groups) .workspace-tab-header-inner::before {
+    top: 0;
+    bottom: auto;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border: none;
+    border-radius: 0;
+    background-color: var(--tab-group-color);
+}
+
+/* 💡 라벨: 막대처럼 세로 글씨로 그룹 색 알약 (막대 맨 위, 탭 아이콘·제목보다 앞) */
+html body .workspace-tabs.mod-stacked .tab-group-stacked-label {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 3px;
+    margin: 8px auto 6px;
+    padding: 8px 2px;
+    border-radius: 6px;
+    background-color: var(--tab-group-color);
+    color: var(--tab-group-on-color, #fff);
+    font-size: var(--font-ui-smaller);
+    font-weight: var(--font-semibold, 600);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: filter 0.15s;
+}
+
+html body .workspace-tabs.mod-stacked .tab-group-stacked-label:hover {
+    filter: brightness(1.1);
+}
+
+/* 이름 없는 그룹은 색 알약만 */
+html body .workspace-tabs.mod-stacked .tab-group-stacked-label.is-empty {
+    min-height: 18px;
+}
+
+html body .workspace-tabs.mod-stacked .tab-group-stacked-label .tab-group-label-separator {
+    opacity: 0.6;
+}
+
+html body .workspace-tabs.mod-stacked .tab-group-stacked-label .tab-group-label-count {
+    opacity: 0.75;
+}
+
+/* 💡 접은 그룹: 첫 막대는 라벨만 남기고, 나머지 막대와 그룹 탭의 화면은 숨김 */
+html body .workspace-tabs.mod-stacked .workspace-tab-header.tab-group-stacked-collapsed:not(#tab-groups) .workspace-tab-header-inner > :not(.tab-group-stacked-label) {
+    display: none;
+}
+
+/* 라벨은 접혀도 막대 맨 위에 */
+html body .workspace-tabs.mod-stacked .workspace-tab-header.tab-group-stacked-collapsed:not(#tab-groups) .workspace-tab-header-inner {
+    justify-content: flex-start;
+}
+
+/* 💡 라벨을 끄는 동안 들어갈 자리: 앞·뒤 막대 가장자리에 강조색 선 (stacked-drag.ts) */
+html body .workspace-tabs.mod-stacked .workspace-tab-header.tab-group-stacked-drop-before:not(#tab-groups) {
+    box-shadow: inset 3px 0 0 var(--interactive-accent);
+}
+
+html body .workspace-tabs.mod-stacked .workspace-tab-header.tab-group-stacked-drop-after:not(#tab-groups) {
+    box-shadow: inset -3px 0 0 var(--interactive-accent);
+}
+
+/* ✨ 막대를 끄는 동안 들어갈 자리의 빈 막대 (stacked-tab-drag.ts). 막대처럼 옵시디언이 매긴 left·right 자리에 붙음
+   그룹에 들어가는 자리면 그룹 막대처럼 옅은 그룹 색과 위쪽 색 줄에, 안쪽을 그룹 색으로 */
+html body .workspace-tabs.mod-stacked .tab-group-stacked-placeholder {
+    position: sticky;
+    z-index: 1;
+    flex-shrink: 0;
+    align-self: stretch;
+    width: var(--tab-group-placeholder-width, 40px);
+    background-color: var(--background-primary);
+    box-shadow: inset 1px 0 0 var(--divider-color), inset -1px 0 0 var(--divider-color);
+}
+
+html body .workspace-tabs.mod-stacked .tab-group-stacked-placeholder::before {
+    content: '';
+    position: absolute;
+    inset: 8px 6px;
+    border-radius: var(--radius-s, 4px);
+    background-color: color-mix(in srgb, var(--interactive-accent) 35%, transparent);
+}
+
+html body .workspace-tabs.mod-stacked .tab-group-stacked-placeholder.is-in-group {
+    background-color: color-mix(in srgb, var(--tab-group-color) 14%, var(--background-primary));
+    box-shadow: inset 0 3px 0 var(--tab-group-color);
+}
+
+html body .workspace-tabs.mod-stacked .tab-group-stacked-placeholder.is-in-group::before {
+    background-color: color-mix(in srgb, var(--tab-group-color) 35%, transparent);
+}
+
+/* 빈 막대를 보여 주는 동안 옵시디언 드롭 선은 숨김 */
+html body .workspace-drop-overlay.tab-group-overlay-hidden:not(#tab-groups) {
+    visibility: hidden;
+}
+
+html body .workspace-tabs.mod-stacked .workspace-tab-header.tab-group-stacked-hidden:not(#tab-groups),
+html body .workspace-tabs.mod-stacked .workspace-leaf.tab-group-stacked-hidden:not(#tab-groups) {
+    display: none;
+}

@@ -1,4 +1,4 @@
-import { browser, expect } from '@wdio/globals';
+import { $, browser, expect } from '@wdio/globals';
 import { addToGroup, clickButton, createGroup, dragTo, dragToWindow, label, members, moveToNewWindow, openNextTo, resetWorkspace, runCommand, tabHeader, titles } from '../helpers';
 
 // 💡 팝아웃 창(옵시디언의 "새 창으로 옮기기"로 연 별도 창)에서도 그룹이 똑같이 동작하는지
@@ -96,5 +96,44 @@ describe('pop-out windows', function () {
         await expect(label('Work')).toBeDisplayed();
         await browser.switchToWindow(main);
         expect(await titles()).toEqual(['Gamma']);
+    });
+
+    // 💡 팝아웃 창의 쌓인 탭: 라벨이 막대 맨 위에 있고, 누르면 접히고, 끌면 그룹째 옮겨짐
+    it('shows and controls groups in stacked tabs mode inside a pop-out window', async function () {
+        const popout = await moveToNewWindow('Delta');
+        await openNextTo('Delta', ['Epsilon', 'Gamma']);
+        await browser.switchToWindow(popout);
+        await createGroup('Delta', 'Pop');
+        await addToGroup('Epsilon', 'Pop');
+        await browser.waitUntil(async () => (await titles()).join() === 'Delta,Epsilon,Gamma');
+        await tabHeader('Gamma').click();
+
+        await browser.executeObsidian(({ app }) => {
+            app.workspace.iterateAllLeaves(leaf => {
+                if (leaf.getDisplayText() === 'Delta') (leaf as unknown as { parent: { setStacked(on: boolean): void } }).parent.setStacked(true);
+            });
+        });
+        const spine = (title: string) => $(`.workspace-tab-container > .workspace-tab-header[aria-label="${title}"]`);
+        const stackedLabel = () => $('.workspace-tab-container .tab-group-stacked-label');
+        await stackedLabel().waitForExist({ timeoutMsg: 'no label on the spines' });
+        await expect(spine('Delta').$('.tab-group-stacked-label')).toBeExisting();
+
+        await stackedLabel().click();
+        await browser.waitUntil(async () => !(await spine('Epsilon').isDisplayed()), { timeoutMsg: 'the group did not collapse' });
+        await stackedLabel().click();
+        await browser.waitUntil(async () => spine('Epsilon').isDisplayed(), { timeoutMsg: 'the group did not expand' });
+
+        await browser.execute((label: HTMLElement, target: HTMLElement) => {
+            const dataTransfer = new DataTransfer();
+            const r = target.getBoundingClientRect();
+            const at = { clientX: r.left + r.width * 0.75, clientY: r.top + r.height / 2 };
+            const fire = (el: HTMLElement, type: string) => el.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, composed: true, dataTransfer, ...at }));
+            fire(label, 'dragstart');
+            fire(target, 'dragover');
+            fire(target, 'drop');
+            fire(label, 'dragend');
+        }, (await stackedLabel().getElement()) as unknown as HTMLElement, (await spine('Gamma').getElement()) as unknown as HTMLElement);
+        await browser.waitUntil(async () => (await titles()).join() === 'Gamma,Delta,Epsilon', { timeoutMsg: `order: ${(await titles()).join()}` });
+        expect(await members('Pop')).toEqual(['Delta', 'Epsilon']);
     });
 });
