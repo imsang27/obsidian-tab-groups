@@ -6,9 +6,11 @@ import { addToGroup, createGroup, label, members, resetWorkspace, tab, tabHeader
 // 시작: [Work] Alpha Beta | Gamma Delta
 describe('stacked tabs', function () {
     async function setStacked(on: boolean) {
+        // 💡 켤 때는 지금 창만, 끌 때는 (분할로 늘어난 창까지) 모두
         await browser.executeObsidian(({ app }, on) => {
-            const leaf = app.workspace.getMostRecentLeaf(app.workspace.rootSplit) as unknown as { parent: { setStacked(on: boolean): void } };
-            leaf.parent.setStacked(on);
+            type Tabs = { parent: { setStacked(on: boolean): void } };
+            if (on) (app.workspace.getMostRecentLeaf(app.workspace.rootSplit) as unknown as Tabs).parent.setStacked(true);
+            else app.workspace.iterateRootLeaves(leaf => { (leaf as unknown as Tabs).parent.setStacked(false); });
         }, on);
         await browser.waitUntil(async () => (await $('.workspace-split.mod-root .workspace-tabs.mod-stacked').isExisting()) === on);
     }
@@ -173,5 +175,46 @@ describe('stacked tabs', function () {
         await browser.waitUntil(async () => (await titles()).join() === 'Gamma,Delta,Alpha,Beta', { timeoutMsg: `titles: ${(await titles()).join()}` });
         await expect(stackedLabel('Work')).toHaveElementClass('is-collapsed');
         await expect(spine('Beta')).not.toBeDisplayed();
+    });
+
+    // 💡 라벨을 쌓인 탭 화면 위에 놓기 (가로 x, 세로 y 비율)
+    async function dropLabelOnPage(name: string, title: string, x: number, y: number) {
+        const page = await browser.executeObsidian(({ app }, title) => {
+            let el: HTMLElement | null = null;
+            app.workspace.iterateAllLeaves(leaf => {
+                if (leaf.getDisplayText() === title) el = (leaf as unknown as { containerEl: HTMLElement }).containerEl;
+            });
+            return el;
+        }, title);
+        await browser.execute((label: HTMLElement, page: HTMLElement, x: number, y: number) => {
+            const dataTransfer = new DataTransfer();
+            const r = page.getBoundingClientRect();
+            const at = { clientX: r.left + r.width * x, clientY: r.top + r.height * y };
+            const fire = (el: HTMLElement, type: string) => el.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, composed: true, dataTransfer, ...at }));
+            fire(label, 'dragstart');
+            fire(page, 'dragover');
+            fire(page, 'drop');
+            fire(label, 'dragend');
+        }, (await stackedLabel(name).getElement()) as unknown as HTMLElement, page as unknown as HTMLElement, x, y);
+        await browser.pause(300);
+    }
+
+    const tabGroupCount = () => browser.executeObsidian(({ app }) => {
+        const parents = new Set<unknown>();
+        app.workspace.iterateRootLeaves(leaf => { parents.add((leaf as unknown as { parent: unknown }).parent); });
+        return parents.size;
+    });
+
+    it('does not split left or right when the label is dropped on a page, like Obsidian', async function () {
+        await setStacked(true);
+        // 💡 화면 오른쪽 가장자리 → 옵시디언처럼 좌우 분할 없음
+        await dropLabelOnPage('Work', 'Delta', 0.95, 0.5);
+        expect(await tabGroupCount()).toBe(1);
+        await expect($('.tab-group-split-preview')).not.toBeExisting();
+
+        // 💡 아래쪽 가장자리 → 아래에 새 창 (옵시디언 분할처럼 일반 탭)
+        await dropLabelOnPage('Work', 'Delta', 0.5, 0.95);
+        await browser.waitUntil(async () => (await tabGroupCount()) === 2, { timeoutMsg: 'no split' });
+        expect((await members('Work')).join()).toBe('Alpha,Beta');
     });
 });

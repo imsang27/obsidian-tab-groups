@@ -10,12 +10,14 @@ export interface GroupDropTarget {
 export type SplitDirection = 'left' | 'right' | 'top' | 'bottom' | 'center';
 
 // 💡 편집 화면(.workspace-leaf) 위의 커서 위치로 분할 방향을 정합니다. (옵시디언처럼 가장자리 25%)
+// 쌓인 탭 묶음에서는 옵시디언처럼 왼쪽·오른쪽 분할은 없고 위·아래·가운데만 (막대가 가로로 늘어서 있어서)
 export function splitDirectionAt(leafEl: HTMLElement, clientX: number, clientY: number): SplitDirection {
     const rect = leafEl.getBoundingClientRect();
     const x = clientX - rect.left;
     const y = clientY - rect.top;
-    if (x < rect.width * 0.25) return 'left';
-    if (x > rect.width * 0.75) return 'right';
+    const stacked = !!leafEl.closest('.workspace-tabs.mod-stacked');
+    if (!stacked && x < rect.width * 0.25) return 'left';
+    if (!stacked && x > rect.width * 0.75) return 'right';
     if (y < rect.height * 0.25) return 'top';
     if (y > rect.height * 0.75) return 'bottom';
     return 'center';
