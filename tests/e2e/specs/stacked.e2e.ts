@@ -14,10 +14,15 @@ describe('stacked tabs', function () {
         }, on);
         await browser.waitUntil(async () => (await $('.workspace-split.mod-root .workspace-tabs.mod-stacked').isExisting()) === on);
         if (!on) return;
-        // 💡 옵시디언이 막대 위치를 다 잡을 때까지 (라벨이 움직이는 중에 누르면 다른 곳이 눌림)
+        // 💡 옵시디언이 막대 위치를 다 잡고 지금 탭까지 부드럽게 스크롤을 마칠 때까지 (움직이는 중에 누르거나 끌면 다른 곳이 잡힘)
         let last = '';
         await browser.waitUntil(async () => {
-            const now = await browser.execute(() => JSON.stringify(document.querySelector('.tab-group-stacked-label')?.getBoundingClientRect() ?? null));
+            const now = await browser.execute(() => {
+                if (!document.querySelector('.tab-group-stacked-label')) return 'null';
+                const container = document.querySelector('.workspace-split.mod-root .workspace-tab-container');
+                const spines = Array.from(container?.querySelectorAll(':scope > .workspace-tab-header') ?? []);
+                return `${container?.scrollLeft} ${spines.map(el => Math.round(el.getBoundingClientRect().left)).join()}`;
+            });
             const stable = now !== 'null' && now === last;
             last = now;
             return stable;
@@ -227,43 +232,45 @@ describe('stacked tabs', function () {
         expect((await members('Work')).join()).toBe('Alpha,Beta');
     });
 
-    // 💡 막대를 실제로 끌기: 끌기 시작 → 놓을 막대 왼쪽 가장자리 위(그 앞자리) → 드롭 선이 그룹 색인지 읽고 → 놓기 → 끌기 끝
-    async function dragSpine(title: string, beforeTitle: string): Promise<boolean> {
-        const inGroup = await browser.execute(async (source: HTMLElement, target: HTMLElement) => {
+    // 💡 막대를 실제로 끌기: 끌기 시작 → 놓을 막대 왼쪽 가장자리 위(그 앞자리)에서 끌기 → 빈 막대를 읽고 → 놓기 → 끌기 끝
+    // (커서는 실제처럼 한 자리에 둠: 빈 막대가 끼면 막대가 밀려나므로 놓을 자리는 끌기 시작 때 한 번만 잼)
+    async function dragSpine(title: string, beforeTitle: string): Promise<{ shown: boolean, inGroup: boolean }> {
+        const placeholder = await browser.execute(async (source: HTMLElement, target: HTMLElement) => {
             const dataTransfer = new DataTransfer();
-            const fire = (el: Element, type: string, at: Element = target) => {
-                // 💡 끌기가 시작되면 막대 위치가 바뀔 수 있어 매번 다시 잼
-                const r = at.getBoundingClientRect();
-                el.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, composed: true, dataTransfer, clientX: r.left + 3, clientY: r.top + 300 }));
-            };
+            const fire = (el: Element, type: string, x: number, y: number) =>
+                el.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, composed: true, dataTransfer, clientX: x, clientY: y }));
             // 옵시디언은 5px 넘게 움직여야 끌기로 봄 (시작은 끄는 막대 위에서)
-            fire(source, 'dragstart', source);
+            const s = source.getBoundingClientRect();
+            fire(source, 'dragstart', s.left + 5, s.top + 100);
+            const t = target.getBoundingClientRect();
+            const at = { x: t.left + 3, y: t.top + 300 };
             for (let i = 0; i < 4; i++) {
-                fire(target, 'dragover');
+                fire(document.elementFromPoint(at.x, at.y) ?? target, 'dragover', at.x, at.y);
                 await new Promise(resolve => window.setTimeout(resolve, 30));
             }
-            const inGroup = !!document.querySelector('.workspace-drop-overlay')?.classList.contains('tab-group-drop-in-group');
-            fire(target, 'drop');
-            fire(source, 'dragend');
-            return inGroup;
+            const el = document.querySelector('.tab-group-stacked-placeholder');
+            const result = { shown: !!el?.isConnected, inGroup: !!el?.classList.contains('is-in-group') };
+            fire(document.elementFromPoint(at.x, at.y) ?? target, 'drop', at.x, at.y);
+            fire(source, 'dragend', at.x, at.y);
+            return result;
         }, (await spine(title).getElement()) as unknown as HTMLElement, (await spine(beforeTitle).getElement()) as unknown as HTMLElement);
         await browser.pause(300);
-        return inGroup;
+        return placeholder;
     }
 
-    it('shows in the group color when a dragged spine will join the group, like in the tab bar', async function () {
+    it('shows a placeholder in the group color where a dragged spine will join the group, like in the tab bar', async function () {
         await setStacked(true);
-        // 💡 그룹 탭 둘 사이 → 그룹 색 드롭 선, 놓으면 편입
-        expect(await dragSpine('Delta', 'Beta')).toBe(true);
+        // 💡 그룹 탭 둘 사이 → 그룹 색 빈 막대, 놓으면 편입
+        expect(await dragSpine('Delta', 'Beta')).toEqual({ shown: true, inGroup: true });
         await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha,Delta,Beta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
         expect(await titles()).toEqual(['Alpha', 'Delta', 'Beta', 'Gamma']);
-        await expect($('.tab-group-drop-in-group')).not.toBeExisting();
+        await expect($('.tab-group-stacked-placeholder')).not.toBeExisting();
     });
 
-    it('shows the plain drop line when a dragged spine will leave the group', async function () {
+    it('shows a plain placeholder where a dragged spine will leave the group', async function () {
         await setStacked(true);
-        // 💡 그룹 밖 탭 사이(Delta 앞) → 기본 드롭 선, 놓으면 이탈
-        expect(await dragSpine('Alpha', 'Delta')).toBe(false);
+        // 💡 그룹 밖 탭 사이(Delta 앞) → 기본 색 빈 막대, 놓으면 이탈
+        expect(await dragSpine('Alpha', 'Delta')).toEqual({ shown: true, inGroup: false });
         await browser.waitUntil(async () => (await members('Work')).join() === 'Beta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
         expect(await titles()).toEqual(['Beta', 'Gamma', 'Alpha', 'Delta']);
     });

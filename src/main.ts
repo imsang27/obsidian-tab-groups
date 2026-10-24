@@ -6,6 +6,7 @@ import { GroupDropHandler } from './group-drop';
 import { GroupLabels } from './group-labels';
 import { StackedTabs } from './stacked-tabs';
 import { StackedGroupDrop } from './stacked-drag';
+import { StackedTabDrag } from './stacked-tab-drag';
 import { GroupLayout, SortingOptions } from './group-layout';
 import { GroupLock } from './group-lock';
 import { TabMoveTracker } from './tab-move';
@@ -47,6 +48,7 @@ export default class TabGroupsPlugin extends Plugin {
     // ✨ 그룹(라벨) 드롭 처리(재배치·다른 창으로 병합·창 분할) 담당
     groupDrop: GroupDropHandler = new GroupDropHandler(this);
     stackedDrop: StackedGroupDrop = new StackedGroupDrop(this);
+    stackedTabDrag: StackedTabDrag = new StackedTabDrag(this);
     // ✨ 그룹 라벨(접기·관리 창·끌기) 담당
     labels: GroupLabels = new GroupLabels(this);
     // ✨ 쌓인 탭 모드의 라벨·접힘·탭 모으기 담당
@@ -284,6 +286,7 @@ export default class TabGroupsPlugin extends Plugin {
         this.tabDrag.unload();
         this.groupDrag.finish();
         this.stackedDrop.clear();
+        this.stackedTabDrag.finish();
         this.layout.disconnectObservers();
         this.labels.removeAll();
         this.stacked.unload();

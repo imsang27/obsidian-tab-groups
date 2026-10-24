@@ -497,9 +497,38 @@ html body .workspace-tabs.mod-stacked .workspace-tab-header.tab-group-stacked-dr
     box-shadow: inset -3px 0 0 var(--interactive-accent);
 }
 
-/* 💡 막대를 끄는 동안 옵시디언 드롭 선: 놓으면 그룹에 들어가는 자리면 그 그룹 색 (stacked-drag.ts) */
-html body .workspace-drop-overlay.tab-group-drop-in-group:not(#tab-groups)::before {
-    background-color: var(--tab-group-color);
+/* ✨ 막대를 끄는 동안 들어갈 자리의 빈 막대 (stacked-tab-drag.ts). 막대처럼 옵시디언이 매긴 left·right 자리에 붙음
+   그룹에 들어가는 자리면 그룹 막대처럼 옅은 그룹 색과 위쪽 색 줄에, 안쪽을 그룹 색으로 */
+html body .workspace-tabs.mod-stacked .tab-group-stacked-placeholder {
+    position: sticky;
+    z-index: 1;
+    flex-shrink: 0;
+    align-self: stretch;
+    width: var(--tab-group-placeholder-width, 40px);
+    background-color: var(--background-primary);
+    box-shadow: inset 1px 0 0 var(--divider-color), inset -1px 0 0 var(--divider-color);
+}
+
+html body .workspace-tabs.mod-stacked .tab-group-stacked-placeholder::before {
+    content: '';
+    position: absolute;
+    inset: 8px 6px;
+    border-radius: var(--radius-s, 4px);
+    background-color: color-mix(in srgb, var(--interactive-accent) 35%, transparent);
+}
+
+html body .workspace-tabs.mod-stacked .tab-group-stacked-placeholder.is-in-group {
+    background-color: color-mix(in srgb, var(--tab-group-color) 14%, var(--background-primary));
+    box-shadow: inset 0 3px 0 var(--tab-group-color);
+}
+
+html body .workspace-tabs.mod-stacked .tab-group-stacked-placeholder.is-in-group::before {
+    background-color: color-mix(in srgb, var(--tab-group-color) 35%, transparent);
+}
+
+/* 빈 막대를 보여 주는 동안 옵시디언 드롭 선은 숨김 */
+html body .workspace-drop-overlay.tab-group-overlay-hidden:not(#tab-groups) {
+    visibility: hidden;
 }
 
 html body .workspace-tabs.mod-stacked .workspace-tab-header.tab-group-stacked-hidden:not(#tab-groups),
