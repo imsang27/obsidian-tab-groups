@@ -82,11 +82,13 @@
     "notice.setSaved": "Saved {count} groups as \"{name}\".",
     "notice.setDeleted": "Deleted the set \"{name}\".",
     "settings.groupSets": "Group sets",
-    "settings.groupSetsDesc": "Saved sets of groups. Select + to save the current groups as a new set.",
+    "settings.groupSetsDesc": "Saved sets of groups. Type a name under New set to save the current groups.",
     "settings.noGroupSets": "No saved sets yet.",
     "settings.setSummary": "{groups} groups · {tabs} tabs",
     "settings.openSet": "Open",
     "settings.openSetTip": "Open this set's groups at the end of the current pane.",
     "settings.deleteSet": "Delete set",
-    "settings.deleteSetTip": "Delete this saved set. Open tabs stay as they are."
+    "settings.deleteSetTip": "Delete this saved set. Open tabs stay as they are.",
+    "settings.newSet": "New set",
+    "settings.saveSet": "Save current groups"
 }

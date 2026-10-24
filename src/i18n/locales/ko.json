@@ -82,11 +82,13 @@
     "notice.setSaved": "그룹 {count}개를 \"{name}\" 세트로 저장했습니다.",
     "notice.setDeleted": "\"{name}\" 세트를 삭제했습니다.",
     "settings.groupSets": "그룹 세트",
-    "settings.groupSetsDesc": "저장해 둔 그룹 구성입니다. +를 눌러 지금 그룹들을 새 세트로 저장하세요.",
+    "settings.groupSetsDesc": "저장해 둔 그룹 구성입니다. 새 세트에 이름을 적고 저장하면 지금 그룹들을 세트로 저장합니다.",
     "settings.noGroupSets": "저장한 세트가 없습니다.",
     "settings.setSummary": "그룹 {groups}개 · 탭 {tabs}개",
     "settings.openSet": "열기",
     "settings.openSetTip": "이 세트의 그룹들을 지금 창 끝에 엽니다.",
     "settings.deleteSet": "세트 삭제",
-    "settings.deleteSetTip": "저장한 세트를 삭제합니다. 열려 있는 탭은 그대로 둡니다."
+    "settings.deleteSetTip": "저장한 세트를 삭제합니다. 열려 있는 탭은 그대로 둡니다.",
+    "settings.newSet": "새 세트",
+    "settings.saveSet": "지금 그룹 저장"
 }

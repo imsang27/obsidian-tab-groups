@@ -82,11 +82,13 @@
     "notice.setSaved": "{count} 個のグループを「{name}」として保存しました。",
     "notice.setDeleted": "セット「{name}」を削除しました。",
     "settings.groupSets": "グループセット",
-    "settings.groupSetsDesc": "保存したグループの構成です。+ を選ぶと、現在のグループを新しいセットとして保存します。",
+    "settings.groupSetsDesc": "保存したグループの構成です。新しいセットに名前を入力すると、現在のグループを保存します。",
     "settings.noGroupSets": "保存したセットはまだありません。",
     "settings.setSummary": "グループ {groups} 個 · タブ {tabs} 個",
     "settings.openSet": "開く",
     "settings.openSetTip": "このセットのグループを現在のペインの末尾に開きます。",
     "settings.deleteSet": "セットを削除",
-    "settings.deleteSetTip": "保存したセットを削除します。開いているタブはそのままです。"
+    "settings.deleteSetTip": "保存したセットを削除します。開いているタブはそのままです。",
+    "settings.newSet": "新しいセット",
+    "settings.saveSet": "現在のグループを保存"
 }

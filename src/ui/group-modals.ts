@@ -209,7 +209,7 @@ export class GroupSetNameModal extends Modal {
     }
 }
 
-function onEnter(inputEl: HTMLInputElement, submit: () => void) {
+export function onEnter(inputEl: HTMLInputElement, submit: () => void) {
     inputEl.addEventListener('keydown', (e: KeyboardEvent) => {
         if (e.key !== 'Enter' || e.isComposing) return;
         e.preventDefault();

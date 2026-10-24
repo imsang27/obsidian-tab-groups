@@ -197,23 +197,32 @@ describe('settings tab', function () {
         }));
     });
 
-    // 💡 그룹 세트: + 버튼으로 지금 그룹들을 저장하고, 세트마다 열거나 지움
+    // 💡 그룹 세트: 맨 위 "새 세트" 줄에서 창 없이 바로 저장하고, 세트마다 열거나 지움
     const setNames = async () => (await savedSetting('groupSets') as { name: string }[]).map(set => set.name);
 
-    it('saves the current groups as a set from the + button', async function () {
+    it('saves the current groups as a set right from the settings tab', async function () {
         await resetWorkspace(['Alpha', 'Beta']);
         await createGroup('Alpha', 'Work');
         await openSettings();
         await expect($('//div[contains(@class, "mod-settings")]//*[contains(text(), "No saved sets yet.")]')).toBeDisplayed();
 
-        await $('.mod-settings [aria-label="Save the current groups as a set"]').click();
-        const input = $('(//div[contains(@class, "modal-container")])[last()]//input[@type="text"]');
-        await input.waitForDisplayed({ timeoutMsg: 'no name window' });
-        await input.setValue('Trip');
-        await browser.keys(Key.Enter);
-
+        // 버튼으로 저장 → 창 없이 바로, 칸은 비워짐
+        await settingItem('New set').$('input').setValue('Trip');
+        await settingItem('New set').$('button=Save current groups').click();
         await browser.waitUntil(async () => (await setNames()).join() === 'Trip', { timeoutMsg: 'the set was not saved' });
+        await expect($('.modal-title=Save group set')).not.toBeExisting();
         await expect(settingItem('Trip').$('.setting-item-description')).toHaveText('1 groups · 1 tabs');
+        await expect(settingItem('New set').$('input')).toHaveValue('');
+
+        // Enter로도 저장
+        await settingItem('New set').$('input').setValue('Home');
+        await browser.keys(Key.Enter);
+        await browser.waitUntil(async () => (await setNames()).join() === 'Trip,Home', { timeoutMsg: 'Enter did not save the set' });
+
+        // 이름이 비었으면 저장하지 않음
+        await settingItem('New set').$('button=Save current groups').click();
+        await browser.pause(300);
+        expect(await setNames()).toEqual(['Trip', 'Home']);
     });
 
     it('opens a saved set and deletes it from the list', async function () {

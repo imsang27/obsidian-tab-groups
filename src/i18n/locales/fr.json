@@ -82,11 +82,13 @@
     "notice.setSaved": "{count} groupes enregistrés sous « {name} ».",
     "notice.setDeleted": "Ensemble « {name} » supprimé.",
     "settings.groupSets": "Ensembles de groupes",
-    "settings.groupSetsDesc": "Ensembles de groupes enregistrés. Sélectionnez + pour enregistrer les groupes actuels comme nouvel ensemble.",
+    "settings.groupSetsDesc": "Ensembles de groupes enregistrés. Saisissez un nom sous Nouvel ensemble pour enregistrer les groupes actuels.",
     "settings.noGroupSets": "Aucun ensemble enregistré.",
     "settings.setSummary": "{groups} groupes · {tabs} onglets",
     "settings.openSet": "Ouvrir",
     "settings.openSetTip": "Ouvre les groupes de cet ensemble à la fin du panneau actuel.",
     "settings.deleteSet": "Supprimer l'ensemble",
-    "settings.deleteSetTip": "Supprime cet ensemble enregistré. Les onglets ouverts restent tels quels."
+    "settings.deleteSetTip": "Supprime cet ensemble enregistré. Les onglets ouverts restent tels quels.",
+    "settings.newSet": "Nouvel ensemble",
+    "settings.saveSet": "Enregistrer les groupes actuels"
 }

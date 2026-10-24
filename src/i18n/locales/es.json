@@ -82,11 +82,13 @@
     "notice.setSaved": "Se guardaron {count} grupos como \"{name}\".",
     "notice.setDeleted": "Se eliminó el conjunto \"{name}\".",
     "settings.groupSets": "Conjuntos de grupos",
-    "settings.groupSetsDesc": "Conjuntos de grupos guardados. Selecciona + para guardar los grupos actuales como un conjunto nuevo.",
+    "settings.groupSetsDesc": "Conjuntos de grupos guardados. Escribe un nombre en Nuevo conjunto para guardar los grupos actuales.",
     "settings.noGroupSets": "Aún no hay conjuntos guardados.",
     "settings.setSummary": "{groups} grupos · {tabs} pestañas",
     "settings.openSet": "Abrir",
     "settings.openSetTip": "Abre los grupos de este conjunto al final del panel actual.",
     "settings.deleteSet": "Eliminar conjunto",
-    "settings.deleteSetTip": "Elimina este conjunto guardado. Las pestañas abiertas se quedan como están."
+    "settings.deleteSetTip": "Elimina este conjunto guardado. Las pestañas abiertas se quedan como están.",
+    "settings.newSet": "Nuevo conjunto",
+    "settings.saveSet": "Guardar grupos actuales"
 }

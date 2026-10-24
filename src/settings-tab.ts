@@ -4,7 +4,8 @@ import { LANGUAGE_NAMES, Language, LanguageSetting, setLanguage, t } from './i18
 import { GroupStyle } from './group-style';
 import type { LabelTabCount } from './settings';
 import { confirmDeleteGroup, reopenGroup } from './group-actions';
-import { GroupSet, deleteGroupSet, openGroupSet, promptSaveGroupSet } from './group-sets';
+import { GroupSet, deleteGroupSet, openGroupSet, saveGroupSet } from './group-sets';
+import { onEnter } from './ui/group-modals';
 
 // ✨ 설정 → 커뮤니티 플러그인 → Tab Groups 화면
 // 💡 옵시디언 1.13부터는 getSettingDefinitions()로 그려서 설정 검색에도 나옵니다.
@@ -68,10 +69,17 @@ export class TabGroupsSettingTab extends PluginSettingTab {
                 })),
             },
             {
-                type: 'list',
+                type: 'group',
                 heading: t('settings.groupSets'),
+                items: [{
+                    name: t('settings.newSet'),
+                    desc: t('modal.setNameDesc'),
+                    render: (setting: Setting) => this.renderNewSet(setting),
+                }],
+            },
+            {
+                type: 'list',
                 emptyState: t('settings.noGroupSets'),
-                addItem: { name: t('command.saveSet'), action: () => this.saveSet() },
                 items: this.plugin.settings.groupSets.map(set => ({
                     name: set.name,
                     desc: this.setDesc(set),
@@ -168,16 +176,13 @@ export class TabGroupsSettingTab extends PluginSettingTab {
         });
     }
 
-    // 💡 그룹 세트 목록: + 버튼으로 지금 그룹들을 저장하고, 세트마다 열거나 지움
+    // 💡 그룹 세트 목록: 맨 위 "새 세트" 줄에서 지금 그룹들을 저장하고, 세트마다 열거나 지움
     displayGroupSets(containerEl: HTMLElement) {
         new Setting(containerEl)
             .setName(t('settings.groupSets'))
             .setDesc(t('settings.groupSetsDesc'))
-            .setHeading()
-            .addExtraButton(btn => btn
-                .setIcon('plus')
-                .setTooltip(t('command.saveSet'))
-                .onClick(() => this.saveSet()));
+            .setHeading();
+        this.renderNewSet(new Setting(containerEl).setName(t('settings.newSet')).setDesc(t('modal.setNameDesc')));
 
         const sets = this.plugin.settings.groupSets;
         if (sets.length === 0) {
@@ -187,10 +192,34 @@ export class TabGroupsSettingTab extends PluginSettingTab {
         sets.forEach(set => this.addSetButtons(new Setting(containerEl).setName(set.name).setDesc(this.setDesc(set)), set));
     }
 
-    // 💡 그룹이 없으면 저장할 게 없으므로 그룹 만드는 법을 알림
-    saveSet() {
-        if (this.plugin.groups.size === 0) new Notice(t('settings.noGroups'));
-        else promptSaveGroupSet(this.plugin);
+    // 💡 "새 세트" 줄: 이름을 적고 저장 버튼(또는 Enter)을 누르면 창 없이 바로 지금 그룹들을 저장
+    renderNewSet(setting: Setting) {
+        let input: HTMLInputElement | null = null;
+        setting.addText(text => {
+            text.setPlaceholder(t('modal.setName'));
+            input = text.inputEl;
+            onEnter(text.inputEl, () => { void this.saveSet(text.inputEl); });
+        });
+        setting.addButton(btn => btn
+            .setButtonText(t('settings.saveSet'))
+            .setCta()
+            .onClick(() => { if (input) void this.saveSet(input); }));
+    }
+
+    // 💡 이름이 비었으면 칸으로 돌려보내고, 그룹이 없으면 저장할 게 없으므로 그룹 만드는 법을 알림
+    async saveSet(input: HTMLInputElement) {
+        const name = input.value.trim();
+        if (!name) {
+            input.focus();
+            return;
+        }
+        if (this.plugin.groups.size === 0) {
+            new Notice(t('settings.noGroups'));
+            return;
+        }
+        const count = await saveGroupSet(this.plugin, name);
+        input.value = '';
+        new Notice(t('notice.setSaved', { name, count: String(count) }));
     }
 
     // 💡 "그룹 n개 · 탭 n개"

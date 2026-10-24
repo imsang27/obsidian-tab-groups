@@ -82,11 +82,13 @@
     "notice.setSaved": "已將 {count} 個群組儲存為「{name}」。",
     "notice.setDeleted": "已刪除組合「{name}」。",
     "settings.groupSets": "群組組合",
-    "settings.groupSetsDesc": "已儲存的群組組合。選取 + 即可將目前的群組儲存為新的組合。",
+    "settings.groupSetsDesc": "已儲存的群組組合。在「新組合」輸入名稱即可儲存目前的群組。",
     "settings.noGroupSets": "尚未儲存任何群組組合。",
     "settings.setSummary": "{groups} 個群組 · {tabs} 個分頁",
     "settings.openSet": "開啟",
     "settings.openSetTip": "在目前窗格的最後開啟這個組合的群組。",
     "settings.deleteSet": "刪除組合",
-    "settings.deleteSetTip": "刪除這個已儲存的組合。已開啟的分頁維持不變。"
+    "settings.deleteSetTip": "刪除這個已儲存的組合。已開啟的分頁維持不變。",
+    "settings.newSet": "新組合",
+    "settings.saveSet": "儲存目前的群組"
 }
