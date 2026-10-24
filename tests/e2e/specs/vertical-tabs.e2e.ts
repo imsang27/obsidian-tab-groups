@@ -1,4 +1,5 @@
 import { $, browser, expect } from '@wdio/globals';
+import { Key } from 'webdriverio';
 import { addToGroup, clickButton, createGroup, label, members, resetWorkspace, runCommand, tab, tabHeader, titles } from '../helpers';
 
 // 💡 Vertical Tabs 플러그인(꺼진 채 설치됨)을 켜고, 그 세로 탭 목록에 그룹이 보이는지 봅니다.
@@ -174,15 +175,13 @@ describe('Vertical Tabs plugin', function () {
     });
 
     // 💡 세로 목록에서 실제 포인터로 탭 줄 끌기 (그 플러그인은 dnd-kit: 8px 넘게 움직여야 끌기 시작)
-    // to: 놓을 줄(overTitle)의 자리에서 커서 y. 끄는 도중 빈 줄을 읽고 놓음
-    async function dragRow(title: string, overTitle: string, to: (r: { top: number, middle: number, bottom: number }) => number) {
-        const rectOf = (t: string) => browser.execute((t: string) => {
-            const el = Array.from(document.querySelectorAll('.workspace-leaf-content[data-type="vertical-tabs"] .tree-item.is-tab'))
-                .find(e => e.querySelector(':scope > .tree-item-self .tree-item-inner-text')?.textContent?.trim() === t)!;
-            const r = el.getBoundingClientRect();
+    // 자리는 탭 바처럼 커서로 정함: 줄(머리줄 포함)의 가운데를 넘으면 그 줄 뒤. to: 커서를 둘 줄(over)에서의 y
+    async function dragRow(title: string, over: ReturnType<typeof $>, to: (r: { top: number, middle: number, bottom: number }) => number) {
+        const rectOf = async (el: ReturnType<typeof $>) => browser.execute((node: HTMLElement) => {
+            const r = node.getBoundingClientRect();
             return { x: Math.round(r.left + 60), top: r.top, middle: Math.round(r.top + r.height / 2), bottom: r.bottom };
-        }, t);
-        const source = await rectOf(title), target = await rectOf(overTitle);
+        }, (await el.getElement()) as unknown as HTMLElement);
+        const source = await rectOf(row(title)), target = await rectOf(over);
         const y = Math.round(to(target));
         await browser.action('pointer')
             .move({ x: source.x, y: source.middle }).down()
@@ -201,30 +200,121 @@ describe('Vertical Tabs plugin', function () {
 
     it('shows a placeholder in the group color where a dragged row will join the group', async function () {
         await tabHeader('Delta').click();
-        // 그룹 탭 둘 사이
-        expect(await dragRow('Delta', 'Beta', r => r.middle)).toEqual({ shown: true, inGroup: true });
+        // 그룹 탭 둘 사이 (Beta 위쪽 절반 → Beta 앞)
+        expect(await dragRow('Delta', row('Beta'), r => r.top + 4)).toEqual({ shown: true, inGroup: true });
         await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha,Delta,Beta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
         expect(await titles()).toEqual(['Alpha', 'Delta', 'Beta', 'Gamma']);
         await expect($('.tab-group-vt-placeholder')).not.toBeExisting();
     });
 
-    it('tells joining from leaving at the end of the group by the cursor', async function () {
+    it('tells joining from leaving at the end of the group by the cursor, like the tab bar', async function () {
         await tabHeader('Delta').click();
-        // 다음 줄(Gamma) 위쪽 절반 → 그룹 맨 끝으로 편입
-        expect(await dragRow('Delta', 'Gamma', r => r.top + 3)).toEqual({ shown: true, inGroup: true });
+        // 그룹 마지막 탭(Beta) 아래쪽 절반 → 그룹 맨 끝으로 편입
+        expect(await dragRow('Delta', row('Beta'), r => r.bottom - 4)).toEqual({ shown: true, inGroup: true });
         await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha,Beta,Delta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
 
-        // 그룹 맨 끝 탭(Delta)을 다음 줄 아래쪽 절반으로 → 제자리에서 그룹 밖
-        expect(await dragRow('Delta', 'Gamma', r => r.middle + 5)).toEqual({ shown: true, inGroup: false });
+        // 그룹 맨 끝 탭(Delta)을 다음 줄(Gamma) 위쪽으로 → 제자리에서 그룹 밖
+        expect(await dragRow('Delta', row('Gamma'), r => r.top + 4)).toEqual({ shown: true, inGroup: false });
         await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha,Beta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
         expect(await titles()).toEqual(['Alpha', 'Beta', 'Delta', 'Gamma']);
     });
 
-    it('stays out of the group when a row is dropped on its header', async function () {
+    it('stays out of the group when a row is dropped on the upper half of its header', async function () {
         await tabHeader('Delta').click();
-        // 첫 탭(Alpha) 앞이지만 커서가 머리줄 위 → 빈 줄은 머리줄 앞, 그룹 밖
-        expect(await dragRow('Delta', 'Alpha', r => r.top - 8)).toEqual({ shown: true, inGroup: false });
+        // 머리줄 위쪽 절반 → 빈 줄은 머리줄 앞, 그룹 밖
+        expect(await dragRow('Delta', header('Work'), r => r.top + 3)).toEqual({ shown: true, inGroup: false });
         await browser.waitUntil(async () => (await titles()).join() === 'Delta,Alpha,Beta,Gamma', { timeoutMsg: `titles: ${(await titles()).join()}` });
         expect((await members('Work')).join()).toBe('Alpha,Beta');
+    });
+
+    // 💡 그룹 두 개가 붙어 있을 때: 앞 그룹 끝·두 그룹 사이·뒤 그룹 맨 앞을 커서로 나눔
+    it('tells the end of a group, between two groups and the front of the next group apart', async function () {
+        await resetWorkspace(['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon']);
+        await createGroup('Alpha', 'Work');
+        await addToGroup('Beta', 'Work');
+        await createGroup('Gamma', 'Play');
+        await addToGroup('Delta', 'Play');
+        await header('Play').waitForExist();
+        await tabHeader('Epsilon').click();
+
+        // 뒤 그룹 첫 탭(Gamma) 위쪽 → 뒤 그룹 맨 앞
+        expect(await dragRow('Epsilon', row('Gamma'), r => r.top + 4)).toEqual({ shown: true, inGroup: true });
+        await browser.waitUntil(async () => (await members('Play')).join() === 'Epsilon,Gamma,Delta', { timeoutMsg: `Play: ${(await members('Play')).join()}` });
+
+        // 뒤 그룹 머리줄 위쪽 → 두 그룹 사이 (그룹 밖)
+        expect(await dragRow('Epsilon', header('Play'), r => r.top + 3)).toEqual({ shown: true, inGroup: false });
+        await browser.waitUntil(async () => (await members('Play')).join() === 'Gamma,Delta', { timeoutMsg: `Play: ${(await members('Play')).join()}` });
+        expect((await members('Work')).join()).toBe('Alpha,Beta');
+        expect(await titles()).toEqual(['Alpha', 'Beta', 'Epsilon', 'Gamma', 'Delta']);
+
+        // 앞 그룹 마지막 탭(Beta) 아래쪽 → 앞 그룹 맨 끝
+        expect(await dragRow('Epsilon', row('Beta'), r => r.bottom - 4)).toEqual({ shown: true, inGroup: true });
+        await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha,Beta,Epsilon', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
+        expect(await titles()).toEqual(['Alpha', 'Beta', 'Epsilon', 'Gamma', 'Delta']);
+    });
+
+    // 💡 세로 목록의 탭 순서 (편집 영역 탭만, 위에서부터)
+    const listTitles = () => browser.execute(() => Array.from(document.querySelectorAll('.workspace-leaf-content[data-type="vertical-tabs"] .tree-item.is-group:not(.is-sidebar) .tree-item.is-tab[data-id]'))
+        .map(el => el.querySelector(':scope > .tree-item-self .tree-item-inner-text')?.textContent?.trim() ?? ''));
+
+    // 💡 Tab Groups를 다시 켬: 목록을 새로 그리는 Vertical Tabs의 처리가 Tab Groups의 정리보다 먼저 돌게 됨
+    // (Hot Reload로 다시 켜지거나, 켜는 순서가 Vertical Tabs가 먼저인 보관함과 같음)
+    async function reloadTabGroups() {
+        await browser.executeObsidian(async ({ app }) => {
+            const plugins = (app as unknown as { plugins: { enablePlugin(id: string): Promise<void>; disablePlugin(id: string): Promise<void> } }).plugins;
+            await plugins.disablePlugin('tab-groups');
+            await plugins.enablePlugin('tab-groups');
+        });
+        await header('Work').waitForExist({ timeoutMsg: 'the groups did not come back' });
+    }
+
+    it('moves a row to the front of the group and joins it', async function () {
+        await reloadTabGroups();
+        await tabHeader('Delta').click();
+        // 그룹 첫 탭(Alpha) 위 → 머리줄 뒤, 그룹 맨 앞으로 편입
+        expect(await dragRow('Delta', row('Alpha'), r => r.top + 4)).toEqual({ shown: true, inGroup: true });
+        await browser.waitUntil(async () => (await members('Work')).join() === 'Delta,Alpha,Beta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
+        // 그룹 안의 탭도 맨 앞으로
+        await tabHeader('Beta').click();
+        expect(await dragRow('Beta', row('Delta'), r => r.top + 4)).toEqual({ shown: true, inGroup: true });
+        await browser.waitUntil(async () => (await members('Work')).join() === 'Beta,Delta,Alpha', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
+        await browser.waitUntil(async () => (await listTitles()).join() === (await titles()).join(), { timeoutMsg: `list: ${(await listTitles()).join()} / tab bar: ${(await titles()).join()}` });
+    });
+
+    it('keeps the list in the same order as the tab bar when tabs are moved with hotkeys', async function () {
+        await reloadTabGroups();
+        // 접힌 그룹을 단축키로 건너뜀 → 플러그인이 순서를 다시 맞춤
+        await tabHeader('Gamma').click();
+        await label('Work').click();
+        await browser.waitUntil(async () => (await tab('Alpha')).hidden);
+        await tabHeader('Gamma').click();
+        await browser.keys([Key.Ctrl, Key.Shift, Key.PageUp]);
+        await browser.waitUntil(async () => (await titles()).join() === 'Gamma,Alpha,Beta,Delta', { timeoutMsg: `titles: ${(await titles()).join()}` });
+        await browser.waitUntil(async () => (await listTitles()).join() === 'Gamma,Alpha,Beta,Delta', { timeoutMsg: `list: ${(await listTitles()).join()}` });
+        await label('Work').click();
+
+    });
+
+    // 💡 Pane Relief "Swap tab with next"와 같은 방법: 탭 목록을 그 자리에서 바꾸고 selectTab만 부름 (layout-change 없음)
+    async function swapLikePaneRelief(title: string, step: 1 | -1) {
+        await browser.executeObsidian(({ app }, title, step) => {
+            type Parent = { children: unknown[]; selectTab(leaf: unknown): void };
+            let leaf: { parent: Parent } | null = null;
+            app.workspace.iterateRootLeaves(l => { if (l.getDisplayText() === title) leaf = l as never; });
+            const found = leaf as unknown as { parent: Parent };
+            const list = found.parent.children;
+            const from = list.indexOf(found);
+            list.splice(from, 1);
+            list.splice(from + step, 0, found);
+            found.parent.selectTab(found);
+        }, title, step);
+    }
+
+    it('keeps the list in the same order as the tab bar after a Pane Relief swap', async function () {
+        // 그룹 맨 끝 탭(Beta)을 뒤로 → 자리는 그대로 두고 그룹에서 빠짐 (플러그인이 순서를 되돌림)
+        await swapLikePaneRelief('Beta', 1);
+        await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
+        expect(await titles()).toEqual(['Alpha', 'Beta', 'Gamma', 'Delta']);
+        await browser.waitUntil(async () => (await listTitles()).join() === 'Alpha,Beta,Gamma,Delta', { timeoutMsg: `list: ${(await listTitles()).join()}` });
     });
 });

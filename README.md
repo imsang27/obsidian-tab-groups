@@ -29,7 +29,7 @@ Chrome-style tab groups for Obsidian. Name and color related tabs, and collapse 
 * **Group sets:** Like workspaces, save your current groups (names, colors, collapsed state and tabs) as a named set, and open the set again later. Renamed notes are followed.
 * **10 languages:** The tab menu and group windows follow the Obsidian language by default. You can pick a language in the plugin settings. [Help translate](./docs/translating.md) it into your language!
 * **Pop-out windows:** Groups are shown and kept in pop-out windows too.
-* **Works with [Vertical Tabs](https://github.com/oxdc/obsidian-vertical-tabs):** In its vertical tab list, grouped tabs get the group's color in the chosen group style and a header with the group's name and tab count. Click the header to collapse or expand the group, or right-click it for the group window. Dragging a tab in the list shows where it will go like in the tab bar, in the group's color when it will join the group. At the end of a group, the upper half of the next row joins and the lower half stays out.
+* **Works with [Vertical Tabs](https://github.com/oxdc/obsidian-vertical-tabs):** In its vertical tab list, grouped tabs get the group's color in the chosen group style and a header with the group's name and tab count. Click the header to collapse or expand the group, or right-click it for the group window. Dragging a tab in the list shows where it will go like in the tab bar, in the group's color when it will join the group. The slot follows the cursor like in the tab bar: past the middle of a row (or a group's header) puts the tab after it, and at the end of a group, the lower half of its last tab joins while further down stays out.
 
 ## 🚀 Usage
 ---
