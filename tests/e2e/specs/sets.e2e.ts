@@ -53,6 +53,21 @@ describe('group sets', function () {
         expect((await tabs()).map(info => info.title)).toEqual(['Delta', 'Alpha', 'Beta', 'Gamma']);
     });
 
+    it('asks for a name when the name is left empty, keeping the window open', async function () {
+        await runCommand('Tab Groups: Save the current groups as a set');
+        const input = $('.modal input[type="text"]');
+        await input.waitForDisplayed();
+        await browser.keys(Key.Enter);
+        await browser.waitUntil(async () => (await $$('.notice').map(el => el.getText())).some(text => text.includes('Type a name for the set first.')), { timeoutMsg: 'no notice for an empty name' });
+        await expect(input).toBeDisplayed();
+        expect(await savedSets()).toEqual([]);
+
+        // 그 창에서 이름을 적으면 저장됨
+        await browser.keys('Trip');
+        await browser.keys(Key.Enter);
+        await browser.waitUntil(async () => (await savedSets()).map(set => set.name).join() === 'Trip', { timeoutMsg: 'the set was not saved' });
+    });
+
     it('replaces a set saved with the same name', async function () {
         await saveSet('Morning');
         await saveSet('Morning');

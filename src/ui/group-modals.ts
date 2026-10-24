@@ -1,4 +1,4 @@
-import { App, Modal, Setting } from 'obsidian';
+import { App, Modal, Notice, Setting } from 'obsidian';
 import { t } from '../i18n';
 import { renderColorPalette } from './color-palette';
 
@@ -178,14 +178,20 @@ export class ConfirmModal extends Modal {
 // ✨ 그룹 세트 이름 묻기 (같은 이름이면 그 세트를 바꿔 씀)
 export class GroupSetNameModal extends Modal {
     name = '';
+    inputEl: HTMLInputElement | null = null;
 
     constructor(app: App, private onSubmit: (name: string) => void | Promise<void>) {
         super(app);
     }
 
+    // 💡 이름이 비었으면 알리고 창은 열어 둠 (설정 탭의 "새 세트" 줄과 같음)
     submit() {
         const name = this.name.trim();
-        if (!name) return;
+        if (!name) {
+            new Notice(t('settings.setNameRequired'));
+            this.inputEl?.focus();
+            return;
+        }
         this.close();
         void this.onSubmit(name);
     }
@@ -197,6 +203,7 @@ export class GroupSetNameModal extends Modal {
             .setDesc(t('modal.setNameDesc'))
             .addText((text) => {
                 text.onChange((val) => this.name = val);
+                this.inputEl = text.inputEl;
                 onEnter(text.inputEl, () => this.submit());
                 window.setTimeout(() => text.inputEl.focus(), 0);
             });
