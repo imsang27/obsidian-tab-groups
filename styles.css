@@ -534,6 +534,7 @@ html body .workspace-drop-overlay.tab-group-overlay-hidden:not(#tab-groups) {
 html body .workspace-tabs.mod-stacked .workspace-tab-header.tab-group-stacked-hidden:not(#tab-groups),
 html body .workspace-tabs.mod-stacked .workspace-leaf.tab-group-stacked-hidden:not(#tab-groups) {
     display: none;
+}
 
 /* ✨ Vertical Tabs 플러그인의 세로 탭 목록: 그룹 탭 줄은 왼쪽에 그룹 색 줄과 옅은 배경,
    그룹 첫 탭 위에는 라벨 같은 머리줄(그룹 색 알약 + 탭 수). 접힌 그룹은 머리줄만 남김 */
