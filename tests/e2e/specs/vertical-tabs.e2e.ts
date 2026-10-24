@@ -46,6 +46,30 @@ describe('Vertical Tabs plugin', function () {
         expect(next).toBe(alphaId);
     });
 
+    // 💡 그룹 표시 모양을 따름: 밑줄은 가는 색 줄만(배경 없음), 클래식은 굵은 색 줄과 옅은 배경
+    it('follows the group style setting', async function () {
+        await row('Alpha').waitForExist();
+        const look = async () => browser.execute((el: HTMLElement) => {
+            const style = getComputedStyle(el);
+            return { background: style.backgroundColor, line: style.boxShadow };
+        }, (await row('Alpha').getElement()) as unknown as HTMLElement);
+        const setStyle = (style: string) => browser.executeObsidian(({ plugins }, style) => {
+            const plugin = plugins.tabGroups as unknown as { settings: { groupStyle: string }; applyGroupStyle(): void };
+            plugin.settings.groupStyle = style;
+            plugin.applyGroupStyle();
+        }, style);
+
+        const underline = await look();
+        expect(underline.background).toBe('rgba(0, 0, 0, 0)');
+        expect(underline.line).toContain('2px 0px 0px 0px');
+
+        await setStyle('classic');
+        const classic = await look();
+        expect(classic.background).not.toBe('rgba(0, 0, 0, 0)');
+        expect(classic.line).toContain('3px 0px 0px 0px');
+        await setStyle('underline');
+    });
+
     it('collapses and expands the group from its header, like the label', async function () {
         await tabHeader('Gamma').click();
         await header('Work').waitForExist();
