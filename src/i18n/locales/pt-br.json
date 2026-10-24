@@ -80,5 +80,13 @@
     "modal.setName": "Nome do conjunto",
     "modal.setNameDesc": "Salvar com o nome de um conjunto existente o substitui.",
     "notice.setSaved": "{count} grupos salvos como \"{name}\".",
-    "notice.setDeleted": "Conjunto \"{name}\" excluído."
+    "notice.setDeleted": "Conjunto \"{name}\" excluído.",
+    "settings.groupSets": "Conjuntos de grupos",
+    "settings.groupSetsDesc": "Conjuntos de grupos salvos. Selecione + para salvar os grupos atuais como um novo conjunto.",
+    "settings.noGroupSets": "Nenhum conjunto salvo ainda.",
+    "settings.setSummary": "{groups} grupos · {tabs} abas",
+    "settings.openSet": "Abrir",
+    "settings.openSetTip": "Abre os grupos deste conjunto no fim do painel atual.",
+    "settings.deleteSet": "Excluir conjunto",
+    "settings.deleteSetTip": "Exclui este conjunto salvo. As abas abertas continuam como estão."
 }

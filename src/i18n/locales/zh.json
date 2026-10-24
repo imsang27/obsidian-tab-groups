@@ -80,5 +80,13 @@
     "modal.setName": "组集名称",
     "modal.setNameDesc": "使用已有组集的名称保存会替换该组集。",
     "notice.setSaved": "已将 {count} 个组保存为“{name}”。",
-    "notice.setDeleted": "已删除组集“{name}”。"
+    "notice.setDeleted": "已删除组集“{name}”。",
+    "settings.groupSets": "组集",
+    "settings.groupSetsDesc": "已保存的组集。选择 + 可将当前的组保存为新的组集。",
+    "settings.noGroupSets": "还没有保存的组集。",
+    "settings.setSummary": "{groups} 个组 · {tabs} 个标签页",
+    "settings.openSet": "打开",
+    "settings.openSetTip": "在当前窗格末尾打开此组集中的组。",
+    "settings.deleteSet": "删除组集",
+    "settings.deleteSetTip": "删除这个已保存的组集。已打开的标签页保持不变。"
 }

@@ -80,5 +80,13 @@
     "modal.setName": "Name des Sets",
     "modal.setNameDesc": "Mit dem Namen eines vorhandenen Sets wird dieses ersetzt.",
     "notice.setSaved": "{count} Gruppen als „{name}“ gespeichert.",
-    "notice.setDeleted": "Set „{name}“ gelöscht."
+    "notice.setDeleted": "Set „{name}“ gelöscht.",
+    "settings.groupSets": "Gruppen-Sets",
+    "settings.groupSetsDesc": "Gespeicherte Gruppen-Sets. Wähle +, um die aktuellen Gruppen als neues Set zu speichern.",
+    "settings.noGroupSets": "Noch keine gespeicherten Sets.",
+    "settings.setSummary": "{groups} Gruppen · {tabs} Tabs",
+    "settings.openSet": "Öffnen",
+    "settings.openSetTip": "Öffnet die Gruppen dieses Sets am Ende des aktuellen Bereichs.",
+    "settings.deleteSet": "Set löschen",
+    "settings.deleteSetTip": "Löscht dieses gespeicherte Set. Offene Tabs bleiben, wie sie sind."
 }

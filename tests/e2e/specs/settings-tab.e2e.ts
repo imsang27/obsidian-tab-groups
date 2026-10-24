@@ -196,4 +196,52 @@ describe('settings tab', function () {
             timeoutMsg: "the group's tab was not closed",
         }));
     });
+
+    // 💡 그룹 세트: + 버튼으로 지금 그룹들을 저장하고, 세트마다 열거나 지움
+    const setNames = async () => (await savedSetting('groupSets') as { name: string }[]).map(set => set.name);
+
+    it('saves the current groups as a set from the + button', async function () {
+        await resetWorkspace(['Alpha', 'Beta']);
+        await createGroup('Alpha', 'Work');
+        await openSettings();
+        await expect($('//div[contains(@class, "mod-settings")]//*[contains(text(), "No saved sets yet.")]')).toBeDisplayed();
+
+        await $('.mod-settings [aria-label="Save the current groups as a set"]').click();
+        const input = $('(//div[contains(@class, "modal-container")])[last()]//input[@type="text"]');
+        await input.waitForDisplayed({ timeoutMsg: 'no name window' });
+        await input.setValue('Trip');
+        await browser.keys(Key.Enter);
+
+        await browser.waitUntil(async () => (await setNames()).join() === 'Trip', { timeoutMsg: 'the set was not saved' });
+        await expect(settingItem('Trip').$('.setting-item-description')).toHaveText('1 groups · 1 tabs');
+    });
+
+    it('opens a saved set and deletes it from the list', async function () {
+        await resetWorkspace(['Alpha']);
+        await browser.executeObsidian(async ({ plugins }) => {
+            const plugin = plugins.tabGroups as unknown as { settings: { groupSets: unknown[] }; saveSettings(): Promise<void> };
+            plugin.settings.groupSets = [{
+                name: 'Trip',
+                groups: [{ name: 'Plan', color: '#e03131', isCollapsed: false, tabs: [
+                    { type: 'markdown', state: { file: 'Gamma.md' } },
+                    { type: 'markdown', state: { file: 'Delta.md' } },
+                ] }],
+            }];
+            await plugin.saveSettings();
+        });
+        await openSettings();
+        await expect(settingItem('Trip').$('.setting-item-description')).toHaveText('1 groups · 2 tabs');
+
+        await settingItem('Trip').$('button=Open').click();
+        await inMainWindow(async () => {
+            await label('Plan').waitForExist({ timeoutMsg: 'the set did not open' });
+            await waitForMembers('Plan', ['Gamma', 'Delta']);
+        });
+
+        await settingItem('Trip').$('button=Delete set').click();
+        await browser.waitUntil(async () => (await setNames()).length === 0, { timeoutMsg: 'the set was not deleted' });
+        await expect($('//div[contains(@class, "mod-settings")]//*[contains(text(), "No saved sets yet.")]')).toBeDisplayed();
+        // 열린 탭은 그대로
+        expect(await groupCount()).toBe(1);
+    });
 });

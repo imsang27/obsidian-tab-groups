@@ -80,5 +80,13 @@
     "modal.setName": "Set name",
     "modal.setNameDesc": "Saving with the name of an existing set replaces it.",
     "notice.setSaved": "Saved {count} groups as \"{name}\".",
-    "notice.setDeleted": "Deleted the set \"{name}\"."
+    "notice.setDeleted": "Deleted the set \"{name}\".",
+    "settings.groupSets": "Group sets",
+    "settings.groupSetsDesc": "Saved sets of groups. Select + to save the current groups as a new set.",
+    "settings.noGroupSets": "No saved sets yet.",
+    "settings.setSummary": "{groups} groups · {tabs} tabs",
+    "settings.openSet": "Open",
+    "settings.openSetTip": "Open this set's groups at the end of the current pane.",
+    "settings.deleteSet": "Delete set",
+    "settings.deleteSetTip": "Delete this saved set. Open tabs stay as they are."
 }

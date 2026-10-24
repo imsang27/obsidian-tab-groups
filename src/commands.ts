@@ -3,8 +3,7 @@ import type TabGroupsPlugin from './main';
 import type { TabGroupData } from './main';
 import { t } from './i18n';
 import { addToGroup, createGroupWith, groupByFolder, moveGroupToNewWindow, newTabInGroup, openEditGroup, removeFromGroup, reopenGroup, ungroupedTabs } from './group-actions';
-import { GroupSet, deleteGroupSet, openGroupSet, saveGroupSet } from './group-sets';
-import { GroupSetNameModal } from './ui/group-modals';
+import { GroupSet, deleteGroupSet, openGroupSet, promptSaveGroupSet } from './group-sets';
 
 // ✨ 명령어 (명령 팔레트·단축키): 지금 선택된 탭을 기준으로 그룹을 다룹니다.
 // 💡 명령 이름은 켜질 때의 언어로 정해집니다. (언어를 바꾸면 다시 켠 뒤 반영)
@@ -227,12 +226,7 @@ export function registerGroupSetCommands(plugin: TabGroupsPlugin) {
         name: t('command.saveSet'),
         checkCallback: (checking) => {
             if (plugin.groups.size === 0) return false;
-            if (!checking) {
-                new GroupSetNameModal(plugin.app, async name => {
-                    const count = await saveGroupSet(plugin, name);
-                    new Notice(t('notice.setSaved', { name, count: String(count) }));
-                }).open();
-            }
+            if (!checking) promptSaveGroupSet(plugin);
             return true;
         },
     });

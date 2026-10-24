@@ -78,6 +78,7 @@ Open **Settings → Community plugins → Tab Groups**.
 * **Lock grouped tabs:** Off by default. When on, a note opened from a grouped tab (a link, the file explorer or the quick switcher) opens in a new tab outside the group, so the grouped tab keeps its note. Add the new tab to the group from the tab menu to lock it too. Tabs aren't pinned, so they stay where they are. Going back or forward inside a grouped tab still changes its note, and only tabs in the main window are locked.
 * **Suggest a name and color for new groups:** Off by default. When on, the window for a new group fills in the folder of the tab's note as the name, with a color picked from that name, so the same folder always gets the same color (unless another group already uses it). Notes at the top of the vault get no name. You can still change both.
 * **Tab groups:** Lists every group with the number of open tabs. Hidden groups show how many tabs they remember, with a **Reopen** button. Select **Delete group** to remove the ones you no longer need.
+* **Group sets:** Lists every saved set with its number of groups and tabs. Select **+** to save the current groups as a new set, **Open** to open a set's groups at the end of the current pane, or **Delete set** to remove it (open tabs stay as they are).
 
 ## 📝 Scope
 ---

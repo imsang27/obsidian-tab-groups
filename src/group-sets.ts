@@ -3,6 +3,7 @@ import type TabGroupsPlugin from './main';
 import { t } from './i18n';
 import { internal } from './internal';
 import { SavedTab, renameSavedTabs, savedTabFile, snapshotLeaf } from './saved-tabs';
+import { GroupSetNameModal } from './ui/group-modals';
 
 // ✨ 그룹 세트: 옵시디언의 작업 공간(Workspaces)처럼, 지금 그룹 구성을 이름 붙여 저장했다가 다시 엽니다.
 // 그룹마다 이름·색·접힘 상태와 탭(노트 경로·화면 상태)을 기억합니다. (data.json에 저장)
@@ -36,6 +37,14 @@ export async function saveGroupSet(plugin: TabGroupsPlugin, name: string): Promi
     plugin.settings.groupSets = [...plugin.settings.groupSets.filter(set => set.name !== name), { name, groups }];
     await plugin.saveSettings();
     return groups.length;
+}
+
+// 💡 이름을 물어 지금 그룹들을 세트로 저장 (명령과 설정 화면의 + 버튼이 같이 씀)
+export function promptSaveGroupSet(plugin: TabGroupsPlugin) {
+    new GroupSetNameModal(plugin.app, async name => {
+        const count = await saveGroupSet(plugin, name);
+        new Notice(t('notice.setSaved', { name, count: String(count) }));
+    }).open();
 }
 
 export async function deleteGroupSet(plugin: TabGroupsPlugin, name: string) {
