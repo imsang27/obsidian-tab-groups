@@ -154,9 +154,10 @@ export class StackedTabDrag {
     }
 
     // 💡 막대 사이에 놓음: 끌기 끝에 소속을 맞추도록 자리를 기억 (Esc로 취소하면 놓기가 없어 그대로)
-    drop() {
+    drop(): StackedTabSlot | null {
         this.dropped = this.slot;
         this.finish();
+        return this.dropped;
     }
 
     takeDropped(): StackedTabSlot | null {

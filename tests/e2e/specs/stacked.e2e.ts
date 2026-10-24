@@ -1,6 +1,6 @@
-import { $, browser, expect } from '@wdio/globals';
+import { $, $$, browser, expect } from '@wdio/globals';
 import { Key } from 'webdriverio';
-import { addToGroup, createGroup, label, members, resetWorkspace, tab, tabHeader, titles } from '../helpers';
+import { addToGroup, createGroup, dragTo, label, members, openInSplit, panes, resetWorkspace, tab, tabHeader, titles } from '../helpers';
 
 // 💡 쌓인 탭(Stacked tabs) 모드: 탭 머리가 화면 사이의 세로 막대가 됨
 // 시작: [Work] Alpha Beta | Gamma Delta
@@ -236,14 +236,16 @@ describe('stacked tabs', function () {
     // 커서 자리: 'spine'은 그 막대 왼쪽 가장자리 위(그 앞자리), 'end'는 그 막대 오른쪽 가장자리 위,
     // 'page'는 그 막대 바로 오른쪽의 화면 위 (둘 다 그 뒷자리)
     // (커서는 실제처럼 한 자리에 둠: 빈 막대가 끼면 막대가 밀려나므로 놓을 자리는 끌기 시작 때 한 번만 잼)
-    async function dragSpine(title: string, overTitle: string, over: 'spine' | 'end' | 'page' = 'spine'): Promise<{ shown: boolean, inGroup: boolean }> {
+    // (title 대신 요소를 주면 그 탭을 끔: 다른 창의 탭 바 탭 등)
+    async function dragSpine(title: string | ReturnType<typeof $>, overTitle: string, over: 'spine' | 'end' | 'page' = 'spine'): Promise<{ shown: boolean, inGroup: boolean }> {
+        const source = typeof title === 'string' ? spine(title) : title;
         const placeholder = await browser.execute(async (source: HTMLElement, target: HTMLElement, over: string) => {
             const dataTransfer = new DataTransfer();
             const fire = (el: Element, type: string, x: number, y: number) =>
                 el.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, composed: true, dataTransfer, clientX: x, clientY: y }));
             // 옵시디언은 5px 넘게 움직여야 끌기로 봄 (시작은 끄는 막대 위에서)
             const s = source.getBoundingClientRect();
-            fire(source, 'dragstart', s.left + 5, s.top + 100);
+            fire(source, 'dragstart', s.left + 5, s.top + Math.min(100, s.height / 2));
             const t = target.getBoundingClientRect();
             const x = { spine: t.left + 3, end: t.right - 3, page: t.right + 50 }[over as 'spine' | 'end' | 'page'];
             const at = { x, y: t.top + 300 };
@@ -256,7 +258,7 @@ describe('stacked tabs', function () {
             fire(document.elementFromPoint(at.x, at.y) ?? target, 'drop', at.x, at.y);
             fire(source, 'dragend', at.x, at.y);
             return result;
-        }, (await spine(title).getElement()) as unknown as HTMLElement, (await spine(overTitle).getElement()) as unknown as HTMLElement, over);
+        }, (await source.getElement()) as unknown as HTMLElement, (await spine(overTitle).getElement()) as unknown as HTMLElement, over);
         await browser.pause(300);
         return placeholder;
     }
@@ -330,5 +332,88 @@ describe('stacked tabs', function () {
         expect(await dragSpine('Beta', 'Alpha', 'end')).toEqual({ shown: true, inGroup: true });
         await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha,Beta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
         expect(await titles()).toEqual(['Alpha', 'Beta', 'Gamma', 'Delta']);
+    });
+
+    // 💡 접힌 그룹에는 탭 바처럼 들어가지 않음 (라벨 막대 하나만 보임)
+    it('does not join a collapsed group when a spine is dropped next to it', async function () {
+        await tabHeader('Gamma').click();
+        await setStacked(true);
+        await stackedLabel('Work').click();
+        await browser.waitUntil(async () => !(await spine('Beta').isDisplayed()));
+
+        // 접힌 그룹 바로 뒤(Gamma 앞)
+        expect(await dragSpine('Delta', 'Gamma')).toEqual({ shown: true, inGroup: false });
+        await browser.waitUntil(async () => (await titles()).join() === 'Alpha,Beta,Delta,Gamma', { timeoutMsg: `titles: ${(await titles()).join()}` });
+        expect((await members('Work')).join()).toBe('Alpha,Beta');
+
+        // 라벨 막대 오른쪽 끝 위(접힌 그룹 안쪽 자리)
+        expect((await dragSpine('Gamma', 'Alpha', 'end')).inGroup).toBe(false);
+        await browser.pause(300);
+        expect((await members('Work')).join()).toBe('Alpha,Beta');
+        expect((await titles()).join()).toMatch(/^(Gamma,Alpha,Beta,Delta|Alpha,Beta,Gamma,Delta)$/);
+        await expect(stackedLabel('Work')).toHaveElementClass('is-collapsed');
+        await expect(spine('Beta')).not.toBeDisplayed();
+    });
+
+    // 💡 단축키로 한 칸씩 옮기기 (테스트 전용 플러그인의 Ctrl+Shift+PageUp/PageDown, move.e2e.ts와 같음)
+    async function moveWithHotkey(title: string, key: 'PageUp' | 'PageDown') {
+        await spine(title).click();
+        const before = `${(await titles()).join()} ${(await members('Work')).join()}`;
+        await browser.keys([Key.Ctrl, Key.Shift, key === 'PageUp' ? Key.PageUp : Key.PageDown]);
+        await browser.waitUntil(async () => `${(await titles()).join()} ${(await members('Work')).join()}` !== before, { timeout: 3000, timeoutMsg: `${title} did not move` });
+    }
+
+    it('joins and leaves groups with hotkeys in stacked tabs, like in the tab bar', async function () {
+        await setStacked(true);
+        // 그룹 바로 뒤 탭을 앞으로 → 자리는 그대로, 그룹 맨 끝으로 편입
+        await moveWithHotkey('Gamma', 'PageUp');
+        expect(await titles()).toEqual(['Alpha', 'Beta', 'Gamma', 'Delta']);
+        expect((await members('Work')).join()).toBe('Alpha,Beta,Gamma');
+        // 그룹 맨 끝 탭을 뒤로 → 자리는 그대로, 그룹에서 빠짐
+        await moveWithHotkey('Gamma', 'PageDown');
+        expect(await titles()).toEqual(['Alpha', 'Beta', 'Gamma', 'Delta']);
+        expect((await members('Work')).join()).toBe('Alpha,Beta');
+        // 그룹 안에서 옮기기 → 그대로 그룹 안
+        await moveWithHotkey('Beta', 'PageUp');
+        expect(await titles()).toEqual(['Beta', 'Alpha', 'Gamma', 'Delta']);
+        expect((await members('Work')).join()).toBe('Beta,Alpha');
+    });
+
+    // 💡 오른쪽 창(일반 탭 바)과 쌓인 탭 창 사이 끌기
+    async function splitWithStackedLeft() {
+        await openInSplit('Epsilon');
+        await browser.executeObsidian(({ app }) => {
+            app.workspace.iterateRootLeaves(leaf => {
+                if (leaf.getDisplayText() === 'Alpha') (leaf as unknown as { parent: { setStacked(on: boolean): void } }).parent.setStacked(true);
+            });
+        });
+        await stackedLabel('Work').waitForExist({ timeoutMsg: 'the left pane was not stacked' });
+        await browser.pause(500);
+    }
+    const splitHeader = () => $$('.workspace-split.mod-root .workspace-tabs')[1]!.$('.workspace-tab-header[aria-label="Epsilon"]');
+
+    it('joins the group when a tab from another pane is dropped between its spines', async function () {
+        await splitWithStackedLeft();
+        expect(await dragSpine(splitHeader(), 'Beta')).toEqual({ shown: true, inGroup: true });
+        await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha,Epsilon,Beta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
+        expect(await panes()).toEqual([['Alpha', 'Epsilon', 'Beta', 'Gamma', 'Delta']]);
+        // 💡 옵시디언이 끌던 탭 머리를 떼어 내도 끌기가 끝난 것으로 봄 (끌기 중으로 남으면 정렬을 멈춤)
+        expect(await browser.executeObsidian(({ plugins }) => (plugins.tabGroups as unknown as { tabDrag: { isDragging: boolean } }).tabDrag.isDragging)).toBe(false);
+    });
+
+    it('stays out of the group when a tab from another pane is dropped outside it', async function () {
+        await splitWithStackedLeft();
+        expect(await dragSpine(splitHeader(), 'Delta')).toEqual({ shown: true, inGroup: false });
+        await browser.waitUntil(async () => (await panes()).length === 1, { timeoutMsg: `panes: ${JSON.stringify(await panes())}` });
+        expect(await panes()).toEqual([['Alpha', 'Beta', 'Gamma', 'Epsilon', 'Delta']]);
+        expect((await members('Work')).join()).toBe('Alpha,Beta');
+    });
+
+    it('takes a spine out of its group when it is dropped on the tab bar of another pane', async function () {
+        await splitWithStackedLeft();
+        await dragTo(spine('Beta'), splitHeader(), 0.75);
+        await browser.waitUntil(async () => (await panes())[1]?.includes('Beta') ?? false, { timeoutMsg: `panes: ${JSON.stringify(await panes())}` });
+        expect((await members('Work')).join()).toBe('Alpha');
+        expect((await tab('Beta')).group).toBeNull();
     });
 });
