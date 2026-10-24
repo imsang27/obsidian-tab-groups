@@ -30,7 +30,13 @@ export class VerticalTabsCompat {
         });
         views.forEach(view => {
             if (!this.observers.has(view)) {
-                const observer = new MutationObserver(() => this.apply(view));
+                // 💡 끄는 동안 끼운 빈 줄(vertical-tabs-drag.ts)만 바뀐 건 무시 (다시 그리면 빈 줄 자리가 또 바뀌어 되풀이됨)
+                const observer = new MutationObserver(mutations => {
+                    const placeholder = this.plugin.verticalTabsDrag.placeholderEl;
+                    const onlyPlaceholder = mutations.every(m => m.target === placeholder
+                        || [...Array.from(m.addedNodes), ...Array.from(m.removedNodes)].every(n => n === placeholder) && m.type === 'childList');
+                    if (!onlyPlaceholder) this.apply(view);
+                });
                 this.observers.set(view, observer);
             }
             this.apply(view);
@@ -42,6 +48,7 @@ export class VerticalTabsCompat {
         observer?.disconnect();
         try {
             this.decorate(view);
+            this.plugin.verticalTabsDrag.schedule();
         } finally {
             // 💡 그 플러그인이 다시 그릴 때 탭 줄의 class·style을 덮어써서, 속성이 바뀌는 것도 봄
             observer?.observe(view, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });

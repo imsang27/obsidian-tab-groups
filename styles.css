@@ -627,3 +627,49 @@ html body .tab-group-vt-header-count {
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
 }
+
+/* ✨ Vertical Tabs 목록에서 탭 줄을 끄는 동안 들어갈 자리의 빈 줄 (vertical-tabs-drag.ts). 탭 바 플레이스홀더처럼 강조색,
+   그룹에 들어가는 자리면 그룹 색으로 칠하고 그룹 탭 줄과 같은 자리에 색 줄을 그어 그룹과 이어 보이게 함 */
+html body .tab-group-vt-placeholder {
+    position: relative;
+    height: var(--tab-group-placeholder-height, 28px);
+    margin: 2px 0 2px 0.5em;
+    border-radius: var(--radius-s, 4px);
+    background-color: color-mix(in srgb, var(--interactive-accent) 35%, transparent);
+    pointer-events: none;
+}
+
+html body .tab-group-vt-placeholder.is-in-group {
+    margin: 0 0 0 0.5em;
+    border-radius: 0;
+    background-color: color-mix(in srgb, var(--tab-group-color) 35%, transparent);
+    box-shadow: inset 2px 0 0 var(--tab-group-color);
+}
+
+/* 클래식: 그룹 탭 줄과 같은 옅은 배경과 굵은 색 줄, 그 안에 들어갈 자리를 그룹 색으로 */
+html body.tab-groups-style-classic .tab-group-vt-placeholder.is-in-group {
+    background-color: color-mix(in srgb, var(--tab-group-color) 10%, transparent);
+    box-shadow: inset 3px 0 0 var(--tab-group-color);
+}
+
+html body.tab-groups-style-classic .tab-group-vt-placeholder.is-in-group::before {
+    content: '';
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    left: 8px;
+    right: 4px;
+    border-radius: var(--radius-s, 4px);
+    background-color: color-mix(in srgb, var(--tab-group-color) 35%, transparent);
+}
+
+/* 💡 빈 줄을 보여 주는 동안 그 플러그인의 강조색 선·배경은 숨김 */
+html body.tab-group-vt-dropping .tree-item.vt-is-being-dragged-over:not(#tab-groups),
+html body.tab-group-vt-dropping .tree-item.vt-is-being-dragged-over:not(#tab-groups) .tree-item {
+    background: none;
+}
+
+html body.tab-group-vt-dropping .tree-item.vt-is-being-dragged-over:not(#tab-groups)::before,
+html body.tab-group-vt-dropping .tree-item.vt-is-being-dragged-over:not(#tab-groups) .is-tab-slot::before {
+    background: none;
+}

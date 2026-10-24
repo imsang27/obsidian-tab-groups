@@ -172,4 +172,59 @@ describe('Vertical Tabs plugin', function () {
         await browser.waitUntil(async () => !(await header('Work').isExisting()), { timeoutMsg: 'the header stayed after ungrouping' });
         await expect(row('Alpha')).not.toHaveElementClass('tab-group-vt-member');
     });
+
+    // 💡 세로 목록에서 실제 포인터로 탭 줄 끌기 (그 플러그인은 dnd-kit: 8px 넘게 움직여야 끌기 시작)
+    // to: 놓을 줄(overTitle)의 자리에서 커서 y. 끄는 도중 빈 줄을 읽고 놓음
+    async function dragRow(title: string, overTitle: string, to: (r: { top: number, middle: number, bottom: number }) => number) {
+        const rectOf = (t: string) => browser.execute((t: string) => {
+            const el = Array.from(document.querySelectorAll('.workspace-leaf-content[data-type="vertical-tabs"] .tree-item.is-tab'))
+                .find(e => e.querySelector(':scope > .tree-item-self .tree-item-inner-text')?.textContent?.trim() === t)!;
+            const r = el.getBoundingClientRect();
+            return { x: Math.round(r.left + 60), top: r.top, middle: Math.round(r.top + r.height / 2), bottom: r.bottom };
+        }, t);
+        const source = await rectOf(title), target = await rectOf(overTitle);
+        const y = Math.round(to(target));
+        await browser.action('pointer')
+            .move({ x: source.x, y: source.middle }).down()
+            .move({ x: source.x, y: source.middle - 10, duration: 100 })
+            .move({ x: source.x, y, duration: 300 }).pause(300)
+            .perform(true);
+        await browser.pause(150);
+        const placeholder = await browser.execute(() => {
+            const el = document.querySelector('.tab-group-vt-placeholder');
+            return { shown: !!el?.isConnected, inGroup: !!el?.classList.contains('is-in-group') };
+        });
+        await browser.action('pointer').up().perform();
+        await browser.pause(400);
+        return placeholder;
+    }
+
+    it('shows a placeholder in the group color where a dragged row will join the group', async function () {
+        await tabHeader('Delta').click();
+        // 그룹 탭 둘 사이
+        expect(await dragRow('Delta', 'Beta', r => r.middle)).toEqual({ shown: true, inGroup: true });
+        await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha,Delta,Beta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
+        expect(await titles()).toEqual(['Alpha', 'Delta', 'Beta', 'Gamma']);
+        await expect($('.tab-group-vt-placeholder')).not.toBeExisting();
+    });
+
+    it('tells joining from leaving at the end of the group by the cursor', async function () {
+        await tabHeader('Delta').click();
+        // 다음 줄(Gamma) 위쪽 절반 → 그룹 맨 끝으로 편입
+        expect(await dragRow('Delta', 'Gamma', r => r.top + 3)).toEqual({ shown: true, inGroup: true });
+        await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha,Beta,Delta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
+
+        // 그룹 맨 끝 탭(Delta)을 다음 줄 아래쪽 절반으로 → 제자리에서 그룹 밖
+        expect(await dragRow('Delta', 'Gamma', r => r.middle + 5)).toEqual({ shown: true, inGroup: false });
+        await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha,Beta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
+        expect(await titles()).toEqual(['Alpha', 'Beta', 'Delta', 'Gamma']);
+    });
+
+    it('stays out of the group when a row is dropped on its header', async function () {
+        await tabHeader('Delta').click();
+        // 첫 탭(Alpha) 앞이지만 커서가 머리줄 위 → 빈 줄은 머리줄 앞, 그룹 밖
+        expect(await dragRow('Delta', 'Alpha', r => r.top - 8)).toEqual({ shown: true, inGroup: false });
+        await browser.waitUntil(async () => (await titles()).join() === 'Delta,Alpha,Beta,Gamma', { timeoutMsg: `titles: ${(await titles()).join()}` });
+        expect((await members('Work')).join()).toBe('Alpha,Beta');
+    });
 });

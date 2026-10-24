@@ -15,6 +15,8 @@ interface LeafMove {
 export class TabMoveTracker {
     plugin: TabGroupsPlugin;
     lastOrders: WeakMap<Element, WorkspaceLeaf[]> = new WeakMap();
+    // 💡 다른 플러그인이 끌어 놓아 옮길 탭과, 놓은 자리에서 미리 정한 그룹 (Vertical Tabs 목록, vertical-tabs-drag.ts)
+    expectedDrop: { leaf: WorkspaceLeaf, groupId: string | null } | null = null;
 
     constructor(plugin: TabGroupsPlugin) {
         this.plugin = plugin;
@@ -43,7 +45,11 @@ export class TabMoveTracker {
         let newGroup: string | null;
         let newIndex: number | null = null; // others 기준으로 다시 놓을 자리 (null이면 옮겨진 자리 그대로)
 
-        if (Math.abs(to - from) === 1 && !dropped) {
+        if (this.expectedDrop?.leaf === leaf) {
+            // 🎯 놓는 동안 보여 준 자리 표시대로 (그룹 맨 끝·맨 앞은 커서 위치로 정했으므로 다시 따지지 않음)
+            newGroup = this.expectedDrop.groupId;
+            this.expectedDrop = null;
+        } else if (Math.abs(to - from) === 1 && !dropped) {
             // 🎯 한 칸 이동: 크롬처럼 그룹 경계(라벨)를 넘는 것도 한 걸음으로 칩니다.
             const direction = to - from;
             const neighborGroup = groupOf(before[from + direction]);
