@@ -10,6 +10,8 @@ import { setGroupColor } from './group-style';
 // - 옵시디언은 막대를 앞 막대들 너비의 합(left)·뒤 막대들 너비의 합(right) 자리에 붙여 두므로(updateSlidingTabs),
 //   빈 막대를 끼운 뒤 막대 자리를 빈 막대 너비까지 넣어 다시 매깁니다.
 // - 옮기기는 옵시디언이 끌기 끝에 막대 위치를 다시 재서 하므로, 그 전에(놓기·끌기 끝) 빈 막대를 빼고 자리를 되돌립니다.
+// - 펼쳐진 그룹의 맨 끝 자리는 탭 바처럼 커서로 나눔: 그룹 마지막 탭(막대·화면) 위면 편입, 다음 막대에 가까우면 그룹 밖
+//   (옵시디언은 소속을 모르므로 놓은 자리의 그룹을 기억해 두었다가 끌기 끝에 맞춤, tab-drag.ts)
 
 // 💡 옵시디언 비공개 API: 탭 묶음의 DOM, 커서 x로 탭을 끼울 위치, 막대 자리 다시 매기기
 interface StackedTabs extends InternalTabs {
@@ -37,6 +39,9 @@ export class StackedTabDrag {
     placeholderEl: HTMLElement;
     // 💡 빈 막대를 끼운 탭 묶음 (뺄 때 막대 자리를 되돌림)
     tabs: StackedTabs | null = null;
+    // 💡 마지막으로 보여 준 자리, 그리고 그 자리에 놓았을 때의 자리 (끌기 끝에 그룹 소속을 맞출 때 씀)
+    slot: StackedTabSlot | null = null;
+    dropped: StackedTabSlot | null = null;
 
     constructor(private plugin: TabGroupsPlugin) {
         this.placeholderEl = createDiv({ cls: 'tab-group-stacked-placeholder' });
@@ -48,9 +53,12 @@ export class StackedTabDrag {
         const tabsEl = (e.target as HTMLElement).closest?.<HTMLElement>('.workspace-tabs.mod-stacked') ?? null;
         this.clear();
         const slot = tabsEl ? this.slotAt(e, leaf, tabsEl) : null;
+        this.slot = slot;
         // 옵시디언 드롭 선 대신 빈 막대로 보여 줌
         this.overlayEl()?.toggleClass(OVERLAY_HIDDEN, !!slot);
-        if (slot && slot.index !== slot.from) this.show(slot, leaf);
+        // 제자리여도 그룹에서 빠지거나 들어가면 보여 줌
+        const current = this.plugin.leafGroupMap.get(leaf) ?? null;
+        if (slot && (slot.index !== slot.from || slot.groupId !== current)) this.show(slot, leaf);
     }
 
     slotAt(e: DragEvent, leaf: WorkspaceLeaf, tabsEl: HTMLElement): StackedTabSlot | null {
@@ -74,9 +82,20 @@ export class StackedTabDrag {
         const others = tabs.children.filter(l => l !== leaf);
         const groupOf = (l: WorkspaceLeaf | undefined) => (l && plugin.leafGroupMap.get(l)) ?? null;
         const current = groupOf(leaf);
-        const groupId = from === index
-            ? current
-            : droppedGroup(others, index, current, groupOf, groupId => plugin.isGroupExpanded(groupId));
+        const isExpanded = (groupId: string) => plugin.isGroupExpanded(groupId);
+        const prevGroup = groupOf(others[index - 1]);
+        const next = others[index];
+        let groupId: string | null;
+        if (prevGroup && isExpanded(prevGroup) && groupOf(next) !== prevGroup) {
+            // 🎯 펼쳐진 그룹의 맨 끝: 다음 막대(없으면 탭 묶음 끝) 앞 막대 하나 너비 안쪽이면 그룹 밖, 그 앞이면 편입
+            const width = internal(leaf).tabHeaderEl?.offsetWidth || 40;
+            const nextHeader = next ? internal(next).tabHeaderEl : null;
+            const lastPage = internal(tabs.children[tabs.children.length - 1]!).containerEl.getBoundingClientRect().right;
+            const end = nextHeader ? nextHeader.getBoundingClientRect().left : Math.min(rect.right, lastPage);
+            groupId = e.clientX < end - width ? prevGroup : null;
+        } else {
+            groupId = from === index ? current : droppedGroup(others, index, current, groupOf, isExpanded);
+        }
         return { tabs, from, index, groupId };
     }
 
@@ -124,7 +143,20 @@ export class StackedTabDrag {
 
     finish() {
         this.clear();
+        this.slot = null;
         this.overlayEl()?.removeClass(OVERLAY_HIDDEN);
+    }
+
+    // 💡 막대 사이에 놓음: 끌기 끝에 소속을 맞추도록 자리를 기억 (Esc로 취소하면 놓기가 없어 그대로)
+    drop() {
+        this.dropped = this.slot;
+        this.finish();
+    }
+
+    takeDropped(): StackedTabSlot | null {
+        const dropped = this.dropped;
+        this.dropped = null;
+        return dropped;
     }
 
     overlayEl(): HTMLElement | null {

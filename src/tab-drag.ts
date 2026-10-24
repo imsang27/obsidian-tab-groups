@@ -93,7 +93,7 @@ export class TabDragController {
         const leaf = this.draggedLeaf;
         const inner = this.findTabBarInner(e.target as HTMLElement);
         // 💡 옵시디언은 끌기 끝에 막대 위치로 자리를 다시 재므로, 쌓인 탭의 빈 막대는 놓을 때 바로 뺌
-        if (!inner) this.plugin.stackedTabDrag.finish();
+        if (!inner) this.plugin.stackedTabDrag.drop();
         if (!leaf || !inner) return; // 탭 바 밖 드롭은 옵시디언 기본 처리(분할 등)에 맡김
 
         // 💡 마지막 dragover가 늦게 처리돼도 놓은 좌표 그대로 자리를 한 번 더 맞춥니다.
@@ -119,8 +119,11 @@ export class TabDragController {
 
     // ✨ 놓은 자리에 따라 그룹 소속을 정합니다. 그룹이 바뀌었으면 true를 돌려줍니다.
     applyDropGroup(leaf: WorkspaceLeaf): boolean {
+        return this.applyGroup(leaf, this.dropGroup(leaf));
+    }
+
+    applyGroup(leaf: WorkspaceLeaf, newGroup: string | null): boolean {
         const current = this.plugin.leafGroupMap.get(leaf) ?? null;
-        const newGroup = this.dropGroup(leaf);
         if (newGroup === current) return false;
         if (newGroup) this.plugin.leafGroupMap.set(leaf, newGroup);
         else this.plugin.leafGroupMap.delete(leaf);
@@ -192,8 +195,17 @@ export class TabDragController {
         if (!this.isDragging) return;
         // 💡 쌓인 탭 모드의 막대는 옵시디언이 직접 옮기므로, 놓은 자리로 그룹 편입·이탈을 정함 (탭 바에서는 onDrop이 이미 정함)
         const stacked = !!this.draggedHeader?.parentElement && isStackedContainer(this.draggedHeader.parentElement);
+        const leaf = this.draggedLeaf;
+        const dropped = this.plugin.stackedTabDrag.takeDropped();
         this.finishDrag();
-        window.setTimeout(() => this.plugin.enforcePhysicalSorting(stacked ? { dropped: true } : { trackMoves: false }), 0);
+        window.setTimeout(() => {
+            this.plugin.enforcePhysicalSorting(stacked ? { dropped: true } : { trackMoves: false });
+            // 💡 쌓인 탭 막대 사이에 놓았으면 빈 막대가 보여 준 그룹으로 맞춤 (그룹 맨 끝은 커서 위치로 정해서)
+            if (leaf && dropped && this.applyGroup(leaf, dropped.groupId)) {
+                this.plugin.enforcePhysicalSorting({ trackMoves: false });
+                void this.plugin.saveSettings();
+            }
+        }, 0);
     }
 
     finishDrag() {
