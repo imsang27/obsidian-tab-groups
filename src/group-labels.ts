@@ -154,6 +154,7 @@ export class GroupLabels {
         labelEl.addEventListener('dragend', () => {
             plugin.draggingGroupId = null; // 💡 마우스 놓으면 까먹기 (초기화)
             this.ignoreNextLabelClick = true; // Esc 취소 뒤 버튼을 뗄 때 오는 클릭으로 접힘 상태가 바뀌지 않게
+            plugin.stackedDrop.clear();
             plugin.groupDrag.finish(); // 혹시 남은 플레이스홀더를 치우고 숨겼던 그룹을 되돌림
             document.body.classList.remove('is-dragging-tab-group'); // 드래그 종료 시 body 신호 제거
         });

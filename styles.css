@@ -488,6 +488,15 @@ html body .workspace-tabs.mod-stacked .workspace-tab-header.tab-group-stacked-co
     justify-content: flex-start;
 }
 
+/* 💡 라벨을 끄는 동안 들어갈 자리: 앞·뒤 막대 가장자리에 강조색 선 (stacked-drag.ts) */
+html body .workspace-tabs.mod-stacked .workspace-tab-header.tab-group-stacked-drop-before:not(#tab-groups) {
+    box-shadow: inset 3px 0 0 var(--interactive-accent);
+}
+
+html body .workspace-tabs.mod-stacked .workspace-tab-header.tab-group-stacked-drop-after:not(#tab-groups) {
+    box-shadow: inset -3px 0 0 var(--interactive-accent);
+}
+
 html body .workspace-tabs.mod-stacked .workspace-tab-header.tab-group-stacked-hidden:not(#tab-groups),
 html body .workspace-tabs.mod-stacked .workspace-leaf.tab-group-stacked-hidden:not(#tab-groups) {
     display: none;

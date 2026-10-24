@@ -53,6 +53,8 @@ export class TabDragController {
 
     onDragStart(e: DragEvent) {
         if (this.plugin.draggingGroupId) return;
+        // 💡 쌓인 탭 막대 안의 그룹 라벨을 끄는 건 그룹 끌기 (stacked-tabs.ts)
+        if ((e.target as HTMLElement).closest?.('.tab-group-stacked-label')) return;
         const header = (e.target as HTMLElement).closest?.<HTMLElement>('.workspace-tab-header');
         if (!header) return;
         const leaf = this.plugin.findLeafFromHeader(header);

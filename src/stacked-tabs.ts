@@ -7,7 +7,7 @@ import { openEditGroup } from './group-actions';
 import { StackedTabsParent, isStackedContainer, setStackedOrder } from './stacked-order';
 
 // ✨ 쌓인 탭(Stacked tabs) 모드: 탭 머리가 탭 바가 아니라 화면 사이(.workspace-tab-container)의 세로 막대가 됩니다.
-// - 그룹 첫 막대 맨 위에 라벨 (누르면 접기·펼치기, 우클릭하면 그룹 창)
+// - 그룹 첫 막대 맨 위에 라벨 (누르면 접기·펼치기, 우클릭하면 그룹 창, 끌면 그룹째 옮기기)
 // - 접은 그룹은 라벨이 있는 첫 막대만 남기고, 나머지 막대와 그룹 탭의 화면을 숨깁니다.
 //   옵시디언은 막대 위치를 앞 막대들의 너비를 더해 정하므로(숨은 막대는 0), 숨긴 뒤 위치를 다시 계산하게 합니다.
 // - 탭 순서가 바뀌면 탭 바처럼 그룹 편입·이탈(tab-move.ts)과 그룹 탭 모으기를 합니다. (group-layout.ts가 부름)
@@ -15,6 +15,8 @@ const HEADER_MARKS = ['tab-group-stacked-collapsed', 'tab-group-stacked-hidden']
 const HIDDEN = 'tab-group-stacked-hidden';
 
 export class StackedTabs {
+    lastDragEnd = 0;
+
     constructor(private plugin: TabGroupsPlugin) {}
 
     containers(): HTMLElement[] {
@@ -104,12 +106,31 @@ export class StackedTabs {
         label.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
+            // 💡 끌기를 Esc로 취소한 뒤 버튼을 뗄 때 오는 클릭으로 접힘 상태가 바뀌지 않게
+            if (Date.now() - this.lastDragEnd < 300) return;
             void plugin.labels.toggleCollapsed(groupId, groupData);
         });
         label.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             e.stopPropagation();
             openEditGroup(plugin, groupId);
+        });
+        // 💡 라벨을 끌면 그룹째 옮김 (막대 끌기로 넘어가지 않게 막고, 놓는 곳 처리는 stacked-drag.ts)
+        label.draggable = true;
+        label.addEventListener('dragstart', (e) => {
+            e.stopPropagation();
+            e.dataTransfer?.setData('application/x-tab-group-id', groupId);
+            if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+            plugin.draggingGroupId = groupId;
+            document.body.classList.add('is-dragging-tab-group');
+        });
+        label.addEventListener('dragend', (e) => {
+            e.stopPropagation();
+            plugin.draggingGroupId = null;
+            this.lastDragEnd = Date.now();
+            plugin.stackedDrop.clear();
+            plugin.groupDrag.finish();
+            document.body.classList.remove('is-dragging-tab-group');
         });
         return label;
     }

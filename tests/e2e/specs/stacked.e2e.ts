@@ -43,6 +43,22 @@ describe('stacked tabs', function () {
         await browser.pause(300);
     }
 
+    // 💡 라벨을 막대 위로 끌어 놓기: 끌기 시작 → 놓을 막대 위(가로 비율 x) → 놓기 → 끌기 끝
+    async function dragLabel(name: string, overTitle: string, x: number) {
+        await browser.execute((label: HTMLElement, spine: HTMLElement, x: number) => {
+            const dataTransfer = new DataTransfer();
+            const r = spine.getBoundingClientRect();
+            const at = { clientX: r.left + r.width * x, clientY: r.top + r.height / 2 };
+            const fire = (el: HTMLElement, type: string) => el.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, composed: true, dataTransfer, ...at }));
+            fire(label, 'dragstart');
+            fire(spine, 'dragenter');
+            fire(spine, 'dragover');
+            fire(spine, 'drop');
+            fire(label, 'dragend');
+        }, (await stackedLabel(name).getElement()) as unknown as HTMLElement, (await spine(overTitle).getElement()) as unknown as HTMLElement, x);
+        await browser.pause(300);
+    }
+
     beforeEach(async function () {
         await resetWorkspace();
         await createGroup('Alpha', 'Work');
@@ -130,5 +146,32 @@ describe('stacked tabs', function () {
         await dragLikeObsidian('Alpha', 'Delta');
         await browser.waitUntil(async () => (await members('Work')).join() === 'Beta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
         expect(await titles()).toEqual(['Beta', 'Gamma', 'Alpha', 'Delta']);
+    });
+
+    it('moves the whole group when its label is dragged onto the spines', async function () {
+        await setStacked(true);
+        // 💡 Delta 막대 왼쪽 절반 → Gamma와 Delta 사이
+        await dragLabel('Work', 'Delta', 0.25);
+        await browser.waitUntil(async () => (await titles()).join() === 'Gamma,Alpha,Beta,Delta', { timeoutMsg: `titles: ${(await titles()).join()}` });
+        expect((await members('Work')).join()).toBe('Alpha,Beta');
+
+        // 💡 Delta 막대 오른쪽 절반 → 맨 끝 (라벨은 계속 그룹 첫 막대 맨 위)
+        await dragLabel('Work', 'Delta', 0.75);
+        await browser.waitUntil(async () => (await titles()).join() === 'Gamma,Delta,Alpha,Beta', { timeoutMsg: `titles: ${(await titles()).join()}` });
+        expect((await members('Work')).join()).toBe('Alpha,Beta');
+        await expect(spine('Alpha').$('.tab-group-stacked-label')).toBeExisting();
+        await expect($('.tab-group-stacked-drop-before, .tab-group-stacked-drop-after')).not.toBeExisting();
+    });
+
+    it('moves a collapsed group as a whole and keeps it collapsed', async function () {
+        await tabHeader('Gamma').click();
+        await setStacked(true);
+        await stackedLabel('Work').click();
+        await browser.waitUntil(async () => !(await spine('Beta').isDisplayed()));
+
+        await dragLabel('Work', 'Delta', 0.75);
+        await browser.waitUntil(async () => (await titles()).join() === 'Gamma,Delta,Alpha,Beta', { timeoutMsg: `titles: ${(await titles()).join()}` });
+        await expect(stackedLabel('Work')).toHaveElementClass('is-collapsed');
+        await expect(spine('Beta')).not.toBeDisplayed();
     });
 });
