@@ -19,6 +19,8 @@ import { setLanguage } from './i18n';
 import { internal } from './internal';
 import { TabGroupsSettingTab } from './settings-tab';
 import { renameInGroupSets } from './group-sets';
+import { VerticalTabsCompat } from './vertical-tabs';
+import { VerticalTabsDrag } from './vertical-tabs-drag';
 import { PRESET_COLORS } from './ui/color-palette';
 import { GroupStyle, applyGroupStyle } from './group-style';
 import { SavedTab, renameSavedTabs } from './saved-tabs';
@@ -59,6 +61,10 @@ export default class TabGroupsPlugin extends Plugin {
 
     // ✨ 그룹 탭 잠금(고정) 담당
     lock: GroupLock = new GroupLock(this);
+
+    // ✨ Vertical Tabs 플러그인의 세로 탭 목록에 그룹 표시
+    verticalTabs: VerticalTabsCompat = new VerticalTabsCompat(this);
+    verticalTabsDrag: VerticalTabsDrag = new VerticalTabsDrag(this);
 
     // ✨ 단축키·다른 플러그인으로 탭을 옮겼을 때의 그룹 편입·이탈 담당
     tabMoves: TabMoveTracker = new TabMoveTracker(this);
@@ -118,6 +124,7 @@ export default class TabGroupsPlugin extends Plugin {
         this.lock.register();
         this.groupDrop.register();
         this.tabDrag.register();
+        this.verticalTabsDrag.register();
         this.labels.register();
 
         // ✨ Ctrl+Tab 등으로 탭을 순환할 때 접힌 그룹의 탭은 번쩍임 없이 건너뜀
@@ -293,6 +300,8 @@ export default class TabGroupsPlugin extends Plugin {
         this.layout.disconnectObservers();
         this.labels.removeAll();
         this.stacked.unload();
+        this.verticalTabsDrag.finish();
+        this.verticalTabs.unload();
         // 🚨탭 헤더를 원래 모습으로 되돌립니다. (그대로 두면 끈 뒤에도 접힌 그룹의 탭이 숨겨진 채 남음)
         this.layout.clearAllHeaders();
         this.applyGroupStyle(null);

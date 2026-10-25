@@ -16,7 +16,8 @@ export const config: WebdriverIO.Config = {
         'wdio:obsidianOptions': {
             installerVersion: 'latest',
             // The test-only helper plugin adds hotkeys that move the current tab (tests/e2e/specs/move.e2e.ts)
-            plugins: ['.', 'tests/e2e/plugins/e2e-move-tab'],
+            // Vertical Tabs (a community plugin) is installed disabled; tests/e2e/specs/vertical-tabs.e2e.ts turns it on to check compatibility
+            plugins: ['.', 'tests/e2e/plugins/e2e-move-tab', { id: 'vertical-tabs', version: '0.18.6', enabled: false }],
             vault: 'tests/e2e/vault',
         },
         // 💡 Run Obsidian in English whatever the system language, so tests can find commands and buttons by name

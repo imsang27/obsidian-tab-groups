@@ -143,6 +143,7 @@ export class GroupLayout {
             stackedContainers.forEach(container => plugin.stacked.gather(container));
 
             plugin.labels.render();
+            plugin.verticalTabs.render();
 
             [...tabContainers, ...stackedContainers].forEach(container => plugin.tabMoves.remember(container));
             this.rememberMembers();
