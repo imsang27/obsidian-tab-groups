@@ -164,4 +164,42 @@ describe('reopening closed tabs', function () {
         expect(await groupCount()).toBe(0);
         await expect($('.tab-group-label')).not.toBeExisting();
     });
+
+    // 💡 쌓인 탭 모드: 머리(막대)와 화면이 번갈아 놓여 있어, 다시 연 탭의 자리는 옵시디언 순서로 맞춰야 막대와 화면이 어긋나지 않음
+    async function setStacked(on: boolean) {
+        await browser.executeObsidian(({ app }, on) => {
+            type Tabs = { parent: { setStacked(on: boolean): void } };
+            if (on) (app.workspace.getMostRecentLeaf(app.workspace.rootSplit) as unknown as Tabs).parent.setStacked(true);
+            else app.workspace.iterateRootLeaves(leaf => { (leaf as unknown as Tabs).parent.setStacked(false); });
+        }, on);
+        await browser.waitUntil(async () => (await $('.workspace-split.mod-root .workspace-tabs.mod-stacked').isExisting()) === on);
+    }
+
+    // 💡 옵시디언 순서와 화면의 막대 순서 (둘이 같아야 함)
+    const stackedOrders = () => browser.executeObsidian(({ app }) => {
+        const leaf = app.workspace.getMostRecentLeaf(app.workspace.rootSplit) as unknown as { parent: { children: { getDisplayText(): string }[] } };
+        const container = document.querySelector('.workspace-split.mod-root .workspace-tab-container');
+        return {
+            children: leaf.parent.children.map(child => child.getDisplayText()),
+            spines: Array.from(container?.querySelectorAll(':scope > .workspace-tab-header') ?? []).map(el => el.getAttribute('aria-label')),
+            views: Array.from(container?.querySelectorAll(':scope > .workspace-leaf') ?? []).map(el => el.querySelector('.view-header-title')?.textContent ?? el.querySelector('.inline-title')?.textContent ?? ''),
+        };
+    });
+
+    it('reopens a closed tab in its place in stacked tabs mode', async function () {
+        await setStacked(true);
+        try {
+            await closeTab('Beta');
+            await waitForMembers('Work', ['Alpha', 'Gamma']);
+
+            await undoClose();
+            await waitForMembers('Work', ['Alpha', 'Beta', 'Gamma']);
+            await browser.waitUntil(async () => (await stackedOrders()).children.join() === 'Alpha,Beta,Gamma,Delta', { timeoutMsg: `order: ${JSON.stringify(await stackedOrders())}` });
+            const orders = await stackedOrders();
+            expect(orders.spines).toEqual(orders.children);
+            expect(orders.views).toEqual(orders.children);
+        } finally {
+            await setStacked(false);
+        }
+    });
 });

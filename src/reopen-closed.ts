@@ -2,6 +2,7 @@ import { WorkspaceLeaf, WorkspaceSplit } from 'obsidian';
 import type TabGroupsPlugin from './main';
 import { internal } from './internal';
 import { SavedTab, savedTabFile, snapshotLeaf } from './saved-tabs';
+import { isStackedContainer, setStackedOrder } from './stacked-order';
 
 // ✨ 닫은 탭 다시 열기(Ctrl+Shift+T)를 그룹과 함께 (크롬처럼)
 // 옵시디언은 닫은 탭을 다시 열 때 그 탭의 ID를 그대로 되살립니다. 그래서 그룹 탭이 닫힐 때 ID마다 그룹과 자리를 기억해 두었다가,
@@ -183,23 +184,38 @@ export class ReopenClosedTabs {
                 waiting.push(place);
                 return;
             }
-            const headerOf = (id: string) => {
+            const neighbor = (id: string) => {
                 const other = leaves.get(id);
                 if (!other || other === leaf || plugin.leafGroupMap.get(other) !== place.groupId) return null;
-                const el = internal(other).tabHeaderEl;
-                return el?.parentElement === header.parentElement ? el : null;
+                return internal(other).tabHeaderEl?.parentElement === header.parentElement ? other : null;
             };
             const at = place.order.indexOf(place.id);
             for (let i = at - 1; i >= 0; i--) {
-                const before = headerOf(place.order[i]!);
-                if (before) return before.after(header);
+                const before = neighbor(place.order[i]!);
+                if (before) return this.moveNextTo(leaf, before, true);
             }
             for (let i = at + 1; i < place.order.length; i++) {
-                const after = headerOf(place.order[i]!);
-                if (after) return after.before(header);
+                const after = neighbor(place.order[i]!);
+                if (after) return this.moveNextTo(leaf, after, false);
             }
         });
         this.pendingPlaces = waiting;
+    }
+
+    // 💡 탭을 다른 탭 바로 뒤(after) 또는 앞에 놓습니다. 탭 바에서는 헤더를 옮기면 이어지는 정렬이 내부 순서도 맞추고,
+    // 쌓인 탭 모드에서는 헤더와 화면이 번갈아 놓여 있어 옵시디언 순서를 바꿔 다시 그리게 함
+    // (헤더만 옮기면 옵시디언이 다시 그릴 때 원래 자리로 돌아가고, 그걸 탭 이동으로 보아 그룹에서 빠짐)
+    private moveNextTo(leaf: WorkspaceLeaf, other: WorkspaceLeaf, after: boolean) {
+        const header = internal(leaf).tabHeaderEl!;
+        const otherHeader = internal(other).tabHeaderEl!;
+        if (!isStackedContainer(otherHeader.parentElement!)) {
+            if (after) otherHeader.after(header);
+            else otherHeader.before(header);
+            return;
+        }
+        const order: WorkspaceLeaf[] = (internal(leaf).parent?.children ?? []).filter(child => child !== leaf);
+        order.splice(order.indexOf(other) + (after ? 1 : 0), 0, leaf);
+        setStackedOrder(order);
     }
 
     // 💡 통째로 닫은 그룹의 나머지 탭을 엽니다. 옵시디언이 아직 기억하는 탭은 "닫은 탭 다시 열기"로
