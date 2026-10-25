@@ -326,4 +326,13 @@ describe('Vertical Tabs plugin', function () {
         await browser.waitUntil(async () => (await listTitles()).join() === 'Delta,Alpha,Beta,Gamma', { timeoutMsg: `list: ${(await listTitles()).join()}` });
         expect(await members('Work')).toEqual(['Alpha', 'Beta']);
     });
+
+    it('shows a group made while the vertical list is open', async function () {
+        await createGroup('Gamma', 'Play');
+        await header('Play').waitForExist({ timeoutMsg: 'no header for the new group' });
+        // 💡 새 창(그룹 이름 창)이 닫히며 그 플러그인이 목록을 다시 그린 뒤에도 남아 있는지
+        await browser.pause(1500);
+        await expect(header('Play')).toBeExisting();
+        await expect(row('Gamma')).toHaveElementClass('tab-group-vt-member');
+    });
 });
