@@ -13,6 +13,8 @@ const MEMBER_CLASSES = ['tab-group-vt-member', 'tab-group-vt-first', 'tab-group-
 
 export class VerticalTabsCompat {
     private observers = new Map<HTMLElement, MutationObserver>();
+    // 💡 세로 목록을 다시 그리게 했던 탭 순서 (refreshIfStale)
+    private refreshedOrder: string | null = null;
 
     constructor(private plugin: TabGroupsPlugin) {}
 
@@ -41,6 +43,43 @@ export class VerticalTabsCompat {
             }
             this.apply(view);
         });
+        this.refreshIfStale(views);
+    }
+
+    // 💡 세로 목록의 탭 순서가 실제 순서와 다르면 그 플러그인이 다시 그리게 함 (화면 정리 신호를 보냄)
+    // Pane Relief의 "n번째 자리로 옮기기" 등은 신호 없이 순서만 바꿔서 목록이 그대로 남음
+    // 같은 순서로는 한 번만 보냄 (그 플러그인이 아직 다시 그리기 전에 또 불려도 되풀이하지 않게)
+    private refreshIfStale(views: Set<HTMLElement>) {
+        const leafById = this.leavesById();
+        if (![...views].some(view => this.isStale(view, leafById))) {
+            this.refreshedOrder = null;
+            return;
+        }
+        const order = [...leafById.keys()].join();
+        if (order === this.refreshedOrder) return;
+        this.refreshedOrder = order;
+        window.setTimeout(() => this.plugin.app.workspace.trigger('layout-change'), 0);
+    }
+
+    // 💡 같은 창(그 플러그인의 그룹 줄) 안에서 이웃한 두 탭 줄이 실제 탭 순서와 거꾸로인지
+    private isStale(view: HTMLElement, leafById: Map<string, ReturnType<typeof internal>>): boolean {
+        const items = Array.from(view.querySelectorAll(TAB_SELECTOR));
+        return items.some((item, i) => {
+            const prev = items[i - 1];
+            if (!prev || prev.parentElement?.closest('.tree-item.is-group') !== item.parentElement?.closest('.tree-item.is-group')) return false;
+            const a = leafById.get(prev.getAttribute('data-id') ?? '');
+            const b = leafById.get(item.getAttribute('data-id') ?? '');
+            const children = a?.parent?.children;
+            if (!a || !b || !children || b.parent !== a.parent) return false;
+            return children.indexOf(a as never) > children.indexOf(b as never);
+        });
+    }
+
+    private leavesById() {
+        const leafById = new Map<string, ReturnType<typeof internal>>();
+        // 💡 콜백이 참 값을 돌려주면 순회가 멈추므로 중괄호로 감쌈
+        this.plugin.app.workspace.iterateAllLeaves(leaf => { leafById.set(internal(leaf).id, internal(leaf)); });
+        return leafById;
     }
 
     apply(view: HTMLElement) {
@@ -59,9 +98,7 @@ export class VerticalTabsCompat {
         const plugin = this.plugin;
         view.querySelectorAll('.tab-group-vt-header').forEach(el => el.remove());
 
-        const leafById = new Map<string, ReturnType<typeof internal>>();
-        // 💡 콜백이 참 값을 돌려주면 순회가 멈추므로 중괄호로 감쌈
-        plugin.app.workspace.iterateAllLeaves(leaf => { leafById.set(internal(leaf).id, internal(leaf)); });
+        const leafById = this.leavesById();
         const groupOf = (item: Element) => {
             const leaf = leafById.get(item.getAttribute('data-id') ?? '');
             return leaf ? plugin.leafGroupMap.get(leaf as never) ?? null : null;

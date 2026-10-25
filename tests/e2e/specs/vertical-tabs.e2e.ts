@@ -295,9 +295,10 @@ describe('Vertical Tabs plugin', function () {
 
     });
 
-    // 💡 Pane Relief "Swap tab with next"와 같은 방법: 탭 목록을 그 자리에서 바꾸고 selectTab만 부름 (layout-change 없음)
-    async function swapLikePaneRelief(title: string, step: 1 | -1) {
-        await browser.executeObsidian(({ app }, title, step) => {
+    // 💡 Pane Relief "Swap tab with next"·"Place as 1st tab"과 같은 방법: 탭 목록을 그 자리에서 바꾸고 selectTab만 부름 (layout-change 없음)
+    // to: 몇 칸 옮길지(step) 또는 어느 자리로 옮길지(index)
+    async function moveLikePaneRelief(title: string, to: { step: number } | { index: number }) {
+        await browser.executeObsidian(({ app }, title, to) => {
             type Parent = { children: unknown[]; selectTab(leaf: unknown): void };
             let leaf: { parent: Parent } | null = null;
             app.workspace.iterateRootLeaves(l => { if (l.getDisplayText() === title) leaf = l as never; });
@@ -305,16 +306,24 @@ describe('Vertical Tabs plugin', function () {
             const list = found.parent.children;
             const from = list.indexOf(found);
             list.splice(from, 1);
-            list.splice(from + step, 0, found);
+            list.splice('index' in to ? to.index : from + to.step, 0, found);
             found.parent.selectTab(found);
-        }, title, step);
+        }, title, to);
     }
 
     it('keeps the list in the same order as the tab bar after a Pane Relief swap', async function () {
         // 그룹 맨 끝 탭(Beta)을 뒤로 → 자리는 그대로 두고 그룹에서 빠짐 (플러그인이 순서를 되돌림)
-        await swapLikePaneRelief('Beta', 1);
+        await moveLikePaneRelief('Beta', { step: 1 });
         await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
         expect(await titles()).toEqual(['Alpha', 'Beta', 'Gamma', 'Delta']);
         await browser.waitUntil(async () => (await listTitles()).join() === 'Alpha,Beta,Gamma,Delta', { timeoutMsg: `list: ${(await listTitles()).join()}` });
+    });
+
+    it('redraws the list when a tab is moved several places like Pane Relief "Place as 1st tab"', async function () {
+        // 일반 탭(Delta)을 맨 앞(그룹 라벨 앞)으로 → 그룹 밖 맨 앞, 세로 목록도 따라감
+        await moveLikePaneRelief('Delta', { index: 0 });
+        await browser.waitUntil(async () => (await titles()).join() === 'Delta,Alpha,Beta,Gamma', { timeoutMsg: `titles: ${(await titles()).join()}` });
+        await browser.waitUntil(async () => (await listTitles()).join() === 'Delta,Alpha,Beta,Gamma', { timeoutMsg: `list: ${(await listTitles()).join()}` });
+        expect(await members('Work')).toEqual(['Alpha', 'Beta']);
     });
 });
