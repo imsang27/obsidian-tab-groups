@@ -23,6 +23,7 @@ Chrome-style tab groups for Obsidian. Name and color related tabs, and collapse 
 * **Open from the file explorer:** Clicking a note that is already open inside a collapsed group expands the group and switches to that tab instead of opening a new one.
 * **Saved across restarts:** Groups, their colors, the tabs they contain, and their collapsed state are restored when Obsidian reopens.
 * **Hide and reopen groups:** Like Chrome, hide a group to close its tabs while keeping the group. Reopen it later from the settings or the command palette, and its tabs come back in the same order. Renamed notes are followed.
+* **Reopen closed tabs into their group:** Like Chrome, **Undo close tab** (Ctrl+Shift+T) puts a closed tab back in its group, in the same place. If you hid or deleted a whole group, it brings back the whole group with all its tabs.
 
   ![Hiding the Reading group from its label's menu, then reopening it from the command palette with Reopen a hidden group](./docs/images/demo-hide.gif)
 

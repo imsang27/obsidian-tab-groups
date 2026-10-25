@@ -10,6 +10,7 @@ interface TabGroupsPlugin {
     groups: Map<string, unknown>;
     settings: Record<string, unknown>;
     applyGroupStyle(): void;
+    reopen: { clear(): void };
     saveSettings(): Promise<void>;
 }
 
@@ -42,6 +43,9 @@ export async function resetWorkspace(notes: string[] = NOTES, settings: Record<s
         });
         leaves.forEach(leaf => leaf.detach());
         plugin.groups.clear();
+        // 💡 지난 테스트에서 닫은 탭이 닫은 탭 다시 열기로 열리지 않게
+        (workspace as unknown as { undoHistory: unknown[] }).undoHistory.length = 0;
+        plugin.reopen.clear();
         Object.assign(plugin.settings, { groupStyle: 'underline', labelTabCount: 'off', removeEmptyGroups: false, lockGroupedTabs: false, suggestGroupName: false, groupSets: [] }, settings);
         plugin.applyGroupStyle();
         await plugin.saveSettings();

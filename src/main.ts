@@ -24,6 +24,7 @@ import { VerticalTabsDrag } from './vertical-tabs-drag';
 import { PRESET_COLORS } from './ui/color-palette';
 import { GroupStyle, applyGroupStyle } from './group-style';
 import { SavedTab, renameSavedTabs } from './saved-tabs';
+import { ReopenClosedTabs } from './reopen-closed';
 
 export interface TabGroupData {
     name: string;
@@ -68,6 +69,9 @@ export default class TabGroupsPlugin extends Plugin {
 
     // ✨ 단축키·다른 플러그인으로 탭을 옮겼을 때의 그룹 편입·이탈 담당
     tabMoves: TabMoveTracker = new TabMoveTracker(this);
+
+    // ✨ 닫은 탭 다시 열기(Ctrl+Shift+T)로 연 탭을 원래 그룹에 되돌리기 담당
+    reopen: ReopenClosedTabs = new ReopenClosedTabs(this);
 
     // 💡 설정 화면 (그룹이 바뀌면 목록을 다시 받아 둠)
     settingTab: TabGroupsSettingTab | null = null;
@@ -247,15 +251,19 @@ export default class TabGroupsPlugin extends Plugin {
 
     // 💡 그룹 해제 (크롬과 같음): 탭은 일반 탭으로 남기고 그룹 정보를 지웁니다.
     async ungroupGroup(groupId: string) {
+        this.reopen.forget(groupId);
         this.groupLeaves(groupId).forEach(leaf => this.leafGroupMap.delete(leaf));
         this.groups.delete(groupId);
         await this.saveSettings();
         this.enforcePhysicalSorting();
     }
 
-    // 💡 그룹 삭제 (크롬과 같음): 그룹의 탭을 모두 닫고 그룹 정보도 지웁니다. (다시 열 수 없음)
+    // 💡 그룹 삭제 (크롬과 같음): 그룹의 탭을 모두 닫고 그룹 정보도 지웁니다.
+    // 크롬처럼 닫은 탭 다시 열기(Ctrl+Shift+T)로 되살릴 수 있습니다. (열린 탭이 없던 그룹은 되살리지 않음)
     async deleteGroup(groupId: string) {
         const leaves = this.groupLeaves(groupId);
+        if (leaves.length > 0) this.reopen.rememberGroupClose(groupId);
+        else this.reopen.forget(groupId);
         leaves.forEach(leaf => this.leafGroupMap.delete(leaf));
         this.groups.delete(groupId);
         leaves.forEach(leaf => leaf.detach());
@@ -266,6 +274,7 @@ export default class TabGroupsPlugin extends Plugin {
     // 💡 그룹 숨기기 (크롬과 같음): 그룹의 탭을 닫되 그룹과 탭 목록은 남겨, 나중에 다시 열 수 있게 합니다.
     async hideGroup(groupId: string) {
         const leaves = this.groupLeaves(groupId);
+        this.reopen.rememberGroupClose(groupId);
         this.layout.prepareHide(groupId);
         leaves.forEach(leaf => this.leafGroupMap.delete(leaf));
         leaves.forEach(leaf => leaf.detach());

@@ -79,6 +79,8 @@ export class GroupLayout {
                     if (plugin.tabMoves.applyMove(container, options.dropped)) groupChanged = true;
                 });
             }
+            // 💡 다시 연(Ctrl+Shift+T) 그룹 탭을 그룹에 되돌림 (그룹이 두 창에 걸치는지 보기 전에)
+            if (plugin.reopen.update()) groupChanged = true;
             if (this.detachStrayTabs()) groupChanged = true;
             if (this.removeClosedGroups()) groupChanged = true;
             if (this.updateSavedTabs()) groupChanged = true;
@@ -147,6 +149,7 @@ export class GroupLayout {
 
             [...tabContainers, ...stackedContainers].forEach(container => plugin.tabMoves.remember(container));
             this.rememberMembers();
+            plugin.reopen.remember();
             if (groupChanged) void plugin.saveSettings(); // ✨ 그룹 소속이 바뀌었으니 data.json에 저장
         } finally {
             // ✨ 우리 작업이 완벽히 끝나면 감시자를 다시 가동합니다.
