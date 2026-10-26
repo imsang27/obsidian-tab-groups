@@ -27,6 +27,8 @@ describe('Vertical Tabs plugin', function () {
     });
 
     afterEach(async function () {
+        // 💡 실패한 테스트가 남긴 메뉴가 다음 테스트의 클릭을 가리지 않게
+        if (await $('.menu').isExisting()) await browser.keys(Key.Escape);
         await setVerticalTabs(false);
         // 💡 끈 뒤 "최근 탭"이 사이드바 탭으로 남으면 다음 테스트가 첫 노트를 사이드바에 열어서, 편집 영역 탭을 고름
         await browser.executeObsidian(({ app }) => {
@@ -334,5 +336,29 @@ describe('Vertical Tabs plugin', function () {
         await browser.pause(1500);
         await expect(header('Play')).toBeExisting();
         await expect(row('Gamma')).toHaveElementClass('tab-group-vt-member');
+    });
+
+    // 💡 그 플러그인의 탭 줄 메뉴에도 탭 바 메뉴처럼 그룹 항목이 붙는지
+    // 그룹 이름에 큰따옴표가 들어가서 XPath 문자열은 작은따옴표로
+    const menuItem = (title: string) => $('.menu').$(`.//div[contains(@class, "menu-item-title") and normalize-space()='${title}']`);
+
+    it('adds a tab to a group from the row menu in the vertical list', async function () {
+        await row('Gamma').waitForExist();
+        await row('Gamma').$('.tree-item-self').click({ button: 'right' });
+        await menuItem('Add to "Work"').waitForDisplayed({ timeoutMsg: 'no group items in the row menu' });
+        await menuItem('Add to "Work"').click();
+        await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha,Beta,Gamma', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
+        await expect(row('Gamma')).toHaveElementClass('tab-group-vt-member');
+    });
+
+    it('removes a tab from its group from the row menu in the vertical list', async function () {
+        await row('Beta').waitForExist();
+        await row('Beta').$('.tree-item-self').click({ button: 'right' });
+        await menuItem('Remove from group').waitForDisplayed({ timeoutMsg: 'no group items in the row menu' });
+        // 💡 그 플러그인의 항목(닫기 등)은 그대로 있음
+        await expect(menuItem('Close others')).toBeDisplayed();
+        await menuItem('Remove from group').click();
+        await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
+        await expect(row('Beta')).not.toHaveElementClass('tab-group-vt-member');
     });
 });
