@@ -90,6 +90,7 @@
 | **창** | 메인 창과 팝업 창. 라벨을 끌어 그룹째 다른 창으로 옮기기 | |
 | **탭 옮기기** | 드래그, [Pane Relief](https://github.com/pjeby/pane-relief)의 탭 이동(swap) 같은 단축키 이동 | |
 | **배치** | 일반 탭 바, 탭 쌓기(Stacked tabs) 모드 (그룹 막대를 그룹 색으로 칠하고 첫 막대에 그룹 이름을 보여 줌) | 탭 쌓기 모드에서 그룹 접기: 그 모드에서는 탭이 그대로 보이고, 일반 탭 바로 돌아오면 다시 접힘 |
+| **다른 플러그인** | [Vertical Tabs](https://github.com/oxdc/obsidian-vertical-tabs) (0.18.6에서 확인): 세로 목록에 그룹 색과 머리줄이 보이고, 줄을 끌어 그룹에 넣거나 빼고, 줄 우클릭 메뉴에 그룹 항목이 있음. [Pane Relief](https://github.com/pjeby/pane-relief): 탭 이동("Swap tab")과 n번째 자리로 옮기기("Place as … tab")로 옮긴 탭이 그룹에 들어가고 빠지며, Vertical Tabs 목록도 따라감 | Pane Relief는 테스트에 설치하지 않고, 그 플러그인과 같은 방식으로 탭을 옮겨 확인함. 탭 바를 바꾸는 다른 플러그인은 확인하지 않음 |
 | **플랫폼** | 데스크톱 | 모바일 |
 
 탭 하나만 다른 창으로 옮기면 크롬처럼 그 탭은 그룹에서 빠지고, 그룹은 원래 창에 남습니다.
