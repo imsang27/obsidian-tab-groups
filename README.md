@@ -90,6 +90,7 @@ Open **Settings → Community plugins → Tab Groups**.
 | **Windows** | The main window and pop-out windows. Drag a group's label to move the whole group to another pane | |
 | **Moving tabs** | Drag and drop, and keyboard moves such as [Pane Relief](https://github.com/pjeby/pane-relief)'s "swap tab" | |
 | **Layouts** | The normal tab bar, and stacked tabs mode (group spines are tinted with the group's color, and the first one shows the group's name) | Collapsing a group in stacked tabs mode: its tabs stay visible there, and the group collapses again when you go back to the normal tab bar |
+| **Other plugins** | [Vertical Tabs](https://github.com/oxdc/obsidian-vertical-tabs) (tested with 0.18.6): groups show in its list with their color and a header, dragging a row joins or leaves groups, and its row menu has the group items. [Pane Relief](https://github.com/pjeby/pane-relief): tabs moved with its "Swap tab" and "Place as … tab" commands join or leave groups, and the Vertical Tabs list follows | Pane Relief isn't installed in the tests: its tab moves are checked by doing the same thing it does. Other plugins that change the tab bar haven't been tested |
 | **Platforms** | Desktop | Mobile |
 
 A single tab that you move to another pane leaves its group, like in Chrome. The group stays in its original pane.
