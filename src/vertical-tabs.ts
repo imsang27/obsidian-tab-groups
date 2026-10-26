@@ -7,8 +7,8 @@ import { openEditGroup } from './group-actions';
 // 목록의 탭 줄(.tree-item.is-tab)에는 탭 ID(data-id)가 붙어 있어, 같은 그룹의 탭 줄에 그룹 색을 칠하고
 // 그룹 첫 탭 위에 머리줄(라벨처럼 누르면 접기·펼치기, 우클릭하면 그룹 창)을 끼워 넣습니다. 접힌 그룹의 탭 줄은 숨김.
 // 💡 목록은 그 플러그인(React)이 다시 그리므로, 바뀔 때마다 표시를 다시 붙입니다. (우리가 붙이는 동안은 감시를 멈춰 되풀이하지 않음)
-const VIEW_SELECTOR = '.workspace-leaf-content[data-type="vertical-tabs"]';
-const TAB_SELECTOR = '.tree-item.is-tab[data-id]';
+export const VIEW_SELECTOR = '.workspace-leaf-content[data-type="vertical-tabs"]';
+export const TAB_SELECTOR = '.tree-item.is-tab[data-id]';
 const MEMBER_CLASSES = ['tab-group-vt-member', 'tab-group-vt-first', 'tab-group-vt-last', 'tab-group-vt-hidden'];
 
 export class VerticalTabsCompat {

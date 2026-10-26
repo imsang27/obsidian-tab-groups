@@ -2,8 +2,9 @@ import { Menu, TAbstractFile, WorkspaceLeaf } from 'obsidian';
 import type TabGroupsPlugin from './main';
 import { t } from './i18n';
 import { addToGroup, createGroupWith, removeFromGroup } from './group-actions';
+import { TAB_SELECTOR, VIEW_SELECTOR } from './vertical-tabs';
 
-// ✨ 탭 우클릭 메뉴에 그룹 항목(그룹에서 제외, 다른 그룹에 넣기, 새 탭 그룹 만들기)을 더합니다.
+// ✨ 탭 우클릭 메뉴(Vertical Tabs 목록의 탭 줄 포함)에 그룹 항목(그룹에서 제외, 다른 그룹에 넣기, 새 탭 그룹 만들기)을 더합니다.
 // 옵시디언은 탭 헤더의 file-menu 이벤트에 어떤 탭인지 알려 주지 않으므로, 우클릭한 탭을 먼저 기억해 둡니다.
 // 💡 선택되지 않은 탭을 우클릭하면 옵시디언은 file-menu 없이 짧은 메뉴(닫기 등)만 띄웁니다.
 // 그때는 메뉴가 뜨기 직전(showAtMouseEvent)에 같은 항목을 넣습니다.
@@ -15,7 +16,10 @@ export function registerTabMenu(plugin: TabGroupsPlugin) {
     plugin.registerDomEvent(window, 'contextmenu', (e: MouseEvent) => {
         const target = e.target as HTMLElement;
         const header = target.closest<HTMLElement>('.workspace-tab-header');
-        lastClickedLeaf = header ? plugin.findLeafFromHeader(header) : null;
+        // 💡 Vertical Tabs 목록의 탭 줄도: 그 플러그인은 file-menu 없이 자기 메뉴를 이 이벤트로 띄움
+        const row = target.closest<HTMLElement>(`${VIEW_SELECTOR} ${TAB_SELECTOR}`);
+        const rowId = row?.getAttribute('data-id');
+        lastClickedLeaf = header ? plugin.findLeafFromHeader(header) : rowId ? plugin.app.workspace.getLeafById(rowId) : null;
         lastContextEvent = lastClickedLeaf ? e : null;
     }, { capture: true });
 
