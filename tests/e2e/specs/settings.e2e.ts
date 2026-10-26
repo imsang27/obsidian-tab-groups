@@ -1,6 +1,6 @@
 import { $, browser, expect } from '@wdio/globals';
 import { Key } from 'webdriverio';
-import { addToGroup, choose, createGroup, groupCount, label, resetWorkspace, runCommand, tab, tabHeader, tabs, waitForMembers } from '../helpers';
+import { addToGroup, choose, createGroup, groupCount, label, resetWorkspace, runCommand, tab, tabs, waitForMembers, selectTab } from '../helpers';
 
 // 💡 그룹 라벨에 보이는 탭 개수 (안 보이면 null)
 async function labelCount(name: string): Promise<string | null> {
@@ -9,7 +9,7 @@ async function labelCount(name: string): Promise<string | null> {
 }
 
 async function closeTab(title: string) {
-    await tabHeader(title).click();
+    await selectTab(title);
     await browser.keys([Key.Ctrl, 'w']);
     await browser.waitUntil(async () => !(await tabs()).some(info => info.title === title));
 }
@@ -62,7 +62,7 @@ describe('settings', function () {
             await addToGroup('Beta', 'Work');
             expect(await labelCount('Work')).toBeNull();
 
-            await tabHeader('Gamma').click();
+            await selectTab('Gamma');
             await label('Work').click();
             await browser.waitUntil(async () => (await labelCount('Work')) === '2', { timeoutMsg: 'the collapsed group showed no count' });
         });
@@ -81,7 +81,7 @@ describe('settings', function () {
     describe('suggest a name and color for new groups', function () {
         // 💡 지금 탭으로 새 그룹 창을 열어 미리 채워진 이름을 읽음
         async function suggestedName(title: string): Promise<string> {
-            await tabHeader(title).click();
+            await selectTab(title);
             await runCommand('Tab Groups: Create tab group from the current tab');
             const input = $('.modal input[type="text"]');
             await input.waitForDisplayed();
@@ -129,7 +129,7 @@ describe('settings', function () {
         it('replaces the note in the grouped tab when off', async function () {
             await resetWorkspace(['Alpha', 'Beta']);
             await createGroup('Alpha', 'Work');
-            await tabHeader('Alpha').click();
+            await selectTab('Alpha');
             await quickOpen('Delta');
 
             expect((await tabs()).map(info => info.title)).toEqual(['Delta', 'Beta']);
@@ -138,7 +138,7 @@ describe('settings', function () {
         it('opens the note in a new tab and keeps the grouped tab when on', async function () {
             await resetWorkspace(['Alpha', 'Beta'], { lockGroupedTabs: true });
             await createGroup('Alpha', 'Work');
-            await tabHeader('Alpha').click();
+            await selectTab('Alpha');
             await quickOpen('Delta');
 
             const titles = (await tabs()).map(info => info.title);

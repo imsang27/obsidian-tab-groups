@@ -1,11 +1,11 @@
 import { browser, expect } from '@wdio/globals';
 import { Key } from 'webdriverio';
-import { addToGroup, createGroup, label, members, resetWorkspace, tab, tabHeader, titles } from '../helpers';
+import { addToGroup, createGroup, label, members, resetWorkspace, tab, titles, selectTab } from '../helpers';
 
 // 💡 단축키로 탭을 한 칸씩 옮길 때 (Pane Relief 같은 플러그인). 옵시디언에는 탭 이동 명령이 없어서
 // 테스트 전용 플러그인(tests/e2e/plugins/e2e-move-tab)의 Ctrl+Shift+PageUp/PageDown을 누릅니다.
 async function moveActiveTab(title: string, key: 'PageUp' | 'PageDown') {
-    await tabHeader(title).click();
+    await selectTab(title);
     const before = (await titles()).join();
     const groupBefore = (await tab(title)).group;
     await browser.keys([Key.Ctrl, Key.Shift, key === 'PageUp' ? Key.PageUp : Key.PageDown]);

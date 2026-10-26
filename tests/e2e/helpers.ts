@@ -65,7 +65,7 @@ export async function resetWorkspace(notes: string[] = NOTES, settings: Record<s
 // 💡 탭을 골라 "새 창으로 옮기기" 명령으로 팝아웃 창을 엽니다. 팝아웃 창의 핸들을 돌려줍니다. (지금 창은 그대로)
 export async function moveToNewWindow(title: string): Promise<string> {
     const current = await browser.getWindowHandle();
-    await tabHeader(title).click();
+    await selectTab(title);
     await runCommand('Move current tab to new window');
     await browser.waitUntil(async () => (await browser.getWindowHandles()).length > 1, { timeoutMsg: 'no new window' });
     const popout = (await browser.getWindowHandles()).find(handle => handle !== current)!;
@@ -111,6 +111,12 @@ export function tabHeader(title: string) {
     return $(`.workspace-tab-header[aria-label="${title}"]`);
 }
 
+// 💡 탭을 눌러 고르고, 정말 골라질 때까지 기다립니다. (CI처럼 느리면 클릭이 늦게 반영돼, 바로 실행한 명령이 앞의 탭에 적용됨)
+export async function selectTab(title: string) {
+    await tabHeader(title).click();
+    await browser.waitUntil(async () => (await tab(title)).active, { timeoutMsg: `${title} was not selected` });
+}
+
 export function label(name: string) {
     return $(`.tab-group-label*=${name}`);
 }
@@ -131,7 +137,7 @@ export async function runCommand(name: string) {
 
 // 💡 탭을 클릭해 고른 뒤 명령으로 그룹을 만들고, 창에 이름을 입력합니다.
 export async function createGroup(title: string, name: string) {
-    await tabHeader(title).click();
+    await selectTab(title);
     await runCommand('Tab Groups: Create tab group from the current tab');
     const input = $('.modal input[type="text"]');
     await input.waitForDisplayed();
@@ -142,7 +148,7 @@ export async function createGroup(title: string, name: string) {
 
 // 💡 탭을 고른 뒤 명령으로 지금 있는 그룹에 넣습니다.
 export async function addToGroup(title: string, name: string) {
-    await tabHeader(title).click();
+    await selectTab(title);
     await runCommand('Tab Groups: Add the current tab to a group');
     await choose(name);
     await browser.waitUntil(async () => (await tab(title)).group !== null);

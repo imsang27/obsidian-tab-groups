@@ -1,6 +1,6 @@
 import { $, browser, expect } from '@wdio/globals';
 import { Key } from 'webdriverio';
-import { addToGroup, clickButton, createGroup, groupCount, label, members, resetWorkspace, runCommand, choose, tab, tabHeader, titles, waitForMembers } from '../helpers';
+import { addToGroup, clickButton, createGroup, groupCount, label, members, resetWorkspace, runCommand, choose, tab, titles, waitForMembers, selectTab } from '../helpers';
 
 // 💡 닫은 탭 다시 열기(Ctrl+Shift+T)로 연 탭이 원래 그룹·자리로 돌아오는지
 // 시작: [Work] Alpha Beta Gamma | Delta
@@ -14,7 +14,7 @@ describe('reopening closed tabs', function () {
     });
 
     async function closeTab(title: string) {
-        await tabHeader(title).click();
+        await selectTab(title);
         await runCommand('Close current tab');
         await browser.waitUntil(async () => !(await titles()).includes(title), { timeoutMsg: `${title} stayed open` });
     }
@@ -47,7 +47,7 @@ describe('reopening closed tabs', function () {
 
     it('expands a collapsed group to show the reopened tab', async function () {
         await closeTab('Beta');
-        await tabHeader('Delta').click();
+        await selectTab('Delta');
         await label('Work').click();
         await browser.waitUntil(async () => (await tab('Alpha')).hidden, { timeoutMsg: 'the group did not collapse' });
 

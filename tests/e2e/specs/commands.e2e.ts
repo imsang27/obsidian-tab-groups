@@ -1,5 +1,5 @@
 import { browser, expect } from '@wdio/globals';
-import { addToGroup, choose, createGroup, label, resetWorkspace, runCommand, tab, tabHeader, tabs } from '../helpers';
+import { addToGroup, choose, createGroup, label, resetWorkspace, runCommand, tab, tabs, selectTab } from '../helpers';
 
 // 💡 명령 팔레트로 그룹 여러 개를 다루는 명령들
 // 시작: [Work] Alpha Beta | [Play] Gamma | Delta
@@ -9,7 +9,7 @@ describe('commands', function () {
         await createGroup('Alpha', 'Work');
         await addToGroup('Beta', 'Work');
         await createGroup('Gamma', 'Play');
-        await tabHeader('Delta').click();
+        await selectTab('Delta');
     });
 
     async function active(): Promise<string | undefined> {
@@ -45,7 +45,7 @@ describe('commands', function () {
     it('expands a collapsed group when going to it', async function () {
         await label('Play').click();
         await browser.waitUntil(async () => (await tab('Gamma')).hidden);
-        await tabHeader('Alpha').click();
+        await selectTab('Alpha');
 
         await runCommand('Tab Groups: Go to the next group');
         await browser.waitUntil(async () => (await active()) === 'Gamma', { timeoutMsg: 'did not go to Play' });
@@ -54,7 +54,7 @@ describe('commands', function () {
     });
 
     it("hides the current tab's group", async function () {
-        await tabHeader('Beta').click();
+        await selectTab('Beta');
         await runCommand("Tab Groups: Hide the current tab's group");
 
         await browser.waitUntil(async () => !(await tabs()).some(info => info.title === 'Alpha' || info.title === 'Beta'), { timeoutMsg: 'the group was not hidden' });

@@ -1,5 +1,5 @@
 import { $, browser, expect } from '@wdio/globals';
-import { addToGroup, clickButton, createGroup, dragTo, dragToWindow, label, members, moveToNewWindow, openNextTo, resetWorkspace, runCommand, tabHeader, titles } from '../helpers';
+import { addToGroup, clickButton, createGroup, dragTo, dragToWindow, label, members, moveToNewWindow, openNextTo, resetWorkspace, runCommand, tabHeader, titles, selectTab } from '../helpers';
 
 // 💡 팝아웃 창(옵시디언의 "새 창으로 옮기기"로 연 별도 창)에서도 그룹이 똑같이 동작하는지
 // 시작: 메인 창 [Work] Alpha Beta | Gamma Delta
@@ -41,7 +41,7 @@ describe('pop-out windows', function () {
     });
 
     it('moves the current tab\'s group to a new window from the command palette', async function () {
-        await tabHeader('Beta').click();
+        await selectTab('Beta');
         await runCommand("Tab Groups: Move the current tab's group to a new window");
         await expectGroupInNewWindow();
     });
@@ -106,7 +106,7 @@ describe('pop-out windows', function () {
         await createGroup('Delta', 'Pop');
         await addToGroup('Epsilon', 'Pop');
         await browser.waitUntil(async () => (await titles()).join() === 'Delta,Epsilon,Gamma');
-        await tabHeader('Gamma').click();
+        await selectTab('Gamma');
 
         await browser.executeObsidian(({ app }) => {
             app.workspace.iterateAllLeaves(leaf => {

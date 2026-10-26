@@ -1,6 +1,6 @@
 import { $, $$, browser, expect } from '@wdio/globals';
 import { Key } from 'webdriverio';
-import { addToGroup, createGroup, dragTo, label, members, openInSplit, panes, resetWorkspace, tab, tabHeader, titles } from '../helpers';
+import { addToGroup, createGroup, dragTo, label, members, openInSplit, panes, resetWorkspace, tab, titles, selectTab } from '../helpers';
 
 // 💡 쌓인 탭(Stacked tabs) 모드: 탭 머리가 화면 사이의 세로 막대가 됨
 // 시작: [Work] Alpha Beta | Gamma Delta
@@ -101,7 +101,7 @@ describe('stacked tabs', function () {
     });
 
     it('collapses the group to its label from the label, and expands it again', async function () {
-        await tabHeader('Gamma').click();
+        await selectTab('Gamma');
         await setStacked(true);
         await stackedLabel('Work').click();
 
@@ -134,7 +134,7 @@ describe('stacked tabs', function () {
     });
 
     it('stays collapsed through stacked mode and back to the tab bar', async function () {
-        await tabHeader('Gamma').click();
+        await selectTab('Gamma');
         await label('Work').click();
         await browser.waitUntil(async () => (await tab('Alpha')).hidden);
 
@@ -180,7 +180,7 @@ describe('stacked tabs', function () {
     });
 
     it('moves a collapsed group as a whole and keeps it collapsed', async function () {
-        await tabHeader('Gamma').click();
+        await selectTab('Gamma');
         await setStacked(true);
         await stackedLabel('Work').click();
         await browser.waitUntil(async () => !(await spine('Beta').isDisplayed()));
@@ -282,7 +282,7 @@ describe('stacked tabs', function () {
 
     // 💡 그룹 맨 끝 자리(Beta와 Gamma 사이)는 탭 바처럼 커서로 나눔: 그룹 마지막 탭 위면 편입, 다음 막대 쪽이면 그룹 밖
     it('joins the group at its end when a spine is dropped on the last tab of the group', async function () {
-        await tabHeader('Beta').click();
+        await selectTab('Beta');
         await setStacked(true);
         expect(await dragSpine('Delta', 'Beta', 'page')).toEqual({ shown: true, inGroup: true });
         await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha,Beta,Delta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
@@ -291,7 +291,7 @@ describe('stacked tabs', function () {
 
     it('joins the group at its end over its last spine even when its page is covered', async function () {
         // 💡 Delta가 열려 있으면 Beta 화면은 가려지고 막대만 붙어 있음 → Beta 막대 오른쪽 끝 위면 편입
-        await tabHeader('Delta').click();
+        await selectTab('Delta');
         await setStacked(true);
         expect(await dragSpine('Delta', 'Beta', 'end')).toEqual({ shown: true, inGroup: true });
         await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha,Beta,Delta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
@@ -299,7 +299,7 @@ describe('stacked tabs', function () {
     });
 
     it('stays out of the group at its end when a spine is dropped next to the following spine', async function () {
-        await tabHeader('Beta').click();
+        await selectTab('Beta');
         await setStacked(true);
         expect(await dragSpine('Delta', 'Gamma')).toEqual({ shown: true, inGroup: false });
         await browser.waitUntil(async () => (await titles()).join() === 'Alpha,Beta,Delta,Gamma', { timeoutMsg: `titles: ${(await titles()).join()}` });
@@ -307,7 +307,7 @@ describe('stacked tabs', function () {
     });
 
     it('keeps a tab right after the group out of it when it is dragged in place', async function () {
-        await tabHeader('Gamma').click();
+        await selectTab('Gamma');
         await setStacked(true);
         // 💡 Gamma를 제 화면 위에서 끌었다 놓음 → 빈 막대 없이 그대로 그룹 밖
         expect(await dragSpine('Gamma', 'Gamma', 'page')).toEqual({ shown: false, inGroup: false });
@@ -322,7 +322,7 @@ describe('stacked tabs', function () {
     });
 
     it('takes the last tab out of the group in place when it is dropped next to the following spine', async function () {
-        await tabHeader('Beta').click();
+        await selectTab('Beta');
         await setStacked(true);
         expect(await dragSpine('Beta', 'Gamma')).toEqual({ shown: true, inGroup: false });
         await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
@@ -336,7 +336,7 @@ describe('stacked tabs', function () {
 
     // 💡 접힌 그룹에는 탭 바처럼 들어가지 않음 (라벨 막대 하나만 보임)
     it('does not join a collapsed group when a spine is dropped next to it', async function () {
-        await tabHeader('Gamma').click();
+        await selectTab('Gamma');
         await setStacked(true);
         await stackedLabel('Work').click();
         await browser.waitUntil(async () => !(await spine('Beta').isDisplayed()));

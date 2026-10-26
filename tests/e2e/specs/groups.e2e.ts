@@ -1,6 +1,6 @@
 import { $, browser, expect } from '@wdio/globals';
 import { Key } from 'webdriverio';
-import { addToGroup, choose, clickButton, createGroup, groupCount, label, resetWorkspace, runCommand, tab, tabHeader, tabs, waitForMembers } from '../helpers';
+import { addToGroup, choose, clickButton, createGroup, groupCount, label, resetWorkspace, runCommand, tab, tabs, waitForMembers, selectTab } from '../helpers';
 
 describe('groups', function () {
     beforeEach(async function () {
@@ -18,7 +18,7 @@ describe('groups', function () {
 
     it('adds the current tab to a group and keeps the group together', async function () {
         await createGroup('Alpha', 'Work');
-        await tabHeader('Gamma').click();
+        await selectTab('Gamma');
         await runCommand('Tab Groups: Add the current tab to a group');
         await choose('Work');
 
@@ -29,7 +29,7 @@ describe('groups', function () {
 
     it('collapses and expands the group when its label is clicked', async function () {
         await createGroup('Alpha', 'Work');
-        await tabHeader('Alpha').click();
+        await selectTab('Alpha');
 
         await label('Work').click();
         await browser.waitUntil(async () => (await tab('Alpha')).hidden);
@@ -46,7 +46,7 @@ describe('groups', function () {
     it('keeps a collapsed group collapsed when the tab after it is closed', async function () {
         await createGroup('Beta', 'Work');
         await addToGroup('Gamma', 'Work');
-        await tabHeader('Delta').click();
+        await selectTab('Delta');
         await label('Work').click();
         await browser.waitUntil(async () => (await tab('Beta')).hidden);
 
@@ -63,7 +63,7 @@ describe('groups', function () {
     it('moves to the other side when the collapsed group comes after the closed tab', async function () {
         await createGroup('Gamma', 'Work');
         await addToGroup('Delta', 'Work');
-        await tabHeader('Beta').click();
+        await selectTab('Beta');
         await label('Work').click();
         await browser.waitUntil(async () => (await tab('Gamma')).hidden);
 
@@ -80,7 +80,7 @@ describe('groups', function () {
         await resetWorkspace(['Alpha', 'Beta', 'Gamma']);
         await createGroup('Alpha', 'Work');
         await addToGroup('Beta', 'Work');
-        await tabHeader('Gamma').click();
+        await selectTab('Gamma');
         await label('Work').click();
         await browser.waitUntil(async () => (await tab('Alpha')).hidden);
 
@@ -94,7 +94,7 @@ describe('groups', function () {
 
     it('creates a group from all ungrouped tabs', async function () {
         await createGroup('Alpha', 'Work');
-        await tabHeader('Gamma').click();
+        await selectTab('Gamma');
         await runCommand('Tab Groups: Create tab group from all ungrouped tabs');
         const input = $('.modal input[type="text"]');
         await input.waitForDisplayed();
@@ -172,7 +172,7 @@ describe('groups', function () {
 
     it('hides a group and reopens it with the same tabs', async function () {
         await createGroup('Alpha', 'Work');
-        await tabHeader('Beta').click();
+        await selectTab('Beta');
         await runCommand('Tab Groups: Add the current tab to a group');
         await choose('Work');
         await browser.waitUntil(async () => (await tab('Beta')).group !== null);
