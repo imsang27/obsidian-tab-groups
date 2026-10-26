@@ -1,5 +1,5 @@
 import { $, browser, expect } from '@wdio/globals';
-import { addToGroup, createGroup, resetWorkspace, tabHeader } from '../helpers';
+import { addToGroup, createGroup, resetWorkspace, tabHeader, selectTab } from '../helpers';
 
 // 💡 그룹 탭 밑줄(::before)의 스타일 값
 async function underline(title: string) {
@@ -19,10 +19,10 @@ describe('group style', function () {
     });
 
     it('marks the tab just before the active tab', async function () {
-        await tabHeader('Gamma').click();
+        await selectTab('Gamma');
         await expect(tabHeader('Beta')).toHaveElementClass('tab-group-before-active');
 
-        await tabHeader('Delta').click();
+        await selectTab('Delta');
         await expect(tabHeader('Gamma')).toHaveElementClass('tab-group-before-active');
         await expect(tabHeader('Beta')).not.toHaveElementClass('tab-group-before-active');
     });
@@ -35,7 +35,7 @@ describe('group style', function () {
             document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
         });
         try {
-            await tabHeader('Delta').click();
+            await selectTab('Delta');
             expect(await underline('Alpha')).toMatchObject({ content: '""', marginLeft: '0px', marginRight: '0px', right: '0px' });
         } finally {
             await browser.execute(() => { document.adoptedStyleSheets = document.adoptedStyleSheets.slice(0, -1); });

@@ -1,6 +1,6 @@
 import { $, $$, browser, expect } from '@wdio/globals';
 import { Key } from 'webdriverio';
-import { createGroup, groupCount, label, resetWorkspace, tabHeader, tabs, waitForMembers } from '../helpers';
+import { createGroup, groupCount, label, resetWorkspace, tabs, waitForMembers, selectTab } from '../helpers';
 
 // 💡 설정 → 커뮤니티 플러그인 → Tab Groups 화면을 사람처럼 조작합니다.
 // 옵시디언 1.13부터는 getSettingDefinitions(), 그 전에는 display()로 그려서 latest와 earliest가 서로 다른 코드를 확인합니다.
@@ -60,7 +60,7 @@ async function savedSetting(key: string): Promise<unknown> {
 }
 
 async function closeTab(title: string) {
-    await tabHeader(title).click();
+    await selectTab(title);
     await browser.keys([Key.Ctrl, 'w']);
     await browser.waitUntil(async () => !(await tabs()).some(info => info.title === title));
 }

@@ -1,6 +1,6 @@
 import { $, browser, expect } from '@wdio/globals';
 import { Key } from 'webdriverio';
-import { addToGroup, clickButton, createGroup, label, members, resetWorkspace, runCommand, tab, tabHeader, titles } from '../helpers';
+import { addToGroup, clickButton, createGroup, label, members, resetWorkspace, runCommand, tab, titles, selectTab } from '../helpers';
 
 // 💡 Vertical Tabs 플러그인(꺼진 채 설치됨)을 켜고, 그 세로 탭 목록에 그룹이 보이는지 봅니다.
 // 시작: [Work] Alpha Beta | Gamma Delta
@@ -74,7 +74,7 @@ describe('Vertical Tabs plugin', function () {
     });
 
     it('collapses and expands the group from its header, like the label', async function () {
-        await tabHeader('Gamma').click();
+        await selectTab('Gamma');
         await header('Work').waitForExist();
         await header('Work').click();
 
@@ -129,7 +129,7 @@ describe('Vertical Tabs plugin', function () {
 
     it('keeps the group together and settles when Vertical Tabs sorts tabs by title', async function () {
         // 💡 제목순(Alpha Beta Delta Gamma)이면 갈라지는 그룹: [Work] Alpha Gamma
-        await tabHeader('Beta').click();
+        await selectTab('Beta');
         await runCommand('Tab Groups: Remove the current tab from its group');
         await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
         await addToGroup('Gamma', 'Work');
@@ -201,7 +201,7 @@ describe('Vertical Tabs plugin', function () {
     }
 
     it('shows a placeholder in the group color where a dragged row will join the group', async function () {
-        await tabHeader('Delta').click();
+        await selectTab('Delta');
         // 그룹 탭 둘 사이 (Beta 위쪽 절반 → Beta 앞)
         expect(await dragRow('Delta', row('Beta'), r => r.top + 4)).toEqual({ shown: true, inGroup: true });
         await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha,Delta,Beta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
@@ -210,7 +210,7 @@ describe('Vertical Tabs plugin', function () {
     });
 
     it('tells joining from leaving at the end of the group by the cursor, like the tab bar', async function () {
-        await tabHeader('Delta').click();
+        await selectTab('Delta');
         // 그룹 마지막 탭(Beta) 아래쪽 절반 → 그룹 맨 끝으로 편입
         expect(await dragRow('Delta', row('Beta'), r => r.bottom - 4)).toEqual({ shown: true, inGroup: true });
         await browser.waitUntil(async () => (await members('Work')).join() === 'Alpha,Beta,Delta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
@@ -222,7 +222,7 @@ describe('Vertical Tabs plugin', function () {
     });
 
     it('stays out of the group when a row is dropped on the upper half of its header', async function () {
-        await tabHeader('Delta').click();
+        await selectTab('Delta');
         // 머리줄 위쪽 절반 → 빈 줄은 머리줄 앞, 그룹 밖
         expect(await dragRow('Delta', header('Work'), r => r.top + 3)).toEqual({ shown: true, inGroup: false });
         await browser.waitUntil(async () => (await titles()).join() === 'Delta,Alpha,Beta,Gamma', { timeoutMsg: `titles: ${(await titles()).join()}` });
@@ -237,7 +237,7 @@ describe('Vertical Tabs plugin', function () {
         await createGroup('Gamma', 'Play');
         await addToGroup('Delta', 'Play');
         await header('Play').waitForExist();
-        await tabHeader('Epsilon').click();
+        await selectTab('Epsilon');
 
         // 뒤 그룹 첫 탭(Gamma) 위쪽 → 뒤 그룹 맨 앞
         expect(await dragRow('Epsilon', row('Gamma'), r => r.top + 4)).toEqual({ shown: true, inGroup: true });
@@ -272,12 +272,12 @@ describe('Vertical Tabs plugin', function () {
 
     it('moves a row to the front of the group and joins it', async function () {
         await reloadTabGroups();
-        await tabHeader('Delta').click();
+        await selectTab('Delta');
         // 그룹 첫 탭(Alpha) 위 → 머리줄 뒤, 그룹 맨 앞으로 편입
         expect(await dragRow('Delta', row('Alpha'), r => r.top + 4)).toEqual({ shown: true, inGroup: true });
         await browser.waitUntil(async () => (await members('Work')).join() === 'Delta,Alpha,Beta', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
         // 그룹 안의 탭도 맨 앞으로
-        await tabHeader('Beta').click();
+        await selectTab('Beta');
         expect(await dragRow('Beta', row('Delta'), r => r.top + 4)).toEqual({ shown: true, inGroup: true });
         await browser.waitUntil(async () => (await members('Work')).join() === 'Beta,Delta,Alpha', { timeoutMsg: `Work: ${(await members('Work')).join()}` });
         await browser.waitUntil(async () => (await listTitles()).join() === (await titles()).join(), { timeoutMsg: `list: ${(await listTitles()).join()} / tab bar: ${(await titles()).join()}` });
@@ -286,10 +286,10 @@ describe('Vertical Tabs plugin', function () {
     it('keeps the list in the same order as the tab bar when tabs are moved with hotkeys', async function () {
         await reloadTabGroups();
         // 접힌 그룹을 단축키로 건너뜀 → 플러그인이 순서를 다시 맞춤
-        await tabHeader('Gamma').click();
+        await selectTab('Gamma');
         await label('Work').click();
         await browser.waitUntil(async () => (await tab('Alpha')).hidden);
-        await tabHeader('Gamma').click();
+        await selectTab('Gamma');
         await browser.keys([Key.Ctrl, Key.Shift, Key.PageUp]);
         await browser.waitUntil(async () => (await titles()).join() === 'Gamma,Alpha,Beta,Delta', { timeoutMsg: `titles: ${(await titles()).join()}` });
         await browser.waitUntil(async () => (await listTitles()).join() === 'Gamma,Alpha,Beta,Delta', { timeoutMsg: `list: ${(await listTitles()).join()}` });

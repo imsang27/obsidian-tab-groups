@@ -1,6 +1,6 @@
 import { $, $$, browser, expect } from '@wdio/globals';
 import { Key } from 'webdriverio';
-import { addToGroup, choose, createGroup, groupCount, label, resetWorkspace, runCommand, tab, tabHeader, tabs, waitForMembers } from '../helpers';
+import { addToGroup, choose, createGroup, groupCount, label, resetWorkspace, runCommand, tab, tabs, waitForMembers, selectTab } from '../helpers';
 
 // 💡 그룹 세트: 그룹 구성을 이름 붙여 저장했다가 다시 엽니다.
 // 시작: [Work] Alpha Beta | [Play] Gamma | Delta
@@ -37,7 +37,7 @@ describe('group sets', function () {
     }
 
     it('saves the groups and opens them again, collapsed or not', async function () {
-        await tabHeader('Delta').click();
+        await selectTab('Delta');
         await label('Play').click();
         await browser.waitUntil(async () => (await tab('Gamma')).hidden);
         await saveSet('Morning');
