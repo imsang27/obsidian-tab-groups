@@ -71,8 +71,8 @@ Open **Settings → Community plugins → Tab Groups**.
 * **Group style:** **Underline** (default) shows a small label and a colored line under the group's tabs. **Classic** shows a colored line on top of each tab with a light tint.
 
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./docs/images/group-styles-dark.png">
-    <img alt="Underline (top) and Classic (bottom) group styles. In each style, the second row shows the first group collapsed." src="./docs/images/group-styles-light.png">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/imsang27/obsidian-tab-groups/HEAD/docs/images/group-styles-dark.png">
+    <img alt="Underline (top) and Classic (bottom) group styles. In each style, the second row shows the first group collapsed." src="https://raw.githubusercontent.com/imsang27/obsidian-tab-groups/HEAD/docs/images/group-styles-light.png">
   </picture>
 
 * **Tab count on group labels:** **Off** (default), **Collapsed groups**, or **All groups**. Shows how many tabs a group has next to its name, counting the hidden tabs of a collapsed group.
