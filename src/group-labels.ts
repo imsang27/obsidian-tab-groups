@@ -1,4 +1,4 @@
-import { WorkspaceLeaf, WorkspaceSplit } from 'obsidian';
+import { WorkspaceLeaf, WorkspaceSplit, setTooltip } from 'obsidian';
 import type TabGroupsPlugin from './main';
 import type { TabGroupData } from './main';
 import { setGroupColor } from './group-style';
@@ -171,9 +171,22 @@ export class GroupLabels {
         labelEl.toggleClass('is-collapsed', groupData.isCollapsed);
         setGroupColor(labelEl, groupData.color);
 
+        // 💡 마우스를 올리면 그룹의 탭 제목을 보여 줌 (접힌 그룹의 숨은 탭도. 노트 이름이 바뀌면 라벨이 다시 그려져 따라감)
+        setTooltip(labelEl, tabTitles(plugin, groupId), { placement: 'bottom' });
+
         // 리더 탭 앞에 삽입
         container.insertBefore(labelEl, leaderEl);
     }
+}
+
+// 💡 라벨 툴팁에 보일 그룹의 탭 제목 (탭 바 순서, 한 줄에 하나). 많으면 앞의 몇 개와 남은 개수만
+const MAX_TOOLTIP_TITLES = 10;
+function tabTitles(plugin: TabGroupsPlugin, groupId: string): string {
+    const leaves = plugin.groupLeaves(groupId);
+    const order = (leaf: WorkspaceLeaf) => internal(leaf).parent?.children.indexOf(leaf) ?? 0;
+    const titles = leaves.sort((a, b) => order(a) - order(b)).map(leaf => leaf.getDisplayText());
+    if (titles.length <= MAX_TOOLTIP_TITLES) return titles.join('\n');
+    return [...titles.slice(0, MAX_TOOLTIP_TITLES), `… +${titles.length - MAX_TOOLTIP_TITLES}`].join('\n');
 }
 
 // 💡 선택된 탭 바로 앞 요소(탭이나 라벨)에 표시를 붙입니다. 밑줄 모양에서 그 요소의 밑줄을

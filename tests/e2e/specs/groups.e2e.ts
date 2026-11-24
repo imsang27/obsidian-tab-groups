@@ -209,4 +209,43 @@ describe('groups', function () {
         expect((await tabs()).map(info => info.title)).toEqual(['Beta', 'Gamma', 'Delta']);
         expect(await groupCount()).toBe(0);
     });
+
+    // 💡 라벨에 마우스를 올리면 옵시디언 툴팁에 그룹의 탭 제목이 한 줄에 하나씩
+    async function labelTooltip(name: string): Promise<string[]> {
+        await $('.workspace-leaf.mod-active .view-content').moveTo();
+        await $('.tooltip').waitForExist({ reverse: true });
+        await label(name).moveTo();
+        await $('.tooltip').waitForDisplayed({ timeoutMsg: 'no tooltip on the label' });
+        return (await browser.execute(() => (document.querySelector('.tooltip') as HTMLElement).innerText)).split('\n');
+    }
+
+    it('shows the titles of the group\'s tabs when hovering over its label', async function () {
+        await createGroup('Alpha', 'Work');
+        await addToGroup('Beta', 'Work');
+        await addToGroup('Gamma', 'Work');
+        await waitForMembers('Work', ['Alpha', 'Beta', 'Gamma']);
+        expect(await labelTooltip('Work')).toEqual(['Alpha', 'Beta', 'Gamma']);
+
+        // 접힌 그룹도 숨은 탭 제목을 보여 줌
+        await selectTab('Delta');
+        await label('Work').click();
+        await browser.waitUntil(async () => (await tab('Alpha')).hidden);
+        expect(await labelTooltip('Work')).toEqual(['Alpha', 'Beta', 'Gamma']);
+    });
+
+    it('follows a renamed note in the label tooltip', async function () {
+        await createGroup('Alpha', 'Work');
+        await addToGroup('Beta', 'Work');
+        await waitForMembers('Work', ['Alpha', 'Beta']);
+        const rename = (from: string, to: string) => browser.executeObsidian(async ({ app }, from, to) => {
+            await app.fileManager.renameFile(app.vault.getFileByPath(from)!, to);
+        }, from, to);
+        await rename('Beta.md', 'Beta renamed.md');
+        try {
+            await browser.waitUntil(async () => (await tabs()).some(info => info.title === 'Beta renamed'));
+            expect(await labelTooltip('Work')).toEqual(['Alpha', 'Beta renamed']);
+        } finally {
+            await rename('Beta renamed.md', 'Beta.md');
+        }
+    });
 });
