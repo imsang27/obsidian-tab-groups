@@ -60,6 +60,16 @@ export async function resetWorkspace(notes: string[] = NOTES, settings: Record<s
     await browser.waitUntil(async () => (await tabs()).map(tab => tab.title).join() === titles.join(), {
         timeoutMsg: `tabs didn't open: ${notes.join(', ')}`,
     });
+    await waitForTabBar();
+}
+
+// 💡 탭 바의 애니메이션이 끝날 때까지 기다립니다. 옵시디언 1.15부터 탭을 열고 닫으면 탭 너비가 0.2초쯤 늘고 줄어,
+// 그 사이에 잰 탭 가운데를 누르면 클릭할 때는 옆으로 밀린 탭의 닫기 버튼을 눌러 탭이 닫힙니다. (끌기 위치도 어긋남)
+export async function waitForTabBar() {
+    await browser.waitUntil(() => browser.execute(() => !document.getAnimations().some(animation => {
+        const target = (animation.effect as KeyframeEffect | null)?.target;
+        return target instanceof Element && (target.matches('.workspace-tab-header, .tab-group-label') || !!target.closest('.workspace-tab-header-container'));
+    })), { timeoutMsg: 'the tab bar kept animating' });
 }
 
 // 💡 탭을 골라 "새 창으로 옮기기" 명령으로 팝아웃 창을 엽니다. 팝아웃 창의 핸들을 돌려줍니다. (지금 창은 그대로)
@@ -113,6 +123,7 @@ export function tabHeader(title: string) {
 
 // 💡 탭을 눌러 고르고, 정말 골라질 때까지 기다립니다. (CI처럼 느리면 클릭이 늦게 반영돼, 바로 실행한 명령이 앞의 탭에 적용됨)
 export async function selectTab(title: string) {
+    await waitForTabBar();
     await tabHeader(title).click();
     await browser.waitUntil(async () => (await tab(title)).active, { timeoutMsg: `${title} was not selected` });
 }
@@ -176,6 +187,7 @@ type WdioElement = ReturnType<typeof $>;
 // 끌기 시작하면 끄는 탭이 숨고 자리 표시가 생겨 다른 탭 자리가 바뀝니다. 놓을 지점은 그 뒤에,
 // 플러그인이 자리를 정할 때와 같은 기준(자리 표시를 뺀 배치, tab-drag.ts의 is-measuring)으로 잽니다.
 export async function dragTo(source: WdioElement, target: WdioElement, at: number) {
+    await waitForTabBar();
     await browser.execute(async (sourceEl: HTMLElement, targetEl: HTMLElement, at: number) => {
         const wait = (ms: number) => new Promise(resolve => window.setTimeout(resolve, ms));
         const dataTransfer = new DataTransfer();
@@ -211,6 +223,7 @@ export async function dragTo(source: WdioElement, target: WdioElement, at: numbe
 
 // 💡 끄는 도중의 화면을 보려고, 끌기를 시작·이동·끝내기로 나눠 보냅니다. (드롭하지 않고 끝내면 아무 데도 옮기지 않음)
 export async function startDrag(source: WdioElement) {
+    await waitForTabBar();
     await browser.execute((sourceEl: HTMLElement) => {
         const r = sourceEl.getBoundingClientRect();
         const init = { bubbles: true, cancelable: true, composed: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, dataTransfer: new DataTransfer() };
@@ -272,6 +285,7 @@ export async function openInSplit(name: string) {
 // 창마다 문서가 달라서, 끌기 시작(dragstart)과 끝(dragend)은 출발 창에서, 지나가기(dragover)와 놓기(drop)는 도착 창에서 보냅니다.
 export async function dragToWindow(source: string, targetWindow: string, target: string, at: number) {
     const sourceWindow = await browser.getWindowHandle();
+    await waitForTabBar();
     await browser.execute((source: string) => {
         const el = document.querySelector(source);
         if (!el) throw new Error(`No ${source}`);
