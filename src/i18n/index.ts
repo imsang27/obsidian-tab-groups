@@ -3,6 +3,7 @@ import de from './locales/de.json';
 import en from './locales/en.json';
 import es from './locales/es.json';
 import fr from './locales/fr.json';
+import it from './locales/it.json';
 import ja from './locales/ja.json';
 import ko from './locales/ko.json';
 import ptBR from './locales/pt-br.json';
@@ -21,6 +22,7 @@ const LOCALES = {
     de: { name: 'Deutsch', strings: de },
     es: { name: 'Español', strings: es },
     fr: { name: 'Français', strings: fr },
+    it: { name: 'Italiano', strings: it },
     'pt-br': { name: 'Português (Brasil)', strings: ptBR },
     ru: { name: 'Русский', strings: ru },
     ja: { name: '日本語', strings: ja },

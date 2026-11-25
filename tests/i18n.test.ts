@@ -32,6 +32,7 @@ describe('setLanguage("auto")', () => {
         ['ko', 'ko'],
         ['zh-TW', 'zh-tw'], // 같은 코드
         ['zh', 'zh'],
+        ['it', 'it'],
         ['de-AT', 'de'], // 기본 언어로
         ['pt', 'pt-br'], // 같은 계열로
         ['en-GB', 'en'],
