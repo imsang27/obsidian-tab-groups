@@ -28,7 +28,7 @@ Chrome-style tab groups for Obsidian. Name and color related tabs, and collapse 
   ![Hiding the Reading group from its label's menu, then reopening it from the command palette with Reopen a hidden group](./docs/images/demo-hide.gif)
 
 * **Group sets:** Like workspaces, save your current groups (names, colors, collapsed state and tabs) as a named set, and open the set again later. Renamed notes are followed.
-* **10 languages:** The tab menu and group windows follow the Obsidian language by default. You can pick a language in the plugin settings. [Help translate](./docs/translating.md) it into your language!
+* **11 languages:** The tab menu and group windows follow the Obsidian language by default. You can pick a language in the plugin settings. [Help translate](./docs/translating.md) it into your language!
 * **Pop-out windows:** Groups are shown and kept in pop-out windows too.
 * **Works with [Vertical Tabs](https://github.com/oxdc/obsidian-vertical-tabs):** In its vertical tab list, grouped tabs get the group's color in the chosen group style and a header with the group's name and tab count. Click the header to collapse or expand the group, or right-click it for the group window. Right-clicking a tab in the list shows the same group items as the tab bar menu (remove from group, add to another group, create tab group). Dragging a tab in the list shows where it will go like in the tab bar, in the group's color when it will join the group. The slot follows the cursor like in the tab bar: past the middle of a row (or a group's header) puts the tab after it, and at the end of a group, the lower half of its last tab joins while further down stays out.
 
@@ -67,7 +67,7 @@ Open **Settings → Community plugins → Tab Groups**.
 
 ![Switching the group style from Underline to Classic, which changes the tab bar right away, then reopening the hidden Archive group from the group list](./docs/images/demo-settings.gif)
 
-* **Language:** Auto (follows Obsidian), English, Deutsch, Español, Français, Português (Brasil), Русский, 日本語, 한국어, 简体中文, 繁體中文.
+* **Language:** Auto (follows Obsidian), English, Deutsch, Español, Français, Italiano, Português (Brasil), Русский, 日本語, 한국어, 简体中文, 繁體中文.
 * **Group style:** **Underline** (default) shows a small label and a colored line under the group's tabs. **Classic** shows a colored line on top of each tab with a light tint.
 
   <picture>
@@ -123,6 +123,7 @@ This project is built on the Obsidian sample plugin template.
 | Language | Status |
 | --- | --- |
 | 한국어 | Written by the maintainer (native speaker) |
+| Italiano | Contributed by [@FedericoBoccaccioPersonale](https://github.com/FedericoBoccaccioPersonale) |
 | English, Deutsch, Español, Français, Português (Brasil), Русский, 日本語, 简体中文, 繁體中文 | AI-assisted, not yet reviewed by native speakers |
 
 > [!NOTE]
