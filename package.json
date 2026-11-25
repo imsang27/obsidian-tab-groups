@@ -48,10 +48,10 @@
 		"obsidian": "latest",
 		"pngjs": "^7.0.0",
 		"typescript": "^6.0.3",
-		"typescript-eslint": "^8.71.2",
+		"typescript-eslint": "^8.72.1",
 		"vitest": "^5.0.5",
-		"wdio-obsidian-reporter": "^3.3.0",
-		"wdio-obsidian-service": "^3.3.0",
+		"wdio-obsidian-reporter": "^3.4.0",
+		"wdio-obsidian-service": "^3.4.0",
 		"webdriverio": "^9.32.0"
 	},
 	"overrides": {
