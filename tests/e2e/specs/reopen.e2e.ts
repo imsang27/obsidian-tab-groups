@@ -1,6 +1,6 @@
 import { $, browser, expect } from '@wdio/globals';
 import { Key } from 'webdriverio';
-import { addToGroup, clickButton, createGroup, groupCount, label, members, resetWorkspace, runCommand, choose, tab, titles, waitForMembers, selectTab } from '../helpers';
+import { addToGroup, clickButton, createGroup, groupCount, label, members, openNextTo, resetWorkspace, runCommand, choose, tab, titles, waitForMembers, selectTab } from '../helpers';
 
 // 💡 닫은 탭 다시 열기(Ctrl+Shift+T)로 연 탭이 원래 그룹·자리로 돌아오는지
 // 시작: [Work] Alpha Beta Gamma | Delta
@@ -61,6 +61,36 @@ describe('reopening closed tabs', function () {
         await closeTab('Delta');
         await undoClose();
         await browser.waitUntil(async () => (await titles()).includes('Delta'), { timeoutMsg: 'Delta did not reopen' });
+        expect((await tab('Delta')).group).toBeNull();
+        await waitForMembers('Work', ['Alpha', 'Beta', 'Gamma']);
+    });
+
+    // 💡 그룹 밖 탭도 맨 오른쪽이 아니라 닫힌 자리로
+    async function openMore(notes: string[], expected: string[]) {
+        await openNextTo('Delta', notes);
+        await browser.waitUntil(async () => (await titles()).join() === expected.join(), { timeoutMsg: `tabs didn't open: ${notes.join(', ')}` });
+    }
+
+    it('reopens a closed tab outside groups in the same place', async function () {
+        await openMore(['Epsilon'], ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon']);
+        await closeTab('Delta');
+
+        await undoClose();
+        await browser.waitUntil(async () => (await titles()).join() === 'Alpha,Beta,Gamma,Delta,Epsilon', { timeoutMsg: `order: ${(await titles()).join()}` });
+        expect((await tab('Delta')).group).toBeNull();
+        expect((await tab('Delta')).active).toBe(true);
+        await waitForMembers('Work', ['Alpha', 'Beta', 'Gamma']);
+    });
+
+    it('reopens tabs outside groups closed one after another in their places', async function () {
+        await openMore(['Epsilon', 'Projects/Plan'], ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Plan']);
+        await closeTab('Delta');
+        await closeTab('Plan');
+
+        await undoClose();
+        await browser.waitUntil(async () => (await titles()).join() === 'Alpha,Beta,Gamma,Epsilon,Plan', { timeoutMsg: `order: ${(await titles()).join()}` });
+        await undoClose();
+        await browser.waitUntil(async () => (await titles()).join() === 'Alpha,Beta,Gamma,Delta,Epsilon,Plan', { timeoutMsg: `order: ${(await titles()).join()}` });
         expect((await tab('Delta')).group).toBeNull();
         await waitForMembers('Work', ['Alpha', 'Beta', 'Gamma']);
     });
@@ -198,6 +228,23 @@ describe('reopening closed tabs', function () {
             const orders = await stackedOrders();
             expect(orders.spines).toEqual(orders.children);
             expect(orders.views).toEqual(orders.children);
+        } finally {
+            await setStacked(false);
+        }
+    });
+
+    it('reopens a closed tab outside groups in its place in stacked tabs mode', async function () {
+        await openMore(['Epsilon'], ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon']);
+        await setStacked(true);
+        try {
+            await closeTab('Delta');
+
+            await undoClose();
+            await browser.waitUntil(async () => (await stackedOrders()).children.join() === 'Alpha,Beta,Gamma,Delta,Epsilon', { timeoutMsg: `order: ${JSON.stringify(await stackedOrders())}` });
+            const orders = await stackedOrders();
+            expect(orders.spines).toEqual(orders.children);
+            expect(orders.views).toEqual(orders.children);
+            expect((await tab('Delta')).group).toBeNull();
         } finally {
             await setStacked(false);
         }

@@ -8,6 +8,7 @@ import { isStackedContainer, setStackedOrder } from './stacked-order';
 // 옵시디언은 닫은 탭을 다시 열 때 그 탭의 ID를 그대로 되살립니다. 그래서 그룹 탭이 닫힐 때 ID마다 그룹과 자리를 기억해 두었다가,
 // 같은 ID의 탭이 다시 생기면 그 그룹의 원래 자리에 넣습니다. 그사이 그룹이 지워졌으면 같은 이름·색으로 다시 만듭니다.
 // 그룹을 통째로 닫았으면(숨기기·삭제) 그중 한 탭이 다시 열릴 때 나머지 탭도 함께 열어 그룹을 되살립니다.
+// 그룹 밖의 탭도 크롬처럼 닫힌 자리로 되돌립니다. (옵시디언은 맨 오른쪽에 엶)
 
 // 💡 옵시디언 비공개 API: 닫은 탭 기록 (맨 앞이 가장 최근, 최대 10개)
 interface UndoEntry {
@@ -44,8 +45,11 @@ export class ReopenClosedTabs {
     // 💡 지난 정리 때 그룹마다의 탭 ID 순서와 그룹 정보 (탭이 닫힌 뒤에는 읽을 수 없어서 미리 기억)
     private lastOrder = new Map<string, string[]>();
     private lastInfo = new Map<string, GroupInfo>();
-    // 💡 다시 연 탭을 정리 중에 제자리로 옮길 것들
-    private pendingPlaces: { id: string; groupId: string; order: string[] }[] = [];
+    // 💡 그룹 밖 탭: 지난 정리 때 탭마다 그 탭 바의 탭 ID 순서, 그리고 닫힌 탭마다 닫힐 때의 순서
+    private lastSingleOrder = new Map<string, string[]>();
+    private closedSingles = new Map<string, string[]>();
+    // 💡 다시 연 탭을 정리 중에 제자리로 옮길 것들 (groupId가 null이면 그룹 밖 탭)
+    private pendingPlaces: { id: string; groupId: string | null; order: string[] }[] = [];
 
     constructor(private plugin: TabGroupsPlugin) {}
 
@@ -67,6 +71,19 @@ export class ReopenClosedTabs {
         plugin.groups.forEach((group, groupId) => {
             this.lastOrder.set(groupId, plugin.groupLeaves(groupId).map(leaf => internal(leaf).id));
             this.lastInfo.set(groupId, { name: group.name, color: group.color });
+        });
+        // 💡 그룹 밖 탭은 탭 바 전체의 순서를 기억 (이웃이 그룹 탭일 수도 있음)
+        this.lastSingleOrder = new Map();
+        const orders = new Map<unknown, string[]>();
+        plugin.app.workspace.iterateAllLeaves(leaf => {
+            const parent = internal(leaf).parent;
+            if (!parent || plugin.leafGroupMap.has(leaf) || !internal(leaf).tabHeaderEl) return;
+            let order = orders.get(parent);
+            if (!order) {
+                order = parent.children.map(child => internal(child).id);
+                orders.set(parent, order);
+            }
+            this.lastSingleOrder.set(internal(leaf).id, order);
         });
     }
 
@@ -108,6 +125,7 @@ export class ReopenClosedTabs {
     clear() {
         this.closedTabs.clear();
         this.closedGroups = [];
+        this.closedSingles.clear();
         this.pendingPlaces = [];
     }
 
@@ -124,11 +142,20 @@ export class ReopenClosedTabs {
             order.forEach(id => {
                 if (leaves.has(id)) return;
                 this.closedTabs.delete(id);
+                this.closedSingles.delete(id);
                 this.closedTabs.set(id, { groupId, group, order });
             });
         });
+        this.lastSingleOrder.forEach((order, id) => {
+            if (leaves.has(id)) return;
+            this.closedTabs.delete(id);
+            this.closedSingles.delete(id);
+            this.closedSingles.set(id, order);
+        });
         // 💡 오래된 것부터 지움 (Map은 넣은 순서를 지킴)
-        [...this.closedTabs.keys()].slice(0, Math.max(0, this.closedTabs.size - MAX_TABS)).forEach(id => this.closedTabs.delete(id));
+        [this.closedTabs, this.closedSingles].forEach(closed => {
+            [...closed.keys()].slice(0, Math.max(0, closed.size - MAX_TABS)).forEach(id => closed.delete(id));
+        });
     }
 
     // 💡 그룹 밖에 있는 탭 중 ID가 닫힌 그룹 탭과 같은 탭(= 다시 열린 탭)을 그 그룹에 넣습니다.
@@ -146,6 +173,13 @@ export class ReopenClosedTabs {
                 // 💡 나머지 탭은 정리가 끝난 뒤에 엶 (지금은 감시자를 멈추고 탭 바를 정리하는 중)
                 window.setTimeout(() => void this.reopenRest(record, id));
                 changed = true;
+                return;
+            }
+            const single = this.closedSingles.get(id);
+            if (single) {
+                // 💡 그룹 밖 탭은 그룹에 넣지 않고 자리만 되돌림
+                this.closedSingles.delete(id);
+                this.pendingPlaces.push({ id, groupId: null, order: single });
                 return;
             }
             const closed = this.closedTabs.get(id);
@@ -171,6 +205,7 @@ export class ReopenClosedTabs {
     }
 
     // 💡 다시 연 탭을 닫힐 때의 자리로: 그때 바로 앞에 있던 탭 중 지금도 그룹에 있는 탭 뒤 (없으면 뒤에 있던 탭 앞)
+    // 그룹 밖 탭은 같은 탭 바의 아무 탭이나 이웃으로 씀 (그룹 탭 사이에 놓이면 이어지는 정렬이 그룹 뒤로 보냄)
     // 탭 바의 헤더를 옮겨 두면 이어지는 정렬이 그 순서대로 옵시디언 내부 순서도 맞춥니다.
     private placePending(leaves: Map<string, WorkspaceLeaf>) {
         const plugin = this.plugin;
@@ -186,7 +221,8 @@ export class ReopenClosedTabs {
             }
             const neighbor = (id: string) => {
                 const other = leaves.get(id);
-                if (!other || other === leaf || plugin.leafGroupMap.get(other) !== place.groupId) return null;
+                if (!other || other === leaf) return null;
+                if (place.groupId !== null && plugin.leafGroupMap.get(other) !== place.groupId) return null;
                 return internal(other).tabHeaderEl?.parentElement === header.parentElement ? other : null;
             };
             const at = place.order.indexOf(place.id);
